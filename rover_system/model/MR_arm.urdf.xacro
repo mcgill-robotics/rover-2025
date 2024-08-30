@@ -241,5 +241,22 @@
         </geometry>
       </collision>
     </link>
+
+    <!-- Prevent crash in ign gazebo -->
+    <disable_collisions link1="link_1_waist_shoulder" link2="link_2_shoulder_elbow"
+      reason="Adjacent" />
+    <disable_collisions link1="link_2_shoulder_elbow" link2="link_3_elbow_wrist_pitch"
+      reason="Adjacent" />
+    <disable_collisions link1="link_3_elbow_wrist_pitch" link2="link_4_wrist_pitch_wrist_roll"
+      reason="Adjacent" />
+    <disable_collisions link1="link_4_wrist_pitch_wrist_roll" link2="link_5_wrist_roll_end_effector"
+      reason="Adjacent" />
+    <disable_collisions link1="link_5_wrist_roll_end_effector" link2="link_6_end_effector_1"
+      reason="Adjacent" />
+    <disable_collisions link1="link_5_wrist_roll_end_effector" link2="link_7_end_effector_2"
+      reason="Adjacent" />
+    <disable_collisions link1="link_6_end_effector_1" link2="link_7_end_effector_2"
+      reason="Adjacent" />
+
   </xacro:macro>
 </robot>

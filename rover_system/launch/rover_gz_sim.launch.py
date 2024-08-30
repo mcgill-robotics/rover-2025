@@ -82,7 +82,7 @@ def generate_launch_description():
     # Gazebo simulation
     world = LaunchConfiguration("world")
     declare_world_cmd = DeclareLaunchArgument(
-        "world", default_value="maze.sdf", description="World file to use in Gazebo"
+        "world", default_value="warehouse.sdf", description="World file to use in Gazebo"
     )
     gz_world_arg = PathJoinSubstitution(
         [get_package_share_directory("rover_system"), "model", "worlds", world]
@@ -162,7 +162,7 @@ def generate_launch_description():
     ld.add_action(declare_world_cmd)
 
     # Gazebo
-    # ld.add_action(gz_sim)
+    ld.add_action(gz_sim)
     ld.add_action(gz_spawn_entity)
     ld.add_action(gz_ros2_bridge)
 
