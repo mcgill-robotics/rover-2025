@@ -1,0 +1,29 @@
+# Ignore build, install, and log directories for all ROS 2 workspaces
+**/build/
+**/install/
+**/log/
+
+# Python bytecode and virtual environments
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.venv/
+**/venv/
+
+# CMake and build artifacts
+**/CMakeFiles/
+**/CMakeCache.txt
+**/*.so
+**/*.o
+
+# IDE and editor settings
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*~
+
+# Temporary files
+**/*.tmp
+**/*.bak
+**/*.old
+**/*.orig
