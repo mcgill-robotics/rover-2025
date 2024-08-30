@@ -13,28 +13,28 @@ import xacro
 def generate_launch_description():
     rover_pkg_path = get_package_share_path("rover_system")
 
-    default_model_path = rover_pkg_path / "model/two_wheel_robot.urdf"
+    default_model_path = rover_pkg_path / "model/rover.urdf.xacro"
 
     default_rviz_config_path = rover_pkg_path / "rviz/urdf.rviz"
 
-    model_arg = DeclareLaunchArgument(
-        name="model",
-        default_value=str(default_model_path),
-        description="Absolute path to robot urdf file",
-    )
     rviz_arg = DeclareLaunchArgument(
         name="rvizconfig",
         default_value=str(default_rviz_config_path),
         description="Absolute path to rviz config file",
     )
 
+    model_arg = DeclareLaunchArgument(
+        name="model",
+        default_value=str(default_model_path),
+        description="Absolute path to robot urdf file",
+    )
     robot_desc = ParameterValue(
         Command(["xacro ", LaunchConfiguration("model")]), value_type=str
     )
 
-    xacro_file = rover_pkg_path / "model/rover.urdf.xacro"
-    robot_description_config = xacro.process_file(xacro_file)
-    robot_desc = robot_description_config.toxml()
+    # xacro_file = rover_pkg_path / "model/rover.urdf.xacro"
+    # robot_description_config = xacro.process_file(xacro_file)
+    # robot_desc = robot_description_config.toxml()
 
     robot_state_publisher_node = Node(
         package="robot_state_publisher",
