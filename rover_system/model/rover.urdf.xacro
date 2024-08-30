@@ -1,8 +1,8 @@
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="rover">
     <!-- Robot Parameters -->
     <xacro:property name="chassis_mass" value="45.2" />
-    <xacro:property name="pi_constant" value="3.14159" />
-    <xacro:property name="wheel_z_offset" value="${-0.060752 + 0.1 * 2}" />
+    <xacro:property name="M_PI" value="3.14159265" />
+    <xacro:property name="wheel_z_offset" value="${-0.060752 + 0.1}" />
 
     <!-- Part Includes - Payload, Sensors, Etc.. -->
     <xacro:include filename="$(find rover_system)/model/wheel.urdf.xacro" />
@@ -17,18 +17,17 @@
             <origin xyz="0 0 0.1" rpy="0 0 0" />
             <geometry>
                 <mesh
-                    filename="file://$(find rover_system)/model/meshes/Full_Asm_Adjusted.dae" />
+                    filename="file://$(find rover_system)/model/meshes/Full_Asm_noarm_mast_cam.dae" />
             </geometry>
         </visual>
         <collision>
             <origin xyz="0 0 0.1" rpy="0 0 0" />
             <geometry>
-                <mesh
-                    filename="file://$(find rover_system)/model/meshes/Full_Asm_Adjusted.dae" />
-                <!-- <box size="0 0 0" /> -->
+                <!-- <mesh
+                    filename="file://$(find rover_system)/model/meshes/Full_Asm_Adjusted.dae" /> -->
+                <box size="0 0 0" />
             </geometry>
         </collision>
-
         <inertial>
             <origin xyz="0 0 0" rpy="0 0 0" />
             <mass value="${chassis_mass}" />
@@ -43,31 +42,31 @@
     <joint name="base_to_chassis" type="fixed">
         <parent link="base_link" />
         <child link="chassis_link" />
-        <origin xyz="0 0 0.125" />
+        <origin xyz="0 0 0" />
     </joint>
 
     <!-- Wheels -->
-    <xacro:wheel wheel_prefix="lf" parent_link="base_link">
-        <origin xyz="0.5125 -0.316275 ${wheel_z_offset}" rpy="0 0 0" />
+    <xacro:wheel wheel_prefix="lf" parent_link="chassis_link">
+        <origin xyz="0.5125 -0.316275 ${wheel_z_offset}" rpy="0 ${M_PI/2} 0" />
     </xacro:wheel>
 
-    <xacro:wheel wheel_prefix="rf" parent_link="base_link">
-        <origin xyz="-0.5125 -0.316275 ${wheel_z_offset}" rpy="0 0 0" />
+    <xacro:wheel wheel_prefix="rf" parent_link="chassis_link">
+        <origin xyz="-0.5125 -0.316275 ${wheel_z_offset}" rpy="0 ${M_PI/2} 0" />
     </xacro:wheel>
 
-    <xacro:wheel wheel_prefix="lb" parent_link="base_link">
-        <origin xyz="0.5125 0.306875 ${wheel_z_offset}" rpy="0 0 0" />
+    <xacro:wheel wheel_prefix="lb" parent_link="chassis_link">
+        <origin xyz="0.5125 0.306875 ${wheel_z_offset}" rpy="0 ${M_PI/2} 0" />
     </xacro:wheel>
 
-    <xacro:wheel wheel_prefix="rb" parent_link="base_link">
-        <origin xyz="-0.5125 0.306875 ${wheel_z_offset}" rpy="0 0 0" />
+    <xacro:wheel wheel_prefix="rb" parent_link="chassis_link">
+        <origin xyz="-0.5125 0.306875 ${wheel_z_offset}" rpy="0 ${M_PI/2} 0" />
     </xacro:wheel>
 
-    <!-- <xacro:depth_camera parent_link="base_link">
+    <!-- <xacro:depth_camera parent_link="chassis_link">
         <origin xyz="0 -0.41 0.32" rpy="0 0 -1.57079" />
     </xacro:depth_camera> -->
 
-    <xacro:MR_arm parent_link="base_link">
+    <xacro:MR_arm parent_link="chassis_link">
         <origin xyz="0 -0.28 ${0.37}" rpy="0 0 -1.57079" />
     </xacro:MR_arm>
 

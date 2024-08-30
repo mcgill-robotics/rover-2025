@@ -162,7 +162,7 @@ def generate_launch_description():
     ld.add_action(declare_world_cmd)
 
     # Gazebo
-    ld.add_action(gz_sim)
+    # ld.add_action(gz_sim)
     ld.add_action(gz_spawn_entity)
     ld.add_action(gz_ros2_bridge)
 
