@@ -26,9 +26,10 @@
 				</geometry>
 			</visual>
 			<collision>
-				<origin xyz="0.03 0 0" rpy="0 ${M_PI/2} 0" />
+				<!-- <origin xyz="0.03 0 0" rpy="${M_PI/2} ${M_PI/2} 0" /> -->
+				<origin xyz="0 0 0" rpy="0 0 0" />
 				<geometry>
-					<cylinder length="0.2" radius="0.14" />
+					<cylinder length="0.2" radius="0.15" />
 				</geometry>
 			</collision>
 		</link>

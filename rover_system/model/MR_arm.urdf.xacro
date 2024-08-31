@@ -25,6 +25,7 @@
         </geometry>
       </collision>
     </link>
+
     <joint name="joint_waist" type="revolute">
       <origin xyz="0 0 0" rpy="0 0 0" />
       <parent link="link_0_base_waist" />
@@ -40,6 +41,8 @@
         <mass value="0.1" />
         <origin xyz="0 0 0" rpy="0 0 0" />
         <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
+        <gravity>0</gravity>
+        <self_collide>1</self_collide>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
@@ -71,6 +74,8 @@
         <mass value="0.1" />
         <origin xyz="0 0 0" rpy="0 0 0" />
         <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
+        <gravity>0</gravity>
+        <self_collide>1</self_collide>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
@@ -102,6 +107,8 @@
         <mass value="0.1" />
         <origin xyz="0 0 0" rpy="0 0 0" />
         <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
+        <gravity>0</gravity>
+        <self_collide>1</self_collide>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
@@ -133,6 +140,8 @@
         <mass value="0.1" />
         <origin xyz="0 0 0" rpy="0 0 0" />
         <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
+        <gravity>0</gravity>
+        <self_collide>1</self_collide>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
@@ -164,6 +173,8 @@
         <mass value="0.1" />
         <origin xyz="0 0 0" rpy="0 0 0" />
         <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
+        <gravity>0</gravity>
+        <self_collide>1</self_collide>
       </inertial>
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
