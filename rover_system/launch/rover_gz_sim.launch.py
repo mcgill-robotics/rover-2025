@@ -22,7 +22,7 @@ def generate_launch_description():
         get_package_share_directory("rover_system"),
         "model",
         "worlds",
-        "world.sdf",
+        "empty_world.sdf",
     )
 
     # Process xacro or urdf for robot_description
@@ -31,13 +31,7 @@ def generate_launch_description():
         "model",
         # "two_wheel_robot.xacro",
         "rover.urdf.xacro",
-    )
-
-    urdf_file_path = os.path.join(
-        get_package_share_directory("rover_system"),
-        "model",
-        # "two_wheel_robot.urdf",
-        "rover.urdf",
+        # "MR_arm.urdf",
     )
 
     # Method 1
@@ -46,30 +40,6 @@ def generate_launch_description():
     # Method 2
     robot_desc = ParameterValue(Command(["xacro ", xacro_file_path]), value_type=str)
     # robot_desc = ParameterValue(Command(["xacro ", urdf_file_path]), value_type=str)
-
-    # Xacro command to generate URDF
-    xacro_command = [
-        "ros2",
-        "run",
-        "xacro",
-        "xacro",
-        xacro_file_path,
-        "-o",
-        urdf_file_path,
-    ]
-
-    temp_urdf_file = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".urdf")
-    if os.path.exists(temp_urdf_file.name):
-        os.remove(temp_urdf_file.name)
-    urdf_file_path = temp_urdf_file.name
-
-    # Convert XACRO to URDF and write to the temporary file
-    command = f"xacro {xacro_file_path} > {urdf_file_path}"
-    convert_xacro_to_urdf = ExecuteProcess(
-        cmd=[command],
-        shell=True,
-        output="screen",
-    )
 
     # Start Ignition Gazebo with an empty world
     use_sim_time = LaunchConfiguration("use_sim_time")
@@ -82,7 +52,9 @@ def generate_launch_description():
     # Gazebo simulation
     world = LaunchConfiguration("world")
     declare_world_cmd = DeclareLaunchArgument(
-        "world", default_value="warehouse.sdf", description="World file to use in Gazebo"
+        "world",
+        default_value="empty_world.sdf",
+        description="World file to use in Gazebo",
     )
     gz_world_arg = PathJoinSubstitution(
         [get_package_share_directory("rover_system"), "model", "worlds", world]
