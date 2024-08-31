@@ -38,17 +38,17 @@
 			<parent link="${parent_link}" />
 			<child link="${wheel_prefix}_wheel_link" />
 			<xacro:insert_block name="joint_pose" />
-			<xacro:if value="${wheel_prefix == 'left'}">
-				<axis xyz="-1 0 0" rpy="0 0 0" />
+			<xacro:if value="${wheel_prefix == 'lf'}">
+				<axis xyz="0 0 1" />
 			</xacro:if>
-			<xacro:if value="${wheel_prefix == 'right'}">
-				<axis xyz="1 0 0" rpy="0 0 0" />
+			<xacro:if value="${wheel_prefix == 'rf'}">
+				<axis xyz="0 0 1" />
 			</xacro:if>
-			<xacro:if value="${wheel_prefix == 'rear_left'}">
-				<axis xyz="-1 0 0" rpy="0 0 0" />
+			<xacro:if value="${wheel_prefix == 'lb'}">
+				<axis xyz="0 0 1" />
 			</xacro:if>
-			<xacro:if value="${wheel_prefix == 'rear_right'}">
-				<axis xyz="1 0 0" rpy="0 0 0" />
+			<xacro:if value="${wheel_prefix == 'rb'}">
+				<axis xyz="0 0 1" />
 			</xacro:if>
 			<limit effort="300" velocity="50.0" />
 			<!-- <dynamics damping="1" friction="100.0" /> -->

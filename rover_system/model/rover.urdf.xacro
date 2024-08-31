@@ -42,7 +42,7 @@
     <joint name="base_to_chassis" type="fixed">
         <parent link="base_link" />
         <child link="chassis_link" />
-        <origin xyz="0 0 0" />
+        <origin xyz="0 0 0.2" />
     </joint>
 
     <!-- Wheels -->
@@ -82,8 +82,8 @@
 
             <!-- Wheel Information -->
             <left_joint>lf_wheel</left_joint>
-            <left_joint>rf_wheel</left_joint>
-            <right_joint>lb_wheel</right_joint>
+            <left_joint>lb_wheel</left_joint>
+            <right_joint>rf_wheel</right_joint>
             <right_joint>rb_wheel</right_joint>
             <wheel_separation>0.63255</wheel_separation>
             <wheel_radius>0.1</wheel_radius>
