@@ -17,6 +17,7 @@ Visualization Manager:
       Enabled: true
       Name: RobotModel
       Value: true
+      Collision Enabled: true
     - Class: rviz_default_plugins/TF
       Name: TF
       Value: true

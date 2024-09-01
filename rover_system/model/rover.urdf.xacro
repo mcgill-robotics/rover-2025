@@ -21,11 +21,11 @@
             </geometry>
         </visual>
         <collision>
-            <origin xyz="0 0 0.1" rpy="0 0 0" />
+            <origin xyz="0 0 0.2" rpy="0 0 0" />
             <geometry>
                 <!-- <mesh
                     filename="file://$(find rover_system)/model/meshes/Full_Asm_Adjusted.dae" /> -->
-                <!-- <box size="1 1 1" /> -->
+                <box size="0.4 0.6 0.3" />
             </geometry>
         </collision>
         <inertial>
