@@ -20,11 +20,9 @@ def generate_launch_description():
 
     # Process xacro or urdf for robot_description
     xacro_file_path = os.path.join(
-        get_package_share_directory("rover_system"),
+        get_package_share_directory("sim"),
         "model",
-        # "two_wheel_robot.xacro",
         "rover.urdf.xacro",
-        # "MR_arm.urdf",
     )
 
     # Method 1
@@ -50,7 +48,7 @@ def generate_launch_description():
         description="World file to use in Gazebo",
     )
     gz_world_arg = PathJoinSubstitution(
-        [get_package_share_directory("rover_system"), "model", "worlds", world]
+        [get_package_share_directory("sim"), "model", "worlds", world]
     )
     gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -90,6 +88,8 @@ def generate_launch_description():
             "/joint_states@sensor_msgs/msg/JointState[gz.msgs.Model",
             "/scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan",
             "/imu/data@sensor_msgs/msg/Imu@gz.msgs.IMU",
+            "/camera@sensor_msgs/msg/Image@ignition.msgs.Image",
+            '/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo',
         ],
     )
 
@@ -113,7 +113,7 @@ def generate_launch_description():
         arguments=[
             "-d",
             os.path.join(
-                get_package_share_directory("rover_system"),
+                get_package_share_directory("sim"),
                 "rviz",
                 "urdf.rviz",
             ),
@@ -135,6 +135,6 @@ def generate_launch_description():
     ld.add_action(start_robot_state_publisher_cmd)
 
     # RViz
-    # ld.add_action(rviz_cmd)
+    ld.add_action(rviz_cmd)
 
     return ld

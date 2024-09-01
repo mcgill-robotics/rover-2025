@@ -5,10 +5,13 @@
     <xacro:property name="wheel_z_offset" value="${-0.060752 + 0.1}" />
 
     <!-- Part Includes - Payload, Sensors, Etc.. -->
-    <xacro:include filename="$(find rover_system)/model/wheel.urdf.xacro" />
-    <!-- <xacro:include filename="$(find rover_system)/model/depth_camera.urdf.xacro" />a -->
-    <xacro:include filename="$(find rover_system)/model/MR_arm.urdf.xacro" />
-    <xacro:include filename="$(find rover_system)/model/imu.urdf" />
+    <xacro:include filename="$(find sim)/model/wheel.urdf.xacro" />
+    <xacro:include filename="$(find sim)/model/depth_camera.urdf.xacro" />
+    <xacro:include filename="$(find sim)/model/MR_arm.urdf.xacro" />
+    <xacro:include filename="$(find sim)/model/imu.urdf" />
+    <xacro:include filename="$(find sim)/model/lidar.urdf" />
+    <xacro:include filename="$(find sim)/model/camera.urdf.xacro" />
+    <!-- <xacro:include filename="$(find sim)/model/thermal_camera.urdf" /> -->
 
     <!-- Robot Definition -->
     <link name="base_link" />
@@ -68,9 +71,9 @@
     </xacro:depth_camera> -->
 
     <!-- TODO FIXME arm collision crashes gazebo -->
-    <xacro:MR_arm parent_link="chassis_link">
+    <!-- <xacro:MR_arm parent_link="chassis_link">
         <origin xyz="0 -0.28 ${0.37}" rpy="0 0 -1.57079" />
-    </xacro:MR_arm>
+    </xacro:MR_arm> -->
 
     <!-- Gazebo Plugins -->
     <gazebo>
