@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>rover_system</name>
+  <name>cameras</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="mn297@todo.todo">mn297</maintainer>
+  <maintainer email="martin.nguyen3@mail.mcgill.ca">mn297</maintainer>
   <license>TODO: License declaration</license>
 
   <exec_depend>ros2launch</exec_depend>

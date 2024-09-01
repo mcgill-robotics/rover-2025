@@ -22,13 +22,13 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/Link0.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/Link0.stl" />
         </geometry>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/collision_Link0.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/collision_Link0.stl" />
         </geometry>
       </collision>
     </link>
@@ -54,13 +54,13 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/Link1.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/Link1.stl" />
         </geometry>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/collision_Link1.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/collision_Link1.stl" />
         </geometry>
       </collision>
     </link>
@@ -87,13 +87,13 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/Link2.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/Link2.stl" />
         </geometry>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/collision_Link2.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/collision_Link2.stl" />
         </geometry>
       </collision>
     </link>
@@ -120,13 +120,13 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/Link3.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/Link3.stl" />
         </geometry>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/collision_Link3.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/collision_Link3.stl" />
         </geometry>
       </collision>
     </link>
@@ -153,13 +153,13 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/Link4.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/Link4.stl" />
         </geometry>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/collision_Link4.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/collision_Link4.stl" />
         </geometry>
       </collision>
     </link>
@@ -186,13 +186,13 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/Link5.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/Link5.stl" />
         </geometry>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/collision_Link5.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/collision_Link5.stl" />
         </geometry>
       </collision>
     </link>
@@ -227,7 +227,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/finger.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/finger.stl" />
         </geometry>
       </visual>
       <collision>
@@ -249,7 +249,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <mesh filename="file://$(find rover_system)/model/meshes/finger.stl" />
+          <mesh filename="file://$(find sim)/model/meshes/finger.stl" />
         </geometry>
       </visual>
       <collision>

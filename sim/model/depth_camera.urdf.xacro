@@ -16,7 +16,7 @@
             <visual name="kinect_visual">
                 <origin xyz="0 0 0" rpy="0 0 0" />
                 <geometry>
-                    <mesh filename="file://$(find rover_system)/model/meshes/depth_camera.dae"
+                    <mesh filename="file://$(find sim)/model/meshes/depth_camera.dae"
                         scale="1.0 1.0 1.0" />
                 </geometry>
             </visual>
