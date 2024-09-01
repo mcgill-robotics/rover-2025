@@ -18,13 +18,6 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     pkg_ros_gz_sim = get_package_share_directory("ros_gz_sim")
 
-    world_file_path = os.path.join(
-        get_package_share_directory("rover_system"),
-        "model",
-        "worlds",
-        "empty_world.sdf",
-    )
-
     # Process xacro or urdf for robot_description
     xacro_file_path = os.path.join(
         get_package_share_directory("rover_system"),
@@ -53,7 +46,7 @@ def generate_launch_description():
     world = LaunchConfiguration("world")
     declare_world_cmd = DeclareLaunchArgument(
         "world",
-        default_value="empty_world.sdf",
+        default_value="depot.sdf",
         description="World file to use in Gazebo",
     )
     gz_world_arg = PathJoinSubstitution(
