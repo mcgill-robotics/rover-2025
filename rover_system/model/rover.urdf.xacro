@@ -34,7 +34,8 @@
             <!-- TODO FIXME The inertia below is invalid, using dummy 0 inertia -->
             <!-- <inertia ixx="1.7724" ixy="0.0" ixz="0.0" iyy="0.141558" iyz="-0.0" izz="0.179826"
             /> -->
-            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0" />
+            <!-- <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0" /> -->
+            <inertia ixx="1.3569" ixy="0.0" ixz="0.0" iyy="1.924" iyz="0.0" izz="0.847" />
         </inertial>
     </link>
 
