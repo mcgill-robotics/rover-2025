@@ -1,12 +1,13 @@
+#!/usr/bin/env python3
 import threading
 from threading import Lock
-from odrive_interface.msg import MotorState, MotorError
+from control.msg import MotorState, MotorError
 from ODriveJoint import *
 from std_msgs.msg import Float32MultiArray
 from odrive.utils import dump_errors
 from odrive.enums import AxisState, ODriveError, ProcedureResult
 from enum import Enum
-import rospy
+import rospy2 as rospy
 import os
 import sys
 

@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 # Author: mn297
 import scipy.stats as st
 from scipy.ndimage import gaussian_filter1d
-from drive_control.msg import WheelSpeed
-from odrive_interface.msg import MotorState, MotorError, ODriveStatus
+# from drive_control.msg import WheelSpeed
+from control.msg import MotorState, MotorError, ODriveStatus, WheelSpeed
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32MultiArray
 from enum import Enum
@@ -13,7 +14,7 @@ import threading
 from threading import Lock
 from queue import Queue
 
-import rospy
+import rospy2 as rospy
 import os
 import sys
 

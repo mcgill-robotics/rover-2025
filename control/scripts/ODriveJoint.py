@@ -19,7 +19,7 @@ import math
 import sys
 
 try:
-    import rospy
+    import rospy2 as rospy
 
     ROS_ENABLED = True
 except ImportError:

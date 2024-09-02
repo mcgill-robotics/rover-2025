@@ -26,6 +26,30 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+# Specify the path for custom messages
+set(msg_files
+  "msg/MotorError.msg"
+  "msg/MotorState.msg"
+  "msg/ODriveStatus.msg"
+  "msg/WheelSpeed.msg"
+)
+
+# Generate the messages
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${msg_files}
+)
+
+# Install Python scripts
+install(
+  PROGRAMS
+    scripts/node_odrive_arm.py
+    scripts/node_odrive_drive.py
+    scripts/node_odrive_comb.py
+    scripts/ODriveJoint.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 # install(DIRECTORY model/ DESTINATION share/${PROJECT_NAME}/model)
