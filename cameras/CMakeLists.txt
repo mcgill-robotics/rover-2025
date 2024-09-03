@@ -26,6 +26,29 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+# Specify the path for custom messages
+set(msg_files
+  "msg/CameraOrientation.msg"
+)
+
+# Generate the messages
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${msg_files}
+)
+
+# Install Python scripts
+install(
+  PROGRAMS
+    scripts/aruco.py
+    scripts/camera_publisher_1.py
+    scripts/camera_publisher_2.py
+    scripts/camera_subscriber.py
+    scripts/getCameraFeeds.py
+    scripts/realsense_cam.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch)
 # install(DIRECTORY model/ DESTINATION share/${PROJECT_NAME}/model)
