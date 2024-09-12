@@ -5,20 +5,26 @@
     <joint name="camera_to_chassis" type="fixed">
         <parent link="chassis_link" />
         <child link="camera_link" />
-        <origin xyz="0 0 0" rpy="0 0 ${M_PI/2}" />
+        <origin xyz="0 0 0" rpy="0 0 -${M_PI/2}" />
+        <!-- Collision block commented out for now -->
         <!-- <collision name="collision">
             <geometry>
-                <box>
-                    <size>0.1 0.1 0.1</size>
-                </box>
+                <cylinder>
+                    <radius>0.05</radius>
+                    <length>0.2</length>
+                </cylinder>
             </geometry>
         </collision> -->
-        <visual name="visual">
+        <visual name="camera_visual">
             <geometry>
-                <box>
-                    <size>0.1 0.1 0.1</size>
-                </box>
+                <cylinder>
+                    <radius>1</radius>
+                    <length>2</length>
+                </cylinder>
             </geometry>
+            <material>
+                <color rgba="0 0 1 1"/> <!-- Blue color for the camera -->
+            </material>
         </visual>
     </joint>
 
@@ -44,12 +50,11 @@
     </gazebo>
 
     <gazebo>
+        <!-- Plugin for rendering engine, commented out for now -->
         <!-- <plugin
             filename="ignition-gazebo-sensors-system"
             name="ignition::gazebo::systems::Sensors">
             <render_engine>ogre2</render_engine>
         </plugin> -->
     </gazebo>
-
 </robot>
-  
