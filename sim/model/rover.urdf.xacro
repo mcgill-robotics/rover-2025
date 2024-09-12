@@ -71,9 +71,9 @@
     </xacro:depth_camera> -->
 
     <!-- TODO FIXME arm collision crashes gazebo -->
-    <!-- <xacro:MR_arm parent_link="chassis_link">
+    <xacro:MR_arm parent_link="chassis_link">
         <origin xyz="0 -0.28 ${0.37}" rpy="0 0 -1.57079" />
-    </xacro:MR_arm> -->
+    </xacro:MR_arm>
 
     <!-- Gazebo Plugins -->
     <gazebo>
