@@ -7,13 +7,12 @@ package_name = 'drive_control'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=find_packages(exclude=['test']),
+    packages=find_packages(),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.[pxy][yma]*'))),
-        (os.path.join('share', package_name, 'test'), glob(os.path.join('test', '*.[pxy][yma]*')))
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -25,7 +24,8 @@ setup(
     entry_points={
         'console_scripts': [
             'test_pub = test.pub:main',
-            'test_sub = test.sub:main'
+            'test_sub = test.sub:main',
+            'drive_control = scripts.drive_control_node:main'
         ],
     },
 )

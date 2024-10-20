@@ -29,4 +29,5 @@ def generate_launch_description() -> LaunchDescription:
         ]
     )
     
-    return LaunchDescription([game_controller, drive_controller, ros_topic])
+    # return LaunchDescription([game_controller, drive_controller, ros_topic])
+    return LaunchDescription([drive_controller])

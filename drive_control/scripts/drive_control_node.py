@@ -1,3 +1,8 @@
+import os
+import sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(currentdir)
+
 import scipy.stats as st
 from scipy.ndimage import gaussian_filter1d
 from geometry_msgs.msg import Twist
@@ -8,11 +13,8 @@ from steering import Steering
 import numpy as np
 import rclpy
 from rclpy.node import Node
-import os
-import sys
 import time
-currentdir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(currentdir)
+
 
 
 class drive_controller(Node):

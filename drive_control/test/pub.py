@@ -7,7 +7,7 @@ from msg_srv_interface.msg import WheelSpeed
     
 class wheelspeed_publisher(Node):
     def __init__(self):
-        super().__init__('test_sub')
+        super().__init__('test_pub')
         self.twist_pub    = self.create_publisher(Twist,      "rover_velocity_controller/cmd_vel", 10)
         self.feedback_pub = self.create_publisher(WheelSpeed, "/feedback_velocity",                10)
         self.position_pub = self.create_publisher(Pose,       "/position_pose",                    10)
@@ -25,22 +25,22 @@ class wheelspeed_publisher(Node):
         self.get_logger().info('Publishing: {}'.format(self.rover_position)) 
 
     def init_params(self):
-        robot_twist = Twist()
+        robot_twist           = Twist()
         robot_twist.angular.z = 1.0
-        robot_twist.linear.x = 1.0
-        self.robot_twist = robot_twist
+        robot_twist.linear.x  = 1.0
+        self.robot_twist      = robot_twist
         
-        feedback = WheelSpeed()
-        feedback.left[0] = 10
-        feedback.left[1] = 12
+        feedback          = WheelSpeed()
+        feedback.left[0]  = 10
+        feedback.left[1]  = 12
         feedback.right[0] = 20
         feedback.right[1] = 22
-        self.feedback = feedback
+        self.feedback     = feedback
 
         rover_position = Pose()
-        rover_position.position.x = 2.0
-        rover_position.position.y = 3.0
-        rover_position.position.z = 1.0
+        rover_position.position.x    = 2.0
+        rover_position.position.y    = 3.0
+        rover_position.position.z    = 1.0
         rover_position.orientation.x = 0.778
         rover_position.orientation.y = 0.34
         rover_position.orientation.z = 0.35
