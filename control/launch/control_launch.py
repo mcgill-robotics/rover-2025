@@ -9,15 +9,15 @@ def generate_launch_description() -> LaunchDescription:
         executable='GamepadProcess',
         name='gamepad',
         output='screen'
-    ),
+    )
 
     # Node for Drive Controller
     drive_controller = Node(
-        package='drive_control',
-        executable='drive_control_node',
+        package='control',
+        executable='drive_control_node', # Name of executable needs to match node name used console_scripts in setup.py
         name='drive_controller',
         output='screen'
-    ),
+    )
 
     # Set the gamepad to send command to the arm system initially
     ros_topic = Node(
@@ -25,7 +25,7 @@ def generate_launch_description() -> LaunchDescription:
         executable='rostopic',
         name='system_selection',
         ros_arguments=[
-            "pub system_selection std_msgs/Int16 'data: 0'",
+            "pub system_selection std_msgs/Int16 'data: 0'"
         ]
     )
     
