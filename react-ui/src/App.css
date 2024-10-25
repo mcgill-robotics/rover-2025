@@ -1,0 +1,13 @@
+/* Center the header component */
+header {
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* Add padding to the content to avoid overlap with the header */
+.content {
+  border: 2px solid black;
+  height: 70%;
+  padding-top: 30%; /* Adjust this value based on the height of your header */
+}
+
