@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import rospy
+import rclpy
+import sys
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Header
@@ -9,13 +10,14 @@ import numpy as np
 
 class ArmVisualizer:
     def __init__(self):
-        rospy.init_node("arm_visualizer", anonymous=False)
+        rclpy.init(args=sys.argv)
+        self.node = rclpy.create_node("arm_visualizer", anonymous=False)
         self.shutdown_flag = False
 
-        self.joint_state_publisher = rospy.Publisher(
+        self.joint_state_publisher = self.node.create_publisher(
             "/joint_states", JointState, queue_size=10
         )
-        self.rate = rospy.Rate(1000)  # 50 Hz
+        self.rate = rclpy.create_rate(1000)  # 50 Hz
 
         self.joint_state = JointState()
         self.joint_state.header = Header()
@@ -33,12 +35,12 @@ class ArmVisualizer:
         self.joint_positions = np.zeros(len(self.joint_state.name))
 
         # Subscribers for command positions
-        rospy.Subscriber("armBrushedCmd", Float32MultiArray, self.updateArmBrushedCmd)
-        rospy.Subscriber(
+        self.node.create_subscription("armBrushedCmd", Float32MultiArray, self.updateArmBrushedCmd)
+        self.node.create_subscription(
             "armBrushlessCmd", Float32MultiArray, self.updateArmBrushlessCmd
         )
 
-        rospy.on_shutdown(self.shutdown_hook)
+        rclpy.on_shutdown(self.shutdown_hook)
 
         self.run()
 
@@ -74,13 +76,13 @@ class ArmVisualizer:
         self.publish_joint_states()
 
     def publish_joint_states(self):
-        self.joint_state.header.stamp = rospy.Time.now()
+        self.joint_state.header.stamp = self.node.get_clock().now().to_msg()
         self.joint_state.position = self.joint_positions
         self.joint_state_publisher.publish(self.joint_state)
         # print(self.joint_positions)
 
     def run(self):
-        while not rospy.is_shutdown() and not self.shutdown_flag:
+        while not rclpy.ok() and not self.shutdown_flag:
             self.publish_joint_states()
             self.rate.sleep()
 
@@ -88,10 +90,10 @@ class ArmVisualizer:
 if __name__ == "__main__":
     try:
         visualizer = ArmVisualizer()
-        rospy.spin()
-    except rospy.ROSInterruptException:
+        rclpy.spin(visualizer)
+    except rclpy.ROSInterruptException:
         pass
     except KeyboardInterrupt:
         print("Shutting down due to KeyboardInterrupt")
-        rospy.signal_shutdown("KeyboardInterrupt")
+        rclpy.shutdown("KeyboardInterrupt")
         visualizer.shutdown_hook()

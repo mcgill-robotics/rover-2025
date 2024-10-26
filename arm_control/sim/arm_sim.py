@@ -2,7 +2,7 @@
 
 from std_msgs.msg import Float32MultiArray
 from numpy import pi
-import rospy
+import rclpy
 import numpy as np
 import pybullet as p
 import pybullet_data
@@ -44,18 +44,19 @@ class Node_ArmSim:
 
         self.desiredJointPos = [0] * self.numJoints
 
-        rospy.init_node("arm_sim", anonymous=False)
+        rclpy.init(args=sys.argv)
+        node = rclpy.create_node("arm_sim", anonymous=False)
 
-        self.armBrushedSubscriber = rospy.Subscriber(
+        self.armBrushedSubscriber = node.create_subscription(
             "armBrushedCmd", Float32MultiArray, self.updateArmBrushedSim
         )
-        self.armBrushlessSubscriber = rospy.Subscriber(
+        self.armBrushlessSubscriber = node.create_subscription(
             "armBrushlessCmd", Float32MultiArray, self.updateArmBrushlessSim
         )
-        self.armBrushedPublisher = rospy.Publisher(
+        self.armBrushedPublisher = node.create_publisher(
             "armBrushedFb", Float32MultiArray, queue_size=10
         )
-        self.armBrushlessPublisher = rospy.Publisher(
+        self.armBrushlessPublisher = node.create_publisher(
             "armBrushlessFb", Float32MultiArray, queue_size=10
         )
 
@@ -78,7 +79,7 @@ class Node_ArmSim:
         print("Updated desiredJointPos for brushless motors:", self.desiredJointPos)
 
     def run(self):
-        while not rospy.is_shutdown():
+        while not rclpy.ok():
             self.t = self.t + 0.01
             p.stepSimulation()
 
@@ -131,4 +132,4 @@ class Node_ArmSim:
 
 if __name__ == "__main__":
     driver = Node_ArmSim()
-    rospy.spin()
+    rclpy.spin(driver)
