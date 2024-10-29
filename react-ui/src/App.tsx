@@ -17,7 +17,9 @@ function App() {
         <div style={{ display: 'flex' }}>
 
           <Sidebar width="200px" />
-          <div className="content" style={{ border: '2px solid black', height: '70%;', flex: "1" }}>
+          
+
+          <div className="content" style={{ border: '2px solid black', flex: "1" }}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/home" element={<Home />} />
