@@ -5,8 +5,7 @@ import subprocess
 def check_build():
     """
     """
-    #os.chdir("..") #change to workspace directory
-    subprocess.run("pwd") #check which current location
+    subprocess.run("pwd") #checks the current location
     package = input("Package name: ")
     command = ["colcon", "build",  "--packages-select", package]
 
