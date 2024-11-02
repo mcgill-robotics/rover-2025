@@ -1,17 +1,3 @@
-<<<<<<< Updated upstream:arm_control_old/setup.py
-## ! DO NOT MANUALLY INVOKE THIS setup.py, USE CATKIN INSTEAD
-
-from distutils.core import setup
-from catkin_pkg.python_setup import generate_distutils_setup
-
-# fetch values from package.xml
-setup_args = generate_distutils_setup(
-    packages=["arm_control"],
-    package_dir={"": "src"},
-)
-
-setup(**setup_args)
-=======
 from setuptools import find_packages, setup
 
 package_name = 'arm_control'
@@ -37,4 +23,3 @@ setup(
         ],
     },
 )
->>>>>>> Stashed changes:arm_control/setup.py
