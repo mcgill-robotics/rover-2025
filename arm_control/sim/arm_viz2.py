@@ -2,7 +2,8 @@
 
 from std_msgs.msg import Float32MultiArray
 from numpy import pi
-import rospy
+import rclpy 
+from rclpy.node import Node
 import numpy as np
 import pybullet as p
 import pybullet_data
@@ -13,10 +14,10 @@ from threading import Thread
 sys.path.append("..")
 
 
-class Node_ArmVisualizer:
+class Node_ArmVisualizer(Node):
     def __init__(self):
         # Initialize ROS node
-        rospy.init_node("arm_visualizer", anonymous=False)
+        super().__init__("arm_visualizer")
 
         # Initialize PyBullet and load the environment
         p.connect(p.GUI)
@@ -63,17 +64,17 @@ class Node_ArmVisualizer:
         self.jointPosesFb = [0] * self.numJoints
 
         # Subscribers for command and feedback positions
-        self.armBrushedCmdSubscriber = rospy.Subscriber(
-            "armBrushedCmd", Float32MultiArray, self.updateArmBrushedCmd
+        self.armBrushedCmdSubscriber = self.create_subscription(
+            Float32MultiArray, "armBrushedCmd", self.updateArmBrushedCmd, 10
         )
-        self.armBrushlessCmdSubscriber = rospy.Subscriber(
-            "armBrushlessCmd", Float32MultiArray, self.updateArmBrushlessCmd
+        self.armBrushlessCmdSubscriber = self.create_subscription(
+            Float32MultiArray, "armBrushlessCmd", self.updateArmBrushlessCmd, 10
         )
-        self.armBrushedFbSubscriber = rospy.Subscriber(
-            "armBrushedFb", Float32MultiArray, self.updateArmBrushedFb
+        self.armBrushedFbSubscriber = self.create_subscription(
+            Float32MultiArray, "armBrushedFb", self.updateArmBrushedFb, 10
         )
-        self.armBrushlessFbSubscriber = rospy.Subscriber(
-            "armBrushlessFb", Float32MultiArray, self.updateArmBrushlessFb
+        self.armBrushlessFbSubscriber = self.create_subscription(
+            Float32MultiArray, "armBrushlessFb", self.updateArmBrushlessFb, 10
         )
 
         self.run()
@@ -133,20 +134,23 @@ class Node_ArmVisualizer:
             )
 
     def run(self):
-        rate = rospy.Rate(50)  # 50 Hz
-        while not rospy.is_shutdown():
+        rate = self.create_rate(50)  # 50 Hz 
+        while rclpy.ok():
             p.stepSimulation()
-            # rospy.sleep(0.01)
+            # rate.sleep()
 
         p.disconnect()
 
 
 if __name__ == "__main__":
+    rclpy.init(args=sys.argv)
     visualizer = Node_ArmVisualizer()
-    spinner = Thread(target=lambda: rospy.spin())
+    spinner = Thread(target=rclpy.spin, args=(visualizer,))
     spinner.start()
     visualizer.run()
     spinner.join()
+    visualizer.destroy_node()
+    rclpy.shutdown()
     p.disconnect()
 # if __name__ == "__main__":
 #     visualizer = Node_ArmVisualizer()

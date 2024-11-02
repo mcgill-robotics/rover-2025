@@ -3,6 +3,7 @@
 from std_msgs.msg import Float32MultiArray
 from numpy import pi
 import rclpy
+from rclpy.node import Node
 import numpy as np
 import pybullet as p
 import pybullet_data
@@ -12,7 +13,7 @@ import os
 sys.path.append("..")
 
 
-class Node_ArmSim:
+class Node_ArmSim(Node):
 
     def __init__(self):
         p.connect(p.GUI)
@@ -44,7 +45,6 @@ class Node_ArmSim:
 
         self.desiredJointPos = [0] * self.numJoints
 
-        rclpy.init(args=sys.argv)
         node = rclpy.create_node("arm_sim", anonymous=False)
 
         self.armBrushedSubscriber = node.create_subscription(
@@ -131,5 +131,6 @@ class Node_ArmSim:
 
 
 if __name__ == "__main__":
+    rclpy.init(args=sys.argv)
     driver = Node_ArmSim()
     rclpy.spin(driver)
