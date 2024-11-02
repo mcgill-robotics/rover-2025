@@ -2,7 +2,8 @@
 
 from std_msgs.msg import Float32MultiArray
 from numpy import pi
-import rospy
+import rclpy 
+from rclpy.node import Node 
 import numpy as np
 import pybullet as p
 import pybullet_data
@@ -12,8 +13,10 @@ import os
 sys.path.append("..")
 
 
-class Node_ArmVisualizer:
+class Node_ArmVisualizer(Node):
     def __init__(self):
+        super().__init__("arm_visualizer")
+        
         # Initialize PyBullet and load the environment
         p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -65,20 +68,18 @@ class Node_ArmVisualizer:
         self.jointPosesCmd = [0] * self.numJoints
         self.jointPosesFb = [0] * self.numJoints
 
-        rospy.init_node("arm_visualizer", anonymous=False)
-
         # Subscribers for command and feedback positions
-        self.armBrushedCmdSubscriber = rospy.Subscriber(
-            "armBrushedCmd", Float32MultiArray, self.updateArmBrushedCmd
+        self.armBrushedCmdSubscriber = self.create_subscription(
+            Float32MultiArray, "armBrushedCmd", self.updateArmBrushedCmd, 10
         )
-        self.armBrushlessCmdSubscriber = rospy.Subscriber(
-            "armBrushlessCmd", Float32MultiArray, self.updateArmBrushlessCmd
+        self.armBrushlessCmdSubscriber = self.create_subscription(
+            Float32MultiArray, "armBrushlessCmd", self.updateArmBrushlessCmd, 10
         )
-        self.armBrushedFbSubscriber = rospy.Subscriber(
-            "armBrushedFb", Float32MultiArray, self.updateArmBrushedFb
+        self.armBrushedFbSubscriber = self.create_subscription(
+            Float32MultiArray, "armBrushedFb", self.updateArmBrushedFb, 10
         )
-        self.armBrushlessFbSubscriber = rospy.Subscriber(
-            "armBrushlessFb", Float32MultiArray, self.updateArmBrushlessFb
+        self.armBrushlessFbSubscriber = self.create_subscription(
+            Float32MultiArray, "armBrushlessFb", self.updateArmBrushlessFb, 10
         )
 
         self.run()
@@ -122,7 +123,8 @@ class Node_ArmVisualizer:
         print("Updated jointPosesFb for brushless motors:", self.jointPosesFb)
 
     def run(self):
-        while not rospy.is_shutdown():
+        #while not rospy.is_shutdown():
+        while rclpy.ok():
             self.t = self.t + 0.01
             p.stepSimulation()
 
@@ -171,5 +173,8 @@ class Node_ArmVisualizer:
 
 
 if __name__ == "__main__":
+    rclpy.init(args=sys.argv) 
     visualizer = Node_ArmVisualizer()
-    rospy.spin()
+    rclpy.spin(visualizer)
+    visualizer.destroy_node() 
+    rclpy.shutdown() 
