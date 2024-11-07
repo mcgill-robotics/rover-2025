@@ -1,28 +1,30 @@
 # Author: mn297
-import scipy.stats as st
-from scipy.ndimage import gaussian_filter1d
-from drive_control.msg import WheelSpeed
-from odrive_interface.msg import MotorState, MotorError, ODriveStatus
-from geometry_msgs.msg import Twist
-from std_msgs.msg import Float32MultiArray
-from enum import Enum
-from odrive.enums import AxisState, ODriveError, ProcedureResult
-from odrive.utils import dump_errors
-from ODriveJoint import *
-import threading
-from threading import Lock
-from queue import Queue
-
-import rospy
 import os
 import sys
 
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
+from scipy.ndimage         import gaussian_filter1d
+from msg_srv_interface.msg import WheelSpeed
+from msg_srv_interface.msg import MotorState, MotorError, ODriveStatus
+from geometry_msgs.msg     import Twist
+from std_msgs.msg          import Float32MultiArray
+from enum                  import Enum
+from odrive.enums          import AxisState, ODriveError, ProcedureResult
+from odrive.utils          import dump_errors
+from ODriveJoint           import *
+from threading             import Lock
+from queue                 import Queue
+import threading
+import rclpy
+from   rclpy.node import Node
+import scipy.stats as st
 
 
-class NodeODriveInterfaceDrive:
+
+class ODrive_node(Node):
     def __init__(self):
+        super().__init__('odrive_node')
         self.is_homed = False
         self.is_calibrated = False
         self.threads = []
@@ -51,31 +53,20 @@ class NodeODriveInterfaceDrive:
         }
         self.locks = {joint_name: Lock() for joint_name in self.joint_dict.keys()}
 
-        rospy.init_node("odrive_interface_drive")
-
         # Subscriptions
-        # Cmd comes from the external control node, we convert it to setpoint and apply it to the ODrive
-        self.drive_cmd_subscriber = rospy.Subscriber(
-            "/wheel_velocity_cmd", WheelSpeed, self.handle_drive_cmd
-        )
+        # Cmd comes from the drive_control_node through the wheel_velocity_cmd topic, then we convert it to setpoint and apply it to the ODrive
+        self.drive_cmd_subscriber = self.create_subscription(WheelSpeed, "/wheel_velocity_cmd", self.handle_drive_cmd, 1)
 
         # Publishers
-        self.drive_fb_publisher = rospy.Publisher(
-            "/wheel_velocity_feedback", WheelSpeed, queue_size=1
-        )
-
-        self.odrive_publisher = rospy.Publisher(
-            "/odrive_state", ODriveStatus, queue_size=1
-        )
-
-        rospy.on_shutdown(self.shutdown_hook)
+        self.drive_fb_publisher = self.create_publisher(WheelSpeed,   "/wheel_velocity_feedback", 1)
+        self.odrive_publisher   = self.create_publisher(ODriveStatus, "/odrive_state",            1)
 
         # Frequency of the ODrive I/O
-        self.rate = rospy.Rate(100)
+        self.rate = self.create_rate(100)
 
         self.run()
 
-    # Receive setpoint from external control node
+    # Subscriber callback function: Recieve wheelspeed command, and set speed to motor
     def handle_drive_cmd(self, msg):
         if not self.is_calibrated:
             print("ODrive not calibrated. Ignoring command.")
@@ -114,8 +105,7 @@ class NodeODriveInterfaceDrive:
                 joint_obj.odrv = None
             except:
                 print(
-                    f"""Cannot apply vel_cmd {
-                        joint_obj.vel_cmd} to joint: {joint_name}"""
+                    f"""Cannot apply vel_cmd {joint_obj.vel_cmd} to joint: {joint_name}"""
                 )
 
     def reconnect_joint(self, joint_name, joint_obj):
@@ -190,8 +180,7 @@ class NodeODriveInterfaceDrive:
 
             if value == 0:
                 print(
-                    f"""Skipping connection for joint: {
-                        key} due to serial_number being 0"""
+                    f"""Skipping connection for joint: {key} due to serial_number being 0"""
                 )
                 continue
 
@@ -322,15 +311,13 @@ class NodeODriveInterfaceDrive:
 
     def loop_odrive(self):
         # MAIN LOOP -----------------------------------------------------
-        while not rospy.is_shutdown() and not self.shutdown_flag:
-            # PRINT TIMESTAMP
-            # print(f"""Time: {rospy.get_time()}""")
-
+        while rclpy.ok() and not self.shutdown_flag:
             self.publish_joints_feedback()
 
             # HANDLE ERRORS
             self.handle_joints_error()
 
+            # Wait at rate freq
             self.rate.sleep()
 
     def run(self):
@@ -339,7 +326,7 @@ class NodeODriveInterfaceDrive:
         thread.start()
         print_thread = threading.Thread(target=self.print_loop)
         print_thread.start()
-        rospy.spin()
+        rclpy.spin()
         self.shutdown_hook()
 
     def shutdown_hook(self):
@@ -354,6 +341,14 @@ class NodeODriveInterfaceDrive:
         print("All threads joined. Shutdown complete.")
 
 
+# ROS runtime main entry point
+def main():
+    rclpy.init()
+    odrive_node = ODrive_node()
+    rclpy.spin(odrive_node)
+    odrive_node.shutdown_hook()
+    odrive_node.destroy_node()
+    rclpy.shutdown()
+
 if __name__ == "__main__":
-    driver = NodeODriveInterfaceDrive()
-    rospy.spin()
+    main()

@@ -25,7 +25,8 @@ setup(
         'console_scripts': [
             'test_pub = test.pub:main',
             'test_sub = test.sub:main',
-            'drive_control_node = scripts.drive_control_node:main'
+            'drive_control_node = scripts.drive_control_node:main',
+            'odrive_node = scripts.node_odrive_drive:main'
         ],
     },
 )
