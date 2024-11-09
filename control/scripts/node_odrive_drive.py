@@ -4,27 +4,26 @@ import sys
 
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
-from scipy.ndimage         import gaussian_filter1d
+from scipy.ndimage import gaussian_filter1d
 from msg_srv_interface.msg import WheelSpeed
 from msg_srv_interface.msg import MotorState, MotorError, ODriveStatus
-from geometry_msgs.msg     import Twist
-from std_msgs.msg          import Float32MultiArray
-from enum                  import Enum
-from odrive.enums          import AxisState, ODriveError, ProcedureResult
-from odrive.utils          import dump_errors
-from ODriveJoint           import *
-from threading             import Lock
-from queue                 import Queue
+from geometry_msgs.msg import Twist
+from std_msgs.msg import Float32MultiArray
+from enum import Enum
+from odrive.enums import AxisState, ODriveError, ProcedureResult
+from odrive.utils import dump_errors
+from ODriveJoint import *
+from threading import Lock
+from queue import Queue
 import threading
 import rclpy
-from   rclpy.node import Node
+from rclpy.node import Node
 import scipy.stats as st
-
 
 
 class ODrive_node(Node):
     def __init__(self):
-        super().__init__('odrive_node')
+        super().__init__("odrive_node")
         self.is_homed = False
         self.is_calibrated = False
         self.threads = []
@@ -55,11 +54,15 @@ class ODrive_node(Node):
 
         # Subscriptions
         # Cmd comes from the drive_control_node through the wheel_velocity_cmd topic, then we convert it to setpoint and apply it to the ODrive
-        self.drive_cmd_subscriber = self.create_subscription(WheelSpeed, "/wheel_velocity_cmd", self.handle_drive_cmd, 1)
+        self.drive_cmd_subscriber = self.create_subscription(
+            WheelSpeed, "/wheel_velocity_cmd", self.handle_drive_cmd, 1
+        )
 
         # Publishers
-        self.drive_fb_publisher = self.create_publisher(WheelSpeed,   "/wheel_velocity_feedback", 1)
-        self.odrive_publisher   = self.create_publisher(ODriveStatus, "/odrive_state",            1)
+        self.drive_fb_publisher = self.create_publisher(
+            WheelSpeed, "/wheel_velocity_feedback", 1
+        )
+        self.odrive_publisher = self.create_publisher(ODriveStatus, "/odrive_state", 1)
 
         # Frequency of the ODrive I/O
         self.rate = self.create_rate(100)
@@ -349,6 +352,7 @@ def main():
     odrive_node.shutdown_hook()
     odrive_node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == "__main__":
     main()
