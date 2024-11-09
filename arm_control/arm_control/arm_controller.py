@@ -7,7 +7,7 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 import math
-from arm_control.msg import ArmControllerInput
+from msg_interface.msg import ArmControllerInput
 from std_msgs.msg import Float32MultiArray
 from arm_kinematics import jointLowerLimits, jointUpperLimits
 from std_msgs.msg import String
@@ -38,7 +38,7 @@ class Node_ArmControl(Node):
         # Options: [0, nbJoints), In joint control mode, control is
         # one joint at a time to keep it intuitive to the user
 
-        self.claw_state = 0
+        self.claw_state = 0.0
 
         self.jointVelLimits = [np.pi, np.pi, np.pi, np.pi, np.pi, np.pi]  # rad/s
         self.cartVelLimits = [0.5, 0.5, 0.5]  # m/s
@@ -46,44 +46,41 @@ class Node_ArmControl(Node):
         # Initialize ROS
         super().__init__("arm_control")
         #rospy.init_node("arm_control", anonymous=False)
-        self.controllerSubscriber = self.create_subscriber(
-            "arm_controller_input", ArmControllerInput, self.controlLoop, rclpy.qos.QoSProfile()
+        self.controllerSubscriber = self.create_subscription(
+            ArmControllerInput, "arm_controller_input", self.controlLoop, 10
         )
 
         # Arduino message
-        self.armBrushedSubscriber = self.create_subscriber(
-            "armBrushedFb", Float32MultiArray, self.updateArmBrushedState, rclpy.qos.QoSProfile()
+        self.armBrushedSubscriber = self.create_subscription(
+            Float32MultiArray, "armBrushedFb", self.updateArmBrushedState, 10
         )
-        self.armBrushlessSubscriber = self.create_subscriber(
-            "armBrushlessFb", Float32MultiArray, self.updateArmBrushlessState, rclpy.qos.QoSProfile()
+        self.armBrushlessSubscriber = self.create_subscription(
+            Float32MultiArray, "armBrushlessFb", self.updateArmBrushlessState, 10
         )
         self.armBrushedPublisher = self.create_publisher(
-            "armBrushedCmd", Float32MultiArray, 10
+            Float32MultiArray, "armBrushedCmd", 10
         )
         self.armBrushlessPublisher = self.create_publisher(
-            "armBrushlessCmd", Float32MultiArray, 10
+            Float32MultiArray, "armBrushlessCmd", 10
         )
 
-        self.arm_error_publisher = self.create_publisher("armError", String, 10)
+        self.arm_error_publisher = self.create_publisher(String, "armError", 10)
 
         # Control Frequency of the arm controller
-        self.rate = self.create_rate(100)
-
-        self.run()
+        #self.rate = self.create_rate(10)
+        timer_period = 0.1
+        self.timer = self.create_timer(timer_period, self.run)
 
     def run(self):
         cmd_brushed = Float32MultiArray()
         cmd_brushless = Float32MultiArray()
-        while not rclpy.ok():
-            q_dDeg = tuple(q_d_i * (180 / np.pi) for q_d_i in self.q_d)
 
-            cmd_brushed.data = [self.claw_state, q_dDeg[4], q_dDeg[3]]
-            cmd_brushless.data = [q_dDeg[2], q_dDeg[1], q_dDeg[0]]
+        q_dDeg = tuple(q_d_i * (180 / np.pi) for q_d_i in self.q_d)
+        cmd_brushed.data = [self.claw_state, q_dDeg[4], q_dDeg[3]]
+        cmd_brushless.data = [q_dDeg[2], q_dDeg[1], q_dDeg[0]]
 
-            self.armBrushedPublisher.publish(cmd_brushed)
-            self.armBrushlessPublisher.publish(cmd_brushless)
-
-            self.rate.sleep()
+        self.armBrushedPublisher.publish(cmd_brushed)
+        self.armBrushlessPublisher.publish(cmd_brushless)
 
     def controlLoop(self, ctrlInput: ArmControllerInput):
 
@@ -263,7 +260,11 @@ class Node_ArmControl(Node):
         self.arm_error_publisher.publish(msg)
 
 
-if __name__ == "__main__":
+def main(args = None):
+    rclpy.init(args=args)
     driver = Node_ArmControl()
     rclpy.spin(driver)
+
+if __name__ == "__main__":
+    main()
     #rospy.spin()
