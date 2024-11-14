@@ -13,7 +13,7 @@ import threading
 from threading import Lock
 from queue import Queue
 
-import rospy
+import rclpy
 import os
 import sys
 
@@ -21,8 +21,9 @@ currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
 
 
-class NodeODriveInterfaceDrive:
+class NodeODriveInterfaceDrive(Node):
     def __init__(self):
+        super().__init__('odrive_interface_drive')
         self.is_homed = False
         self.is_calibrated = False
         self.threads = []
@@ -55,30 +56,30 @@ class NodeODriveInterfaceDrive:
 
         # Subscriptions
         # Cmd comes from the external control node, we convert it to setpoint and apply it to the ODrive
-        self.drive_cmd_subscriber = rospy.Subscriber(
-            "/wheel_velocity_cmd", WheelSpeed, self.handle_drive_cmd
+        self.drive_cmd_subscriber = self.Subscriber(
+            "/wheel_velocity_cmd", WheelSpeed, self.handle_drive_cmd 
         )
 
         # Publishers
-        self.drive_fb_publisher = rospy.Publisher(
+        self.drive_fb_publisher = self.Publisher(
             "/wheel_velocity_feedback", WheelSpeed, queue_size=1
         )
 
-        self.odrive_publisher = rospy.Publisher(
+        self.odrive_publisher = self.Publisher(
             "/odrive_state", ODriveStatus, queue_size=1
         )
 
         rospy.on_shutdown(self.shutdown_hook)
 
         # Frequency of the ODrive I/O
-        self.rate = rospy.Rate(100)
+        self.rate = self.timer(0.01, self.loop_odrive)
 
         self.run()
 
     # Receive setpoint from external control node
     def handle_drive_cmd(self, msg):
         if not self.is_calibrated:
-            print("ODrive not calibrated. Ignoring command.")
+            self.get_logger().info("ODrive not calibrated. Ignoring command.")
             return
         try:
             self.joint_dict["rover_drive_lb"].vel_cmd = msg.left[0]
@@ -113,7 +114,7 @@ class NodeODriveInterfaceDrive:
             except fibre.libfibre.ObjectLostError:
                 joint_obj.odrv = None
             except:
-                print(
+                self.get_logger().info(
                     f"""Cannot apply vel_cmd {
                         joint_obj.vel_cmd} to joint: {joint_name}"""
                 )
@@ -130,15 +131,15 @@ class NodeODriveInterfaceDrive:
     # Deprecated because enter_closed_loop_control() will call calibrate() if necessary
     def calibrate_and_enter_closed_loop_control(self, joint_obj):
         if joint_obj.odrv is not None:
-            print(f"CALIBRATING joint {joint_obj.name}...")
+            self.get_logger().info(f"CALIBRATING joint {joint_obj.name}...")
             joint_obj.calibrate()
 
-            print(f"ENTERING CLOSED LOOP CONTROL for joint {joint_obj.name}...")
+            self.get_logger().info(f"ENTERING CLOSED LOOP CONTROL for joint {joint_obj.name}...")
             joint_obj.enter_closed_loop_control()
 
     def enter_closed_loop_control(self, joint_obj):
         if joint_obj.odrv is not None:
-            print(f"ENTERING CLOSED LOOP CONTROL for joint {joint_obj.name}...")
+            self.get_logger().info(f"ENTERING CLOSED LOOP CONTROL for joint {joint_obj.name}...")
             joint_obj.enter_closed_loop_control()
 
     def publish_joints_feedback(self):
@@ -154,7 +155,7 @@ class NodeODriveInterfaceDrive:
             except fibre.libfibre.ObjectLostError:
                 joint_obj.odrv = None
             except:
-                print(f"""Cannot get feedback from joint: {joint_name}""")
+                self.get_logger().info(f"""Cannot get feedback from joint: {joint_name}""")
         # Publish
         try:
             feedback.left[0] = self.joint_dict["rover_drive_lb"].vel_fb
@@ -189,7 +190,7 @@ class NodeODriveInterfaceDrive:
             )
 
             if value == 0:
-                print(
+                self.get_logger().info(
                     f"""Skipping connection for joint: {
                         key} due to serial_number being 0"""
                 )
@@ -220,7 +221,7 @@ class NodeODriveInterfaceDrive:
         for joint_name, joint_obj in self.joint_dict.items():
             if joint_obj.odrv is None:
                 continue
-            print(f"Creating calibrate() thread for joint {joint_obj.name}")
+            self.get_logger().info(f"Creating calibrate() thread for joint {joint_obj.name}")
             t = threading.Thread(
                 target=joint_obj.calibrate,
             )
@@ -232,12 +233,12 @@ class NodeODriveInterfaceDrive:
             t.join()
         self.threads = []
 
-        print("Calibration step completed.")
+        self.get_logger().info("Calibration step completed.")
 
         for joint_name, joint_obj in self.joint_dict.items():
             if joint_obj.odrv is None:
                 continue
-            print(
+            self.get_logger().info(
                 f"Creating enter_closed_loop_control() thread for joint {joint_obj.name}"
             )
             t = threading.Thread(
@@ -274,7 +275,7 @@ class NodeODriveInterfaceDrive:
         except KeyError:
             # print("KeyError: 'rover_drive_rf' not found in joint_dict")
             pass
-        print("Entering closed loop control step completed.")
+        self.get_logger().info("Entering closed loop control step completed.")
 
     # SEND ODRIVE INFO AND HANDLE ERRORS
     def handle_joints_error(self):
@@ -286,7 +287,7 @@ class NodeODriveInterfaceDrive:
                         != AxisState.CLOSED_LOOP_CONTROL
                     ):
                         if not joint_obj.is_reconnecting:
-                            print(
+                            self.get_logger().info(
                                 f"{joint_name} is not in closed loop control, recalibrating..."
                             )
                             joint_obj.is_reconnecting = True
@@ -307,7 +308,7 @@ class NodeODriveInterfaceDrive:
                 else:
                     # ODrive interface is None, indicating a disconnection or uninitialized state
                     if not joint_obj.is_reconnecting:
-                        print(f"RECONNECTING {joint_name}...")
+                        self.get_logger().info(f"RECONNECTING {joint_name}...")
                         joint_obj.is_reconnecting = True
                         t = threading.Thread(
                             target=self.reconnect_joint,
@@ -339,21 +340,29 @@ class NodeODriveInterfaceDrive:
         thread.start()
         print_thread = threading.Thread(target=self.print_loop)
         print_thread.start()
-        rospy.spin()
+        rclpy.spin(self)
         self.shutdown_hook()
 
     def shutdown_hook(self):
         self.shutdown_flag = True
-        print("Shutdown initiated. Setting all motors to idle state.")
+        self.get_logger().info("Shutdown initiated. Setting all motors to idle state.")
         for joint_name, joint_obj in self.joint_dict.items():
             if not joint_obj.odrv:
                 continue
             joint_obj.odrv.axis0.requested_state = AxisState.IDLE
         for t in self.threads:
             t.join()
-        print("All threads joined. Shutdown complete.")
+        self.get_logger().info("All threads joined. Shutdown complete.")
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    driver = NodeODriveInterfaceDrive()
+    rclpy.spin(driver)
+    driver.shutdown_hook()
+    driver.destroy_node() 
+    rclpy.shutdown()
 
 
 if __name__ == "__main__":
-    driver = NodeODriveInterfaceDrive()
-    rospy.spin()
+    main()
