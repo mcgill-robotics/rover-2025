@@ -27,7 +27,7 @@ async function main() {
 
     // Set acceleration and deceleration rates
     const acceleration = 0.5; // Increased acceleration for faster changes
-    const deceleration = 1.0; // Increased deceleration for faster stopping
+    const deceleration = 2.0; // Increased deceleration for faster stopping
 
     // Object to keep track of key states
     let keyStates = {

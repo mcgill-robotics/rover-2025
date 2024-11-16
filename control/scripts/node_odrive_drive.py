@@ -19,6 +19,7 @@ import threading
 import rclpy
 from rclpy.node import Node
 import scipy.stats as st
+from std_msgs.msg import String
 
 
 class ODrive_node(Node):
@@ -67,10 +68,16 @@ class ODrive_node(Node):
         # Frequency of the ODrive I/O
         self.rate = self.create_rate(100)
 
-        self.run()
+        # self.run()
+        self.publisher_ = self.create_publisher(
+            String, "chatter", 10
+        )  # Create a publisher
 
     # Subscriber callback function: Recieve wheelspeed command, and set speed to motor
     def handle_drive_cmd(self, msg):
+        msg2 = String()
+        msg2.data = f"Hello from handle_drive_cmd: {msg.left[0]}"
+        self.publisher_.publish(msg2)
         if not self.is_calibrated:
             print("ODrive not calibrated. Ignoring command.")
             return
@@ -329,7 +336,7 @@ class ODrive_node(Node):
         thread.start()
         print_thread = threading.Thread(target=self.print_loop)
         print_thread.start()
-        rclpy.spin()
+        # rclpy.spin()
         self.shutdown_hook()
 
     def shutdown_hook(self):
@@ -348,6 +355,7 @@ class ODrive_node(Node):
 def main():
     rclpy.init()
     odrive_node = ODrive_node()
+    odrive_node.run()  # Start the threads after the node is created
     rclpy.spin(odrive_node)
     odrive_node.shutdown_hook()
     odrive_node.destroy_node()
