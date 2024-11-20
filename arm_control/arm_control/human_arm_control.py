@@ -20,3 +20,14 @@ jointLowerLimits = [
 speed = 1 # TO BE SET LATER
 current_cycle_mode = 1 # TO BE SET LATER
 joint_control_is_active = True 
+
+def waist(joystick_input, cur_angle):
+    #assumes joystick_input is normalized to be between -1.0 and 1.0
+    #assumes speed to act as a scale factor (between 0.0 and 1.0)
+    max_angle_change = np.pi/3                          #represents the max angle change allowed per method call
+    cur_angle[0] = cur_angle[0] + speed * normalized_joystick_input * max_angle_change
+    if cur_angle[0] > jointUpperLimits[0]:
+        cur_angle[0] = jointUpperLimits[0]
+    if cur_angle[0] < jointLowerLimits[0]:
+        cur_angle[0] = jointLowerLimits[0]
+    return cur_angle
