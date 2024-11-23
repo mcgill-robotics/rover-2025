@@ -20,3 +20,17 @@ jointLowerLimits = [
 speed = 1 # TO BE SET LATER
 current_cycle_mode = 1 # TO BE SET LATER
 joint_control_is_active = True 
+
+def move_elbow(current, controller_input):
+    """Returns list of new positions after moving elbow"""
+    #assumes controller input is normalized between -1.0 and 1.0
+    current_position = current[2]
+    new_position = current_position * speed * controller_input
+    if new_position >= jointUpperLimits[2]:
+        new_position = jointUpperLimits[2]
+    if new_position <= jointLowerLimits[2]:
+        new_position = jointLowerLimits[2]
+    current_position[2] = new_position
+    return current_position
+    
+
