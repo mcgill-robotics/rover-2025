@@ -37,11 +37,8 @@ hand_index = 4
 def waist(joystick_input, cur_angle):
     #assumes joystick_input is normalized to be between -1.0 and 1.0
     #assumes speed to act as a scale factor (between 0.0 and 1.0)
-    cur_angle[waist_index] = cur_angle[waist_index] + speed * joystick_input * jointMaxSpeed[waist_index]
+    cur_angle[waist_index] = cur_angle[waist_index] + speed * joystick_input * joint_max_speed[waist_index]
 
     #sets the waists angle to be at the limit if it exeeds the limit
-    if cur_angle[waist_index] > jointUpperLimits[waist_index]:
-        cur_angle[waist_index] = jointUpperLimits[waist_index]
-    if cur_angle[waist_index] < jointLowerLimits[waist_index]:
-        cur_angle[waist_index] = jointLowerLimits[waist_index]
+    cur_angle[waist_index] = max(joint_lower_limits[waist_index],min(cur_angle[waist_index], joint_max_speed[waist_index]))
     return cur_angle
