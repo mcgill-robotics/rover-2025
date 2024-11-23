@@ -36,20 +36,11 @@ elbow_index = 2
 wrist_index = 3
 hand_index = 4
 
-def waist(joystick_input, cur_angle):
+def move_joint(joystick_input, cur_angle, index):
     #assumes joystick_input is normalized to be between -1.0 and 1.0
     #assumes speed to act as a scale factor (between 0.0 and 1.0)
-    cur_angle[waist_index] = cur_angle[waist_index] + speed * joystick_input * joint_max_speed[waist_index]
+    cur_angle[index] = cur_angle[index] + speed * joystick_input * joint_max_speed[index]
 
     #sets the waists angle to be at the limit if it exeeds the limit
-    cur_angle[waist_index] = max(joint_lower_limits[waist_index], min(cur_angle[waist_index], joint_upper_limits[waist_index]))
-    return cur_angle
-
-def hand_twist(joystick_input, cur_angle):
-    #assumes joystick_input is normalized to be between -1.0 and 1.0
-    #assumes speed to act as a scale factor (between 0.0 and 1.0)
-    cur_angle[hand_index] = cur_angle[hand_index] + speed * joystick_input * joint_max_speed[hand_index]
-
-    #sets the waists angle to be at the limit if it exeeds the limit
-    cur_angle[hand_index] = max(joint_lower_limits[hand_index], min(cur_angle[hand_index], joint_upper_limits[hand_index]))
+    cur_angle[index] = max(joint_lower_limits[index], min(cur_angle[index], joint_upper_limits[index]))
     return cur_angle
