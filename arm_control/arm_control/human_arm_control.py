@@ -40,5 +40,5 @@ def waist(joystick_input, cur_angle):
     cur_angle[waist_index] = cur_angle[waist_index] + speed * joystick_input * joint_max_speed[waist_index]
 
     #sets the waists angle to be at the limit if it exeeds the limit
-    cur_angle[waist_index] = max(joint_lower_limits[waist_index],min(cur_angle[waist_index], joint_max_speed[waist_index]))
+    cur_angle[waist_index] = max(joint_lower_limits[waist_index],min(cur_angle[waist_index], joint_upper_limits[waist_index]))
     return cur_angle
