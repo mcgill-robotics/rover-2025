@@ -28,14 +28,20 @@ speed = 1 # TO BE SET LATER
 current_cycle_mode = 1 # TO BE SET LATER
 joint_control_is_active = True 
 
+waist_index = 0
+shoulder_index = 1
+elbow_index = 2
+wrist_index = 3
+hand_index = 4
+
 def waist(joystick_input, cur_angle):
     #assumes joystick_input is normalized to be between -1.0 and 1.0
     #assumes speed to act as a scale factor (between 0.0 and 1.0)
-    cur_angle[0] = cur_angle[0] + speed * joystick_input * jointMaxSpeed[0]
+    cur_angle[waist_index] = cur_angle[waist_index] + speed * joystick_input * jointMaxSpeed[waist_index]
 
     #sets the waists angle to be at the limit if it exeeds the limit
-    if cur_angle[0] > jointUpperLimits[0]:
-        cur_angle[0] = jointUpperLimits[0]
-    if cur_angle[0] < jointLowerLimits[0]:
-        cur_angle[0] = jointLowerLimits[0]
+    if cur_angle[waist_index] > jointUpperLimits[waist_index]:
+        cur_angle[waist_index] = jointUpperLimits[waist_index]
+    if cur_angle[waist_index] < jointLowerLimits[waist_index]:
+        cur_angle[waist_index] = jointLowerLimits[waist_index]
     return cur_angle
