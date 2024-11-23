@@ -7,6 +7,8 @@ function Navbar() {
                 <Link to="/home">Home</Link>
                 |
                 <Link to="/sandbox">Sandbox</Link>
+                |
+                <Link to="/drive">Drive Control</Link>
             </nav>
         </div>
     );
