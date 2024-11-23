@@ -9,6 +9,7 @@ joint_upper_limits = [
     75 * np.pi / 180,
     np.pi,
 ]  # rad
+
 joint_lower_limits = [
     -125.97 * np.pi / 180,
     -60 * np.pi / 180,
@@ -16,6 +17,7 @@ joint_lower_limits = [
     -75 * np.pi / 180,
     -np.pi,
 ]  # rad
+
 joint_max_speed = [
     np.pi/3,
     np.pi/3,
@@ -40,5 +42,14 @@ def waist(joystick_input, cur_angle):
     cur_angle[waist_index] = cur_angle[waist_index] + speed * joystick_input * joint_max_speed[waist_index]
 
     #sets the waists angle to be at the limit if it exeeds the limit
-    cur_angle[waist_index] = max(joint_lower_limits[waist_index],min(cur_angle[waist_index], joint_upper_limits[waist_index]))
+    cur_angle[waist_index] = max(joint_lower_limits[waist_index], min(cur_angle[waist_index], joint_upper_limits[waist_index]))
+    return cur_angle
+
+def hand_twist(joystick_input, cur_angle):
+    #assumes joystick_input is normalized to be between -1.0 and 1.0
+    #assumes speed to act as a scale factor (between 0.0 and 1.0)
+    cur_angle[hand_index] = cur_angle[hand_index] + speed * joystick_input * joint_max_speed[hand_index]
+
+    #sets the waists angle to be at the limit if it exeeds the limit
+    cur_angle[hand_index] = max(joint_lower_limits[hand_index], min(cur_angle[hand_index], joint_upper_limits[hand_index]))
     return cur_angle
