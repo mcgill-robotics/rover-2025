@@ -18,6 +18,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/MotorError.msg"
   "msg/ODriveStatus.msg"
   "msg/MotorState.msg"
+  "GamepadInput.msg"
+  "JoystickInput.msg"
   DEPENDENCIES geometry_msgs
 )
 
