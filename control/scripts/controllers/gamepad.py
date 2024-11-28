@@ -1,61 +1,62 @@
 import pygame
 
+
 class Gamepad():
     """driver to get event inputs from
     Logitech Extreme 3D pro Gamepad"""
 
     def __init__(self):
-       """constructor for gamepad driver
+        """constructor for gamepad driver
            Raises
            ----------
            AssertionError
                Gamepad wasn't able to initialize
        """
 
-       # data container for gamepad input data
-       self.data = GamepadData()
+        # data container for gamepad input data
+        self.data = GamepadData()
 
-       # init gamepad
-       pygame.init()
-       pygame.joystick.init()
+        # init gamepad
+        pygame.init()
+        pygame.joystick.init()
 
-       if pygame.joystick.get_count() == 1:
-           # take only available gamepad
-           print("only one joystick")
-           self.controller = pygame.joystick.Joystick(0)
-           self.controller.init()
-           print(pygame.joystick.get_count(), self.controller.get_id(),
-                 " ", self.controller.get_name())
+        if pygame.joystick.get_count() == 1:
+            # take only available gamepad
+            print("only one joystick")
+            self.controller = pygame.joystick.Joystick(0)
+            self.controller.init()
+            print(pygame.joystick.get_count(), self.controller.get_id(),
+                  " ", self.controller.get_name())
 
-       elif pygame.joystick.get_count() == 2:
-           try:
-               controller1 = pygame.joystick.Joystick(0)
-               controller1.init()
-               print("single controller detected", controller1.get_id(),
-                    " ", controller1.get_name())
-           except:
-               print("controller not initialized")
-           try:
-              controller2 = pygame.joystick.Joystick(1)
-              controller2.init()
-              print("double controllers detected", controller2.get_id(),
-                    " ", controller2.get_name())
-           except:
-               print(controller2.get_name(), "failed")
-           if controller1.get_id() == 0:
-               self.controller = controller1
-           else:
-               self.controller = controller2
+        elif pygame.joystick.get_count() == 2:
+            try:
+                controller1 = pygame.joystick.Joystick(0)
+                controller1.init()
+                print("single controller detected", controller1.get_id(),
+                      " ", controller1.get_name())
+            except:
+                print("controller not initialized")
+            try:
+                controller2 = pygame.joystick.Joystick(1)
+                controller2.init()
+                print("double controllers detected", controller2.get_id(),
+                      " ", controller2.get_name())
+            except:
+                print(controller2.get_name(), "failed")
+            if controller1.get_id() == 0:
+                self.controller = controller1
+            else:
+                self.controller = controller2
 
-       else:
-           # no gamepad found
-           print(pygame.joystick.get_count())
-           self.controller = None
+        else:
+            # no gamepad found
+            print(pygame.joystick.get_count())
+            self.controller = None
 
-           if self.controller is None:
-               raise AssertionError(
-                   "Gamepad not initialized properly, make sure you have one connected"
-               )
+            if self.controller is None:
+                raise AssertionError(
+                    "Gamepad not initialized properly, make sure you have one connected"
+                )
 
     def update(self):
         """gets latest data from Gamepad event info received from Gamepad"""
@@ -117,6 +118,7 @@ class Gamepad():
 
         print(data)
 
+
 class GamepadData():
     """object containing mapping of Logitech Extreme 3D Pro"""
 
@@ -143,6 +145,7 @@ class GamepadData():
         self.a4 = 0
         self.a5 = 0
         self.a6 = 0
+
 
 if __name__ == "__main__":
     Gamepad()

@@ -1,10 +1,11 @@
 import rospy
 # TODO: figure out correct pathway
-from human_control_interface.msg import Gamepad_input
+from msg_srv_interface.msg import GamepadInput
 from camera_data.msg import Camera_Orientation
 from geometry_msgs.msg import Twist
 from angular_gamepad import AngularGamepad
 from std_msgs.msg import Float32MultiArray
+
 
 class Node_GamepadProcessing:
     def __init__(self, v_max, w_max):
@@ -45,7 +46,7 @@ class Node_GamepadProcessing:
         # TODO: get rid of camera import stuff? talk to a lead
         # init variables for camera
         self.cam_ctrl = Float32MultiArray()
-        self.cam_ctrl.data = [0, 0] # elements: [x-axis, y-axis]
+        self.cam_ctrl.data = [0, 0]  # elements: [x-axis, y-axis]
 
         # publisher for twist values
         self.drive_publisher = rospy.Publisher("rover_velocity_controller/cmd_vel", Twist, queue_size=1)
@@ -68,9 +69,9 @@ class Node_GamepadProcessing:
                     continue
 
                 self.gamepad.update()
-                msg = Gamepad_input()
+                msg = GamepadInput()
 
-                #transfer data into msg
+                # transfer data into msg
                 msg.B1 = self.gamepad.data.b1
                 msg.B2 = self.gamepad.data.b2
                 msg.B3 = self.gamepad.data.b3
@@ -151,7 +152,7 @@ class Node_GamepadProcessing:
 
         # calc linear velocity
         self.roverLinearVelocity = self.maxLinearVelocity * drive * drive * drive
-        #calc for angular velocity
+        # calc for angular velocity
         self.roverAngularVelocity = self.maxAngularVelocity * steer * steer * steer
 
         # assign values to a twist msg, then publish to ROS
@@ -169,7 +170,8 @@ class Node_GamepadProcessing:
         left: square
         '''
 
-        if (msg.B3 == 1 or msg.B1 == 1) and (self.cam_ctrl.data[0] + msg.B3 <= 180) and (self.cam_ctrl.data[0] - msg.B1 >=0):
+        if (msg.B3 == 1 or msg.B1 == 1) and (self.cam_ctrl.data[0] + msg.B3 <= 180) and (
+                self.cam_ctrl.data[0] - msg.B1 >= 0):
             self.cam_ctrl.data[0] = self.cam_ctrl.data[0] + msg.B3 - msg.B1
             print(f"horizontal: {self.cam_ctrl.data[1]}")
 
@@ -181,6 +183,7 @@ class Node_GamepadProcessing:
             return True
         else:
             return False
+
 
 if __name__ == "__main__":
     gamepadProcess = Node_GamepadProcessing(5, 10)

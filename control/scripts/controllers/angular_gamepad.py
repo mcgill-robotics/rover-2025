@@ -1,6 +1,7 @@
 from rospy import Subscriber
 from std_msgs.msg import Float32MultiArray
 
+
 class AngularGamepad():
     """Driver to get the event inputs from the Logitech Extreme
     3D Pro Gamepad"""
@@ -10,7 +11,7 @@ class AngularGamepad():
         self.data = GamepadData()
         Subscriber(topic_name, Float32MultiArray, self.gamepad_callback)
 
-    def gamepad_callback(selfself, msg: Float32MultiArray):
+    def gamepad_callback(self, msg: Float32MultiArray):
         """Upgrade the gamepad data from the callback"""
         self.data.a2 = msg.data[0]
         self.data.a4 = msg.data[1]
@@ -18,6 +19,7 @@ class AngularGamepad():
     def update(self):
         """do nothing"""
         pass
+
 
 class GamepadData():
     """object containing mapping of the Logitech Extreme 3D pro"""
