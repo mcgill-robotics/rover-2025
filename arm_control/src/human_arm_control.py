@@ -28,7 +28,7 @@ joint_max_speed = [
 
 speed = 1 # TO BE SET LATER
 speed_increment = 0.1 # TO BE SET LATER
-current_cycle_mode = 1 # TO BE SET LATER
+current_cycle_mode = 0 # 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
 joint_control_is_active = True 
 
 waist_index = 0
@@ -55,3 +55,15 @@ def speed_down():
     #assume button check is done before calling this
     speed -= speed_increment
     return speed
+  
+def cycle_up():
+    #assume button check is done before calling this
+    current_cycle_mode += 1
+    current_cycle_mode %= 6
+    return current_cycle_mode
+
+def cycle_down():
+    #assume button check is done before calling this
+    current_cycle_mode -= 1
+    current_cycle_mode %= 6
+    return current_cycle_mode
