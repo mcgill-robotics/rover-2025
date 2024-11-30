@@ -3,17 +3,10 @@ import React, { useState, useEffect } from 'react';
 const joints = ['waist', 'shoulder', 'elbow', 'wrist']
 
 
+
 // allows to move the angle at the selected joint
+// all this happends inside the ArmVisuals Component
 export function ArmVisuals(){
-    return (
-        <div>
-
-        </div>
-    );
-}
-
-// allow to see which joint we are using
-export function JointChoice(){
     const [Curr_index, setCurr_joint] = useState(0);
     useEffect(() => {
             const handleKey = (event: KeyboardEvent) => {
@@ -39,7 +32,7 @@ export function JointChoice(){
         },
     []);
 
-    return(
+    return (
         <div>
             <h2>
                 Press up/down to cycle joints (waist, shoulder, elbow, joint)
@@ -48,6 +41,7 @@ export function JointChoice(){
                 Current Joint: {joints[Curr_index]}
             </h3>
         </div>
+
     );
 }
 
