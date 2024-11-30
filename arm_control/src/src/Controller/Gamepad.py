@@ -3,7 +3,8 @@
 import pygame
 # import time
 # import rospy
-from arm_control.msg import Gamepad_input
+from msg_interface.msg import GamePadInput
+from msg_interface.msg import JoystickInput
 """Gets gamepad data and publishes the data to the gamepad_data topic
 
     Topic data : Float32MultiArray
