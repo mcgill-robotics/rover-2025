@@ -1,3 +1,4 @@
+// App.tsx
 import './App.css'
 
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
@@ -5,6 +6,7 @@ import Sandbox from './pages/Sandbox';
 import Home from './pages/Home';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
+import DriveControl from './pages/DriveControl';
 
 
 function App() {
@@ -24,6 +26,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/home" element={<Home />} />
               <Route path="/sandbox" element={<Sandbox />} />
+              <Route path="/drive" element={<DriveControl />}/>
             </Routes>
           </div>
         </div>
