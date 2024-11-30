@@ -45,14 +45,13 @@ def move_joint(joystick_input, cur_angle, index):
     cur_angle[index] = max(joint_lower_limits[index], min(cur_angle[index], joint_upper_limits[index]))
     return cur_angle
 
-
-def cycle_up(current_cycle_mode):
+def cycle_up():
     #assume button check is done before calling this
     current_cycle_mode += 1
     current_cycle_mode %= 6
     return current_cycle_mode
 
-def cycle_down(current_cycle_mode):
+def cycle_down():
     #assume button check is done before calling this
     current_cycle_mode -= 1
     current_cycle_mode %= 6
