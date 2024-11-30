@@ -27,7 +27,7 @@ joint_max_speed = [
 ] # rad per method call
 
 speed = 1 # TO BE SET LATER
-current_cycle_mode = 1 # TO BE SET LATER
+current_cycle_mode = 0 # 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
 joint_control_is_active = True 
 
 waist_index = 0
@@ -44,3 +44,15 @@ def move_joint(joystick_input, cur_angle, index):
     #sets the waists angle to be at the limit if it exeeds the limit
     cur_angle[index] = max(joint_lower_limits[index], min(cur_angle[index], joint_upper_limits[index]))
     return cur_angle
+
+def cycle_up():
+    #assume button check is done before calling this
+    current_cycle_mode += 1
+    current_cycle_mode %= 6
+    return current_cycle_mode
+
+def cycle_down():
+    #assume button check is done before calling this
+    current_cycle_mode -= 1
+    current_cycle_mode %= 6
+    return current_cycle_mode
