@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from arm_control import arm_kinematics
+from ..src import arm_kinematics
 
 jointUpperLimits = [
     118.76 * np.pi / 180,
@@ -143,8 +143,13 @@ def test_inverseKinematics(num_samples=1000, verbose=False):
     print(f"Ratio: {(num_samples - failed) / num_samples * 100}%")
     return failed
 
+def test_failure():
+    target = [40, 40, 40, 0, 0, 0]
+    lst = [0, 0, 0, 0, 0]
+    joint = arm_kinematics.inverseKinematics(target, lst)
 
 if __name__ == "__main__":
-    test_inverseKinematicsJointPositions()
-    test_inverseKinematicsComputeJointAngles()
-    test_inverseKinematics()
+    #test_inverseKinematicsJointPositions()
+    #test_inverseKinematicsComputeJointAngles()
+    #test_inverseKinematics()
+    test_failure()
