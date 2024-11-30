@@ -1,5 +1,5 @@
-import rospy
-# TODO: figure out correct pathway
+import rclpy
+# TODO: find + change rospy -> rclpy imports
 from msg_srv_interface.msg import GamepadInput
 from camera_data.msg import Camera_Orientation
 from geometry_msgs.msg import Twist
@@ -20,7 +20,7 @@ class Node_GamepadProcessing:
         NOTE: twist measurements are in SI units (m/s, m, ...)
         """
         # init ROS node
-        rospy.init_node("gamepad_process_node")
+        rclpy.init_node("gamepad_process_node")
 
         # init gamepad object
         self.gamepad_init_successful = False
@@ -49,18 +49,18 @@ class Node_GamepadProcessing:
         self.cam_ctrl.data = [0, 0]  # elements: [x-axis, y-axis]
 
         # publisher for twist values
-        self.drive_publisher = rospy.Publisher("rover_velocity_controller/cmd_vel", Twist, queue_size=1)
+        self.drive_publisher = rclpy.Node.create_publisher("rover_velocity_controller/cmd_vel", Twist, queue_size=1)
         # publisher for pan tilt camera angles
-        self.camera_publisher = rospy.Publisher("panTiltAngles", Float32MultiArray, queue_size=1)
+        self.camera_publisher = rclpy.Node.create_publisher("panTiltAngles", Float32MultiArray, queue_size=1)
 
         # control frequency of node
-        self.rate = rospy.Rate(100)
+        self.rate = rclpy.Rate(100)
 
         self.run()
 
     def run(self):
-        while not rospy.is_shutdown():
-            if rospy.is_shutdown():
+        while not rclpy.is_shutdown():
+            if rclpy.is_shutdown():
                 exit()
             try:
 
@@ -95,7 +95,7 @@ class Node_GamepadProcessing:
                 self.gamepadProcessCall(msg)
 
             except Exception as error:
-                rospy.logerr(str(error))
+                rclpy.logerr(str(error))
 
             self.rate.sleep()
 
