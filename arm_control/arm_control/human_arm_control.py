@@ -27,6 +27,7 @@ joint_max_speed = [
 ] # rad per method call
 
 speed = 1 # TO BE SET LATER
+speed_increment = 0.1 #TO BE DETERMINED 
 current_cycle_mode = 1 # TO BE SET LATER
 joint_control_is_active = True 
 
@@ -57,3 +58,13 @@ def cycle_down(current_cycle_mode):
     current_cycle_mode -= 1
     current_cycle_mode %= 5
     return current_cycle_mode
+
+def speed_up(speed):
+    #assume button check is done before calling this
+    speed += speed_increment
+    return speed
+
+def speed_down(speed):
+    #assume button check is done before calling this
+    speed += speed_increment
+    return speed
