@@ -1,71 +1,66 @@
+// rosService.js
 import rclnodejs from 'rclnodejs';
-import { EventEmitter } from 'events';
-
-interface Status {
-  linearVelocity: number;
-  angularVelocity: number;
-}
+import EventEmitter from 'events';
 
 class RosService extends EventEmitter {
-  private node: any;
-  private publisher: any;
-
-  // Initialize velocities
-  private linearVelocity: number = 0.0;
-  private angularVelocity: number = 0.0;
-
-  // Set maximum velocities
-  private maxLinearVelocity: number = 3.0;
-  private maxAngularVelocity: number = 20.0; // Adjusted for faster angular changes
-
-  // Set acceleration and deceleration rates
-  private acceleration: number = 0.5; // Increased acceleration for faster changes
-  private deceleration: number = 2.0; // Increased deceleration for faster stopping
-
-  // Key states
-  private keyStates: { [key: string]: boolean } = {
-    w: false,
-    s: false,
-    a: false,
-    d: false,
-    space: false,
-  };
-
   constructor() {
     super();
+    // Initialize velocities
+    this.linearVelocity = 0.0;
+    this.angularVelocity = 0.0;
+
+    // Set maximum velocities
+    this.maxLinearVelocity = 3.0;
+    this.maxAngularVelocity = 20.0; // Adjusted for faster angular changes
+
+    // Set acceleration and deceleration rates
+    this.acceleration = 0.5;
+    this.deceleration = 2.0; 
+
+    // Key states
+    this.keyStates = {
+      w: false,
+      s: false,
+      a: false,
+      d: false,
+      space: false,
+    };
+  
+    // interval of update in ms
+    this.updateInterval = 200; 
+
     this.initializeROS2();
     this.setupVelocityUpdate();
   }
 
-  private initializeROS2() {
-    // Initialize ROS2 node
+  initializeROS2() {
+    // initialize a ROS2 node
     this.node = rclnodejs.createNode('wasd_control_node');
 
-    // Create a publisher for Twist messages
+    // publisher for Twist messages that publish to cmd_vel
     this.publisher = this.node.createPublisher('geometry_msgs/msg/Twist', '/rover_velocity_controller/cmd_vel');
 
-    // Start spinning the ROS2 node
+    // spin this node with the publisher that publishes Twist messages
     rclnodejs.spin(this.node);
   }
-
-  private setupVelocityUpdate() {
-    setInterval(() => this.updateVelocity(), 100); // Update every 100ms
+  setupVelocityUpdate() {
+    setInterval(() => this.updateVelocity(), this.updateInterval);
   }
 
-  public keyDown(key: string) {
+  keyDown(key) {
     if (key in this.keyStates) {
       this.keyStates[key] = true;
     }
   }
 
-  public keyUp(key: string) {
+  keyUp(key) {
     if (key in this.keyStates) {
       this.keyStates[key] = false;
     }
   }
 
-  private updateVelocity() {
-    // Update linear velocity
+  updateVelocity() {
+    // Update linear velocity (forward backward)
     if (this.keyStates.w) {
       this.linearVelocity += this.acceleration;
       if (this.linearVelocity > this.maxLinearVelocity) {
@@ -87,7 +82,7 @@ class RosService extends EventEmitter {
       }
     }
 
-    // Update angular velocity
+    // Update angular velocity (turning)
     if (this.keyStates.a) {
       this.angularVelocity += this.acceleration;
       if (this.angularVelocity > this.maxAngularVelocity) {
@@ -114,20 +109,20 @@ class RosService extends EventEmitter {
       this.linearVelocity = 0;
       this.angularVelocity = 0;
       this.keyStates.space = false; // Reset stop state
-      console.log('Space pressed: Stopping rover');
+      console.log('stopping rover');
     }
 
-    // Create and publish the Twist message
+    // create and publish the Twist message
     const Twist = rclnodejs.require('geometry_msgs/msg/Twist');
     const twist = new Twist();
-    twist.linear.x = this.linearVelocity;
-    twist.angular.z = this.angularVelocity;
+    twist.linear.x = this.linearVelocity; // add linear velocity to Twist msg
+    twist.angular.z = this.angularVelocity; // add angular velocity to Twist msg
 
-    this.publisher.publish(twist);
+    this.publisher.publish(twist); // publish the Twist msg
     console.log(`Published Twist - Linear: ${this.linearVelocity.toFixed(2)}, Angular: ${this.angularVelocity.toFixed(2)}`);
 
     // Emit status update
-    const status: Status = {
+    const status = {
       linearVelocity: this.linearVelocity,
       angularVelocity: this.angularVelocity,
     };
@@ -135,11 +130,12 @@ class RosService extends EventEmitter {
     this.emit('statusUpdate', status);
   }
 
-  public getStatus(): Status {
-    return {
+  getStatus() {
+    const status = {
       linearVelocity: this.linearVelocity,
       angularVelocity: this.angularVelocity,
     };
+    return status;
   }
 }
 
