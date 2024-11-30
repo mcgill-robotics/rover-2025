@@ -149,7 +149,7 @@ def test_failure():
     joint = arm_kinematics.inverseKinematics(target, lst)
 
 if __name__ == "__main__":
-    #test_inverseKinematicsJointPositions()
-    #test_inverseKinematicsComputeJointAngles()
-    #test_inverseKinematics()
+    test_inverseKinematicsJointPositions()
+    test_inverseKinematicsComputeJointAngles()
+    test_inverseKinematics()
     test_failure()
