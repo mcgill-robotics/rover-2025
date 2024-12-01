@@ -109,7 +109,6 @@ function DriveControl() {
     return (
         <Container title="Drive Control" width="100%" height="100%" border='none'>
             <div style={{display: 'flex',
-                backgroundColor: 'red',
                 justifyContent: 'space-between',
             }}>
                 <div id='keyboard-controls'>
