@@ -1,6 +1,7 @@
 // DriveControl.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {Controller} from "../components/Controller";
+
 
 import { Container } from "../components/Container";
 import './DriveControl.css';
@@ -55,7 +56,7 @@ function DriveControl() {
         };
       }, []);
 
-    // send key via websocket helper function
+    // send key via websocket to rclnodejs
     const sendKeyEvent = (type: string, key: string) => {
         if (ws.current && ws.current.readyState == WebSocket.OPEN) {
             ws.current.send(JSON.stringify({ type, key }));
