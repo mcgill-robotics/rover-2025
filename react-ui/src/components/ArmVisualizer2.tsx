@@ -34,7 +34,7 @@ const ArmVisualizer = () => {
             context.fillStyle = "blue";
             context.fill();
         }, []);
-        
+
 
         return (
             <div>
@@ -45,6 +45,13 @@ const ArmVisualizer = () => {
 
     return (
         <div>
+            <ul>
+                <li>Waist: {jointAngles.waist} rad</li>
+                <li>Shoulder: {jointAngles.shoulder}  rad</li>
+                <li>Elbow: {jointAngles.elbow} rad</li>
+                <li>Wrist: {jointAngles.wrist} rad</li>
+                <li>Hand: {jointAngles.hand} rad</li>
+            </ul>
             <ArmSideView jointAngles={jointAngles} width={400} height={400}/>
         </div>
     );
