@@ -5,7 +5,7 @@ from numpy import pi
 import rclpy
 from rclpy.node import Node
 import numpy as np
-import pybullet  
+import pybullet  as p 
 import pybullet_data
 import sys
 import os
@@ -13,7 +13,7 @@ import os
 sys.path.append("..")
 
 
-class Node_ArmSim:
+class Node_ArmSim (Node):
 
     def __init__(self):
         # Add unique identifier to the node name
@@ -22,28 +22,28 @@ class Node_ArmSim:
 
         # Initialize the base Node class with the node name 'arm_sim'
         # Node.__init__(self, node_name)
-        Node.__init__(self, 'arm_sim')
-        pybullet.connect(p.GUI)
+        super().__init__('arm_sim')
+        p.connect(p.GUI)
 
-        pybullet.setAdditionalSearchPath(pybullet_data.getDataPath())
-        pybullet.loadURDF("plane.urdf", [0, 0, -0.1])
+        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+        p.loadURDF("plane.urdf", [0, 0, -0.1])
 
         urdf_path = os.path.dirname(os.path.abspath(__file__)) + "/../model/MR_arm.urdf"
         self.robotId = p.loadURDF(urdf_path, [0, 0, 0], useFixedBase=1)
 
-        pybullet.resetBasePositionAndOrientation(self.robotId, [0, 0, 0], [0, 0, 0, 1])
+        p.resetBasePositionAndOrientation(self.robotId, [0, 0, 0], [0, 0, 0, 1])
         self.numJoints = p.getNumJoints(self.robotId)
         self.endEffectorIndex = self.numJoints - 1
 
         for i in range(self.numJoints):
             p.resetJointState(self.robotId, i, 0)
 
-        pybullet.setGravity(0, 0, -9.8)
+        p.setGravity(0, 0, -9.8)
         self.prevPose = [0, 0, 0]
         self.hasPrevPose = 0
         self.t = 0.0
 
-        pybullet.setRealTimeSimulation(0)
+        p.setRealTimeSimulation(0)
         self.trailDuration = 5
 
         self.jointPoses = [0] * self.numJoints
@@ -118,11 +118,11 @@ class Node_ArmSim:
     def run(self):
         while rclpy.ok():
             self.t = self.t + 0.01
-            pybullet.stepSimulation()
+            p.stepSimulation()
 
             for i in range(self.numJoints):
 
-                pybullet.setJointMotorControl2(
+                p.setJointMotorControl2(
                     bodyIndex=self.robotId,
                     jointIndex=i,
                     controlMode=p.POSITION_CONTROL,
@@ -132,16 +132,16 @@ class Node_ArmSim:
                     velocityGain=1,
                 )
 
-            ls = pybullet.getLinkState(self.robotId, self.endEffectorIndex)
+            ls = p.getLinkState(self.robotId, self.endEffectorIndex)
 
             if self.hasPrevPose:
-                pybullet.addUserDebugLine(
+                p.addUserDebugLine(
                     self.prevPose, ls[4], [1, 0, 0], 1, self.trailDuration
                 )
             self.prevPose = ls[4]
             self.hasPrevPose = 1
 
-            states = pybullet.getJointStates(self.robotId, range(self.numJoints))
+            states = p.getJointStates(self.robotId, range(self.numJoints))
             for i in range(len(states)):
                 self.jointPoses[i] = states[i][0] * (180 / pi)
                 self.jointVels[i] = states[i][1]
@@ -164,7 +164,7 @@ class Node_ArmSim:
             self.armBrushedPublisher.publish(state_brushed_msg)
             self.armBrushlessPublisher.publish(state_brushless_msg)
 
-        pybullet.disconnect()
+        p.disconnect()
 
 def main(args=None):
     rclpy.init(args=args)
