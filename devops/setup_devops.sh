@@ -30,7 +30,7 @@ sudo groupadd docker
 sudo usermod -aG docker $USER
 # newgrp docker
 
-set -e # Exit immediately on any command failure
+# set -e # Exit immediately on any command failure
 
 ########################################
 # STEP 1: Create the ROS2 Workspace
@@ -50,7 +50,7 @@ git clone --branch devops https://github.com/mcgill-robotics/rover-2025.git ~/ro
 ########################################
 # STEP 3: Enter the devops/ folder
 ########################################
-cd rover-2025/devops
+cd ~/rover25_ws/src/devops
 
 ########################################
 # STEP 4: Build & Run Docker Compose
