@@ -13,7 +13,8 @@ services:
       - .:/app
       - /dev:/dev # Mounting all /dev devices
       - ./microros_ws:/root/microros_ws
-      - ./src:/root/rover25_ws/src
+      # - ./src:/root/rover25_ws/src
+      - "${HOME}/rover25_ws:${HOME}/rover25_ws"
     privileged: true # Add privileged mode here
     command: /bin/bash # Override default command to start a shell
     environment:
