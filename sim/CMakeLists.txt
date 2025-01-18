@@ -32,7 +32,7 @@ find_package(sensor_msgs REQUIRED)
 
 # No need to explicitly write the destination folder name when doing multiple directories
 install(
-  DIRECTORY rviz launch model model/meshes
+  DIRECTORY rviz launch model model/meshes config
   DESTINATION share/${PROJECT_NAME}
 )
 
