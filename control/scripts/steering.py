@@ -37,14 +37,69 @@ class Steering:
 
         # front of wheel facing left
         elif abs(wheel_angles[0] - math.pi) <= tolerance:
-            pass
+            if joystick_input < 0: #turn left
+                # top wheels go forward, bottom wheel rotate backward
+                return [i*abs(joystick_input) for i in [1, 1, -1, -1]] 
+            else: #turning right
+                # top wheels go backward, bottom wheel rotate forward
+                return [i*abs(joystick_input) for i in [-1, -1, 1, 1]]
 
             
+        # CASE 2: approximately parallel to rover
+        # front of wheel facing front
+        elif abs(wheel_angles[0]-math.pi/2) <= tolerance:
+            if joystick_input < 0: #turn left
+                # left wheels go backward, right wheels rotate forward
+                return [i*abs(joystick_input) for i in [1, -1, -1, 1]] 
+            else: #turning right
+                # left wheels go forward, right wheel rotate backward
+                return [i*abs(joystick_input) for i in [-1, 1, 1, -1]]
+        
+        # front of wheel facing backward
+        elif abs(wheel_angles[0]-3*math.pi/2) <= tolerance:
+            if joystick_input < 0: #turn left
+                # left wheels go forward, right wheels rotate backward
+                return [i*abs(joystick_input) for i in [-1, 1, 1, -1]] 
+            else: #turning right
+                # left wheels go backward, right wheel rotate forward
+                return [i*abs(joystick_input) for i in [1, -1, -1, 1]]
 
 
-        # case 2: approximately parallel to rover
+        # CASE 3: wheels / relative to rover
+        # front of wheel facing front
+        elif tolerance <= wheel_angles[0] <= math.pi-tolerance:
+            if joystick_input < 0: #turn left
+                # only TL and BR run
+                return [i*abs(joystick_input) for i in [0, -1, 0, 1]]
+            else: #turning right
+                # only TL and BR run
+                return [i*abs(joystick_input) for i in [0, 1, 0, -1]]
+        
+        # front of wheel facing backwards
+        elif math.pi+tolerance <= wheel_angles[0] <= 3*math.pi/2 - tolerance:
+            if joystick_input < 0: #turn left
+                # only TL and BR run
+                return [i*abs(joystick_input) for i in [0, 1, 0, -1]]
+            else: #turning right
+                # only TL and BR run
+                return [i*abs(joystick_input) for i in [0, -1, 0, 1]]
 
-        # case 3: / relative to rover
 
-        # case 4: \ relative to rover
+        # CASE 4: wheels \ relative to rover
+        # front of wheel facing forward
+        elif math.pi/2 + tolerance <= wheel_angles[0] <= math.pi - tolerance:
+            if joystick_input < 0: #turn left
+                # only TR and BL run
+                return [i*abs(joystick_input) for i in [1, 0, -1, 0]]
+            else: #turning right
+                # only TR and BL run
+                return [i*abs(joystick_input) for i in [-1, 0, 1, 0]]
 
+        # front of wheel facing backward
+        else: 
+            if joystick_input < 0: #turn left
+                # only TR and BL run
+                return [i*abs(joystick_input) for i in [-1, 0, 1, 0]]
+            else: #turning right
+                # only TR and BL run
+                return [i*abs(joystick_input) for i in [1, 0, -1, 0]]
