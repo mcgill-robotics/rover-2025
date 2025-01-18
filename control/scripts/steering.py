@@ -67,7 +67,7 @@ class Steering:
 
         # CASE 3: wheels / relative to rover
         # front of wheel facing front
-        elif tolerance <= wheel_angles[0] <= math.pi-tolerance:
+        elif tolerance <= wheel_angles[0] <= math.pi/2-tolerance:
             if joystick_input < 0: #turn left
                 # only TL and BR run
                 return [i*abs(joystick_input) for i in [0, -1, 0, 1]]
