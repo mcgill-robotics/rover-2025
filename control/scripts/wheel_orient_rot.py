@@ -24,6 +24,8 @@ def wheel_orientation_rot(x_input, y_input, curr_angle_rad):
     while curr_angle_rad > new_angle_boundary:
         curr_angle_rad = 0 if curr_angle_rad <= 0 else curr_angle_rad
         curr_angle_rad -= 0.01
+
+    curr_angle_rad = round(curr_angle_rad, 2)
     
     
     return np.full(4, curr_angle_rad)
