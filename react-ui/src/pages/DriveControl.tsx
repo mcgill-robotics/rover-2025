@@ -167,7 +167,7 @@ function DriveControl() {
                 </div>
             </div>
 
-            <div id="status">
+            <div id="vel_status">
                 <h2>Current Velocities</h2>
                 <p>Linear Velocity: <span id="linear">{linearVelocity.toFixed(2)}</span> m/s</p>
                 <p>Angular Velocity: <span id="angular">{angularVelocity.toFixed(2)}</span> rad/s</p>

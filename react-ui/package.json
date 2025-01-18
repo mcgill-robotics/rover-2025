@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "drive": "ts-node src/services/drive/drive.js",
+    "start:all": "concurrently \"npm run drive\" \"npm run dev\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
