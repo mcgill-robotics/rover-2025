@@ -22,7 +22,7 @@ async function initializeBackend() {
 
     // middleware
     app.use(cors());
-    app.use(express.static(path.join(__dirname, 'public'))); // Serve static files if needed
+    app.use(express.static(path.join(__dirname, 'public')));
 
     // create http server
     const server = http.createServer(app);
