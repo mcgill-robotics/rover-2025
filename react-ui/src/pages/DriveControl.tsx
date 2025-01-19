@@ -1,5 +1,7 @@
 // DriveControl.tsx
 import { useEffect, useState, useRef } from 'react';
+import {Controller} from "../components/Controller";
+
 
 import { Container } from "../components/Container";
 import './DriveControl.css';
@@ -106,71 +108,78 @@ function DriveControl() {
 
     return (
         <Container title="Drive Control" width="100%" height="100%" border='none'>
-            <p>Use your keyboard's WASD keys or the buttons below to control the rover.</p>
+            <div style={{display: 'flex',
+                justifyContent: 'space-between',
+            }}>
+                <div id='keyboard-controls'>
+                    <p>Use your keyboard's WASD keys or the buttons below to control the rover.</p>
 
-            <div className="control-buttons">
-                <div>
-                    <button
-                        id="w"
-                        className={activeKeys['w'] ? 'active' : ''}
-                        onMouseDown={() => handleMouseDown('w')}
-                        onMouseUp={() => handleMouseUp('w')}
-                        onMouseLeave={() => handleMouseLeave('w')}
-                        aria-label="Move Forward"
-                    >
-                        W
-                    </button>
-                </div>
-                <div>
-                    <button
-                        id="a"
-                        className={activeKeys['a'] ? 'active' : ''}
-                        onMouseDown={() => handleMouseDown('a')}
-                        onMouseUp={() => handleMouseUp('a')}
-                        onMouseLeave={() => handleMouseLeave('a')}
-                        aria-label="Turn Left"
-                    >
-                        A
-                    </button>
-                    <button
-                        id="s"
-                        className={activeKeys['s'] ? 'active' : ''}
-                        onMouseDown={() => handleMouseDown('s')}
-                        onMouseUp={() => handleMouseUp('s')}
-                        onMouseLeave={() => handleMouseLeave('s')}
-                        aria-label="Move Backward"
-                    >
-                        S
-                    </button>
-                    <button
-                        id="d"
-                        className={activeKeys['d'] ? 'active' : ''}
-                        onMouseDown={() => handleMouseDown('d')}
-                        onMouseUp={() => handleMouseUp('d')}
-                        onMouseLeave={() => handleMouseLeave('d')}
-                        aria-label="Turn Right"
-                    >
-                        D
-                    </button>
-                </div>
-                <div>
-                    <button
-                        id="space"
-                        className={activeKeys['space'] ? 'active' : ''}
-                        onMouseDown={() => handleMouseDown('space')}
-                        onMouseUp={() => handleMouseUp('space')}
-                        onMouseLeave={() => handleMouseLeave('space')}
-                        aria-label="Stop Rover"
-                    >
-                        Space
-                    </button>
-                </div>
-            </div>
+                    <div className="control-buttons">
+                        <div>
+                            <button
+                                id="w"
+                                className={activeKeys['w'] ? 'active' : ''}
+                                onMouseDown={() => handleMouseDown('w')}
+                                onMouseUp={() => handleMouseUp('w')}
+                                onMouseLeave={() => handleMouseLeave('w')}
+                                aria-label="Move Forward"
+                            >
+                                W
+                            </button>
+                        </div>
+                        <div>
+                            <button
+                                id="a"
+                                className={activeKeys['a'] ? 'active' : ''}
+                                onMouseDown={() => handleMouseDown('a')}
+                                onMouseUp={() => handleMouseUp('a')}
+                                onMouseLeave={() => handleMouseLeave('a')}
+                                aria-label="Turn Left"
+                            >
+                                A
+                            </button>
+                            <button
+                                id="s"
+                                className={activeKeys['s'] ? 'active' : ''}
+                                onMouseDown={() => handleMouseDown('s')}
+                                onMouseUp={() => handleMouseUp('s')}
+                                onMouseLeave={() => handleMouseLeave('s')}
+                                aria-label="Move Backward"
+                            >
+                                S
+                            </button>
+                            <button
+                                id="d"
+                                className={activeKeys['d'] ? 'active' : ''}
+                                onMouseDown={() => handleMouseDown('d')}
+                                onMouseUp={() => handleMouseUp('d')}
+                                onMouseLeave={() => handleMouseLeave('d')}
+                                aria-label="Turn Right"
+                            >
+                                D
+                            </button>
+                        </div>
+                        <div>
+                            <button
+                                id="space"
+                                className={activeKeys['space'] ? 'active' : ''}
+                                onMouseDown={() => handleMouseDown('space')}
+                                onMouseUp={() => handleMouseUp('space')}
+                                onMouseLeave={() => handleMouseLeave('space')}
+                                aria-label="Stop Rover"
+                            >
+                                Space
+                            </button>
+                        </div>
+                    </div>
 
-            <div id="vel_status">
-                <h2>Current Velocities</h2>
-                <p>Linear Velocity: <span id="linear">{linearVelocity.toFixed(2)}</span> m/s</p>
-                <p>Angular Velocity: <span id="angular">{angularVelocity.toFixed(2)}</span> rad/s</p>
+                    <div id="status">
+                        <h2>Current Velocities</h2>
+                        <p>Linear Velocity: <span id="linear">{linearVelocity.toFixed(2)}</span> m/s</p>
+                        <p>Angular Velocity: <span id="angular">{angularVelocity.toFixed(2)}</span> rad/s</p>
+                    </div>
+                </div>
+                <div><Controller/></div>
             </div>
         </Container>
     )
