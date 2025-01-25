@@ -141,3 +141,22 @@ def depth_motion(joystick_input, cur_angles):
             continue
 
     return cur_ee_pos
+
+def vertical_motion(joystick_input, cur_angles):
+    #get current x,y,z,X,Y,Z of arms
+    cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
+    cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
+
+    for i in range(len(distance_increment)):
+        #calculate new arm distance
+        new_z = cur_ee_pos[2] + joystick_input * distance_increment[i]
+
+        #call inverseKinematics
+        new_pos = cur_ee_pos.copy()
+        new_pos[2] = new_z
+        try:
+            return arm_kinematics.inverseKinematics(new_pos, cur_ee_pos)
+        except:
+            continue
+
+    return cur_ee_pos
