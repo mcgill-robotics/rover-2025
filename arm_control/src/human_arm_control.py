@@ -134,7 +134,7 @@ def depth_motion(joystick_input, cur_angles):
         new_y = new_length / ee_proj_length * cur_ee_pos[1]
 
         #call inverseKinematics
-        new_pos = [new_x, new_y] + cur_ee_pos[2:]
+        new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
         try:
             return arm_kinematics.inverseKinematics(new_pos, cur_ee_pos)
         except:
