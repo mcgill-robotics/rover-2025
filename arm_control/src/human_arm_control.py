@@ -28,6 +28,7 @@ joint_max_speed = [
 
 speed = 1 # TO BE SET LATER
 speed_increment = 0.1 # TO BE SET LATER
+distance_increment = [0.05, 0.05/2, 0.05/4] # TO BE SET LATER
 current_cycle_mode = 0 # 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
 joint_control_is_active = True 
 
@@ -110,3 +111,33 @@ def cycle_down():
     current_cycle_mode -= 1
     current_cycle_mode %= 6
     return current_cycle_mode
+
+def depth_motion(joystick_input, cur_angles):
+    #get current x,y,z,X,Y,Z of arms
+    cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
+    cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
+
+    #get current arm distance
+    #arm as 2D line for x,y plane
+    projection_line = [
+        cur_ee_pos[0],
+        cur_ee_pos[1],
+    ]
+    ee_proj_length = arm_kinematics.projection_length(projection_line, cur_ee_pos[:2])  #length of the arm on the x,y plane
+
+    for i in range(len(distance_increment)):
+        #calculate new arm distance
+        new_length = ee_proj_length + joystick_input * distance_increment[i]
+
+        #use similar triangles to calculate new x,y
+        new_x = new_length / ee_proj_length * cur_ee_pos[0]
+        new_y = new_length / ee_proj_length * cur_ee_pos[1]
+
+        #call inverseKinematics
+        new_pos = [new_x, new_y] + cur_ee_pos[2:]
+        try:
+            return arm_kinematics.inverseKinematics(new_pos, cur_ee_pos)
+        except:
+            continue
+
+    return cur_ee_pos
