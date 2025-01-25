@@ -160,3 +160,37 @@ def vertical_motion(joystick_input, cur_angles):
             continue
 
     return cur_ee_pos
+
+def horizontal_motion(joystick_input, cur_angles):
+    #get current x,y,z,X,Y,Z of arms
+    cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
+    cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
+
+    #get current arm distance
+    #arm as 2D line for x,y plane
+    projection_line = [
+        cur_ee_pos[0],
+        cur_ee_pos[1],
+    ]
+    ee_proj_length = arm_kinematics.projection_length(projection_line, cur_ee_pos[:2])  #length of the arm on the x,y plane
+
+    for i in range(len(distance_increment)):
+        #calculate new length
+        delta_horizontal = joystick_input * distance_increment[i]
+        new_length = math.sqrt(ee_proj_length ** 2 + delta_horizontal ** 2)
+
+        #calculate new waist angle
+        new_waist_angle = math.asin(delta_horizontal/new_length) + cur_angles[0]
+
+        #use trig to get new x and y
+        new_x = new_length * math.cos(new_waist_angle)
+        new_y = new_length * math.sin(new_waist_angle)
+
+        #call inverseKinematics
+        new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
+        try:
+            return arm_kinematics.inverseKinematics(new_pos, cur_ee_pos)
+        except:
+            continue
+
+    return cur_ee_pos
