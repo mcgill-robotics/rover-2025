@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-from rospy import Subscriber
+from rclpy import Node
+# from rospy import Subscriber
 from std_msgs.msg import Float32MultiArray
 
 class AngularGamepad():
@@ -9,7 +10,7 @@ class AngularGamepad():
 
     def __init__(self, topic_name = "/angular_ui_app/drive") -> None:
         self.data = GamepadData()
-        Subscriber(topic_name, Float32MultiArray, self.gamepad_callback)
+        Node.create_subscription(topic_name, Float32MultiArray, self.gamepad_callback)
 
 
     def gamepad_callback(self, msg: Float32MultiArray):
