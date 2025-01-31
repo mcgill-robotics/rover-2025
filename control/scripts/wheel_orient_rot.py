@@ -1,7 +1,6 @@
 import math
 import numpy as np
 
-
     # rotates the wheels with joystick inputs
 def wheel_orientation_rot(self, x_input, y_input, curr_angle_rad):
     joystick_angle_rad = math.atan2(y_input, x_input)
@@ -41,6 +40,4 @@ def wheel_orientation_rot(self, x_input, y_input, curr_angle_rad):
             curr_angle_rad -= step_size
     
     return np.full(4, round(curr_angle_rad,2))
-
-
 
