@@ -50,6 +50,7 @@ def generate_launch_description():
     )
     gz_world_arg = PathJoinSubstitution(
         [get_package_share_directory("sim"), "model", "worlds", world]
+        #[get_package_share_directory("leo_gz_worlds"), "worlds", world]
         #[get_package_share_directory("leo_simulator-ros2"),"leo_gz_worlds","worlds",world]
     )
     gz_sim = IncludeLaunchDescription(
@@ -64,18 +65,12 @@ def generate_launch_description():
         package="ros_gz_sim",
         executable="create",
         arguments=[
-            "-topic",
-            "/robot_description",
-            "-name",
-            "rover",
-            "-allow_renaming",
-            "true",
-            "-x",
-            "0",
-            "-y",
-            "0",
-            "-z",
-            "0",
+            "-topic", "/robot_description",
+            "-name", "rooooover",
+            "-allow_renaming", "true",
+            "-x", "0",
+            "-y", "0",
+            "-z", "3",
         ],
     )
 
