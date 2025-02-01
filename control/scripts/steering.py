@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 class Steering:
     def __init__(self, rWheel, base_length):
@@ -14,6 +15,20 @@ class Steering:
         wRight=(vR+temp)/self.rWheel
         val = [wLeft, wRight]                     
         return val
+      
+    # rotates the wheels with joystick inputs. returns the angle of the joysticks
+    def wheel_orientation_rot(self, x_input, y_input, curr_angle_rad):
+        '''
+        This function returns the angle at which each wheels should be oriented.
+        It returns the angle of the joystick
+    
+        '''
+        joystick_angle_rad = math.atan2(y_input, x_input)
+        curr_angle_rad = joystick_angle_rad
+
+        if curr_angle_rad < 0:
+            curr_angle_rad += 2* math.pi
+        return np.full(4,round(curr_angle_rad,2)
     
     def rover_rotation(self, wheel_angles, joystick_input):
         """
