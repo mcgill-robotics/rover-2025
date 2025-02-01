@@ -1,10 +1,11 @@
 // DriveControl.tsx
+// Drive control TEST
+import './styles/DriveControl.css';
+
 import { useEffect, useState, useRef } from 'react';
-import {Controller} from "../components/Controller";
 
-
-import { Container } from "../components/Container";
-import './DriveControl.css';
+import Controller from "../components/drive/Controller";
+import Container from "../components/Container";
 
 function DriveControl() {
     const [linearVelocity, setLinearVelocity] = useState(0.0);

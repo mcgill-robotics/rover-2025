@@ -9,16 +9,13 @@ interface ContainerProps {
     children?: ReactNode;
 }
 
-export function Container({ title, width, height, border, children }: ContainerProps) {
+function Container({ title, width, height, border, children }: ContainerProps) {
     return (
         <div style={{ height, width, border }}>
             <h1>{title}</h1>
-
             {children}
-
         </div>
     );
 }
 
-
-
+export default Container

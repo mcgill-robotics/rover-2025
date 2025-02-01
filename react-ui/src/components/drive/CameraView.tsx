@@ -1,4 +1,4 @@
-import "./CameraView.css";
+import "./styles/CameraView.css";
 
 const CameraView: React.FC = () => {
   const cameras = [
@@ -9,12 +9,13 @@ const CameraView: React.FC = () => {
   ];
 
   return (
-    <div className="camera-section">
+    <div className="camera-view">
       <div className="camera-grid">
         {cameras.map((camera) => (
           <div key={camera.id} className="camera-card">
-            <h2 className="camera-title">{camera.name}</h2>
-            <div className="camera-placeholder"></div>
+            <div className="camera-placeholder">
+              <h2 className="camera-title">{camera.name}</h2>
+            </div>
           </div>
         ))}
       </div>

@@ -1,8 +1,9 @@
 /* Styling for the dashboard container */
 .dashboard {
-  padding: 1.5rem;
+  padding: 0.25rem;
   background-color: #f3f4f6;
   min-height: 100vh;
+  height: 100%;
 }
 
 /* Styling for the dashboard content */
@@ -13,9 +14,10 @@
   gap: 0.25rem
 }
 
-/* Styling for the CameraVoew (left side) */
+/* Styling for the CameraView (left side) */
 .camera-view {
-  flex: 2;
+  height: 100%;
+  flex: 3;
 }
 
 /* Styling for the RoverInfo (right side) */

@@ -1,7 +1,9 @@
-import React from "react";
-import CameraView from "../components/CameraView";
-import RoverInfo from "../components/RoverInfo";
-import "./Dashboard.css";
+// Dashboard.tsx
+// Pages for drive controls
+
+import CameraView from "../components/drive/CameraView";
+import RoverInfo from "../components/drive/RoverInfo";
+import "./styles/Dashboard.css";
 
 const Dashboard: React.FC = () => {
   return (

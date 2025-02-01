@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { ControllerDisplay } from "./ControllerDisplay";
-import ros from "../services/ros";
+import ros from "../../services/ros";
 import * as ROSLIB from 'roslib';
+
+import { ControllerDisplay } from "./ControllerDisplay";
 //import { clearInterval } from "timers";
 
-export function Controller() {
+function Controller() {
     const [isConnected, setIsConnected] = useState(false);
     const [isEnabled, setIsEnabled] = useState(false);
     // create the topic
@@ -76,8 +77,6 @@ export function Controller() {
         {isEnabled && <ControllerDisplay controllerConnected={isConnected}/>}            
         </>
     )
-
-
-
-
 }
+
+export default Controller

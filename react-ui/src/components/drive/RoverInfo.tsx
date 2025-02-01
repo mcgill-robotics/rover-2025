@@ -1,4 +1,4 @@
-import "./RoverInfo.css";
+import "./styles/RoverInfo.css";
 
 const RoverInfo: React.FC = () => {
   return (

@@ -4,11 +4,9 @@ function Navbar() {
     return (
         <div>
             <nav style={{display: "flex", justifyContent: "space-around"}}>
-                <Link to="/home">Home</Link>
-                |
-                <Link to="/sandbox">Sandbox</Link>
-                |
-                <Link to="/drive">Drive Control</Link>
+                <Link to="/">Home</Link>
+                <Link to="/control">Control</Link>
+                <Link to="/dashboard">Dashboard</Link>
             </nav>
         </div>
     );
