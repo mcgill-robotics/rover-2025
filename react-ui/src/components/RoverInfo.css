@@ -1,0 +1,32 @@
+/* Styling for the rover info container */
+.rover-info {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Styling for the info title */
+.info-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Styling for the info content */
+.info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Styling for each info item */
+.info-item {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Styling for the info value */
+.info-value {
+  font-weight: 500;
+}

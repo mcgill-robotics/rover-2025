@@ -46,7 +46,7 @@ export function ControllerDisplay({controllerConnected} : {controllerConnected :
 
   useEffect(() => {
 
-      let publisherInterval: number | null = null;
+      //let publisherInterval: number | null = null;
   // create the topic
     var cmdVel = new ROSLIB.Topic({
     ros : ros,

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ControllerDisplay } from "./ControllerDisplay";
 import ros from "../services/ros";
 import * as ROSLIB from 'roslib';
-import { clearInterval } from "timers";
+//import { clearInterval } from "timers";
 
 export function Controller() {
     const [isConnected, setIsConnected] = useState(false);

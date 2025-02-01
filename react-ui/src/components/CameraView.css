@@ -1,0 +1,43 @@
+/* Grid layout for the camera cards */
+.camera-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 0.1rem;
+  margin-bottom: 0rem;
+}
+
+/* Responsive grid for medium screens (2 columns) */
+@media (min-width: 768px) {
+  .camera-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Responsive grid for large screens (3 columns) */
+@media (min-width: 1024px) {
+  .camera-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Styling for each camera card */
+.camera-card {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Styling for the camera title */
+.camera-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Styling for the camera placeholder */
+.camera-placeholder {
+  background-color: #e5e7eb;
+  height: 10rem;
+  border-radius: 0.375rem;
+}
