@@ -74,7 +74,7 @@ def test_inverseKinematicsComputeJointAngles(num_samples=10000, verbose=False):
             print(f"GIVEN LIST: {lst} \nRETURNED TARGET: {target}")
 
         joint_options = arm_kinematics.inverseKinematicsAngleOptions(
-            target, [0, 0, 0, 0, 0]
+            target
         )
         err = [0 for _ in range(len(joint_options))]
         for i in range(len(joint_options)):

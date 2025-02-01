@@ -136,10 +136,9 @@ def depth_motion(joystick_input, cur_angles):
         #call inverseKinematics
         new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
         try:
-            return arm_kinematics.inverseKinematics(new_pos, cur_ee_pos)
+            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
         except:
             continue
-
     return cur_ee_pos
 
 def vertical_motion(joystick_input, cur_angles):
@@ -155,7 +154,7 @@ def vertical_motion(joystick_input, cur_angles):
         new_pos = cur_ee_pos.copy()
         new_pos[2] = new_z
         try:
-            return arm_kinematics.inverseKinematics(new_pos, cur_ee_pos)
+            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
         except:
             continue
 
@@ -189,8 +188,42 @@ def horizontal_motion(joystick_input, cur_angles):
         #call inverseKinematics
         new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
         try:
-            return arm_kinematics.inverseKinematics(new_pos, cur_ee_pos)
+            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
         except:
             continue
-
     return cur_ee_pos
+
+# print(depth_motion(0,[0,0,0,0,0]))
+# print(depth_motion(-1,[0,0,0,0,0]))
+# print(depth_motion(1,[0,0,0,0,0]))
+
+
+
+# arm_kinematics.inverseKinematics(new_pos, cur_ee_pos)
+
+
+
+
+# cur_matrix = arm_kinematics.forwardKinematics([0,0,0,0,0])
+# pos = arm_kinematics.Mat2Pose(cur_matrix)
+# print(pos)
+# #print(arm_kinematics.inverseKinematics(pos, [0.1 * np.pi,0.1 * np.pi,-0.1 * np.pi,-0.1 * np.pi,0.01 * np.pi]))
+# print(
+#     arm_kinematics.Mat2Pose(
+#         arm_kinematics.forwardKinematics(
+#             depth_motion(-1, [0,0,0,0,0])
+#         )
+#     )
+#     )
+# print(arm_kinematics.Mat2Pose(
+#         arm_kinematics.forwardKinematics(
+#             vertical_motion(-1, [0,0,0,0,0])
+#         )
+#     )
+#     )
+# print(arm_kinematics.Mat2Pose(
+#         arm_kinematics.forwardKinematics(
+#             horizontal_motion(-1, [0,0,0,0,0])
+#         )
+#     )
+#     )
