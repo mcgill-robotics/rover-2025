@@ -16,43 +16,17 @@ class Steering:
         val = [wLeft, wRight]                     
         return val
 
-    # rotates the wheels with joystick inputs
+    # rotates the wheels with joystick inputs. returns the angle of the joysticks
     def wheel_orientation_rot(self, x_input, y_input, curr_angle_rad):
+        '''
+        This function returns the angle at which each wheels should be oriented.
+        It returns the angle of the joystick
+    
+        '''
         joystick_angle_rad = math.atan2(y_input, x_input)
-        new_angle_boundary = joystick_angle_rad
-        if new_angle_boundary < 0:
-            new_angle_boundary += 2* math.pi
-        tolerance = 0.000001
-        step_size = 0.1
+        curr_angle_rad = joystick_angle_rad
 
-        #choose if more optimal to go cw or ccw and increment by 0.1 rad till desired angle
-        angle_diff = new_angle_boundary - curr_angle_rad
-        if abs(angle_diff) < tolerance:
-            return np.full(4,curr_angle_rad)
-        
-        elif 0 < angle_diff <= math.pi:
-            while abs(curr_angle_rad-new_angle_boundary) > tolerance:
-                if curr_angle_rad >= 2*math.pi:
-                    curr_angle_rad -= 2*math.pi
-                curr_angle_rad += step_size
-
-        elif angle_diff > math.pi:
-            while abs(curr_angle_rad-new_angle_boundary) > tolerance:
-                if curr_angle_rad <= 0 :
-                    curr_angle_rad += 2*math.pi
-                curr_angle_rad -= step_size
-
-        elif angle_diff < -math.pi:
-            while abs(curr_angle_rad-new_angle_boundary) > tolerance:
-                if curr_angle_rad >= 2* math.pi:
-                    curr_angle_rad -= 2*math.pi
-                curr_angle_rad += step_size
-        
-        elif -math.pi < angle_diff < 0:
-            while abs(curr_angle_rad-new_angle_boundary) > tolerance:
-                if curr_angle_rad <= 0:
-                    curr_angle_rad += 2*math.pi
-                curr_angle_rad -= step_size
-        
-        return np.full(4, round(curr_angle_rad,2))
-
+        if curr_angle_rad < 0:
+            curr_angle_rad += 2* math.pi
+        return np.full(4,round(curr_angle_rad,2))
+    
