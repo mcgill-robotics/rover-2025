@@ -1,6 +1,6 @@
 import numpy as np
 import math
-import arm_kinematics
+from ..src import arm_kinematics
 
 joint_upper_limits = [ 
     118.76 * np.pi / 180, # Waist
@@ -139,7 +139,7 @@ def depth_motion(joystick_input, cur_angles):
             return arm_kinematics.inverseKinematics(new_pos, cur_angles)
         except:
             continue
-    return cur_ee_pos
+    return cur_angles
 
 def vertical_motion(joystick_input, cur_angles):
     #get current x,y,z,X,Y,Z of arms
@@ -158,7 +158,7 @@ def vertical_motion(joystick_input, cur_angles):
         except:
             continue
 
-    return cur_ee_pos
+    return cur_angles
 
 def horizontal_motion(joystick_input, cur_angles):
     #get current x,y,z,X,Y,Z of arms
@@ -176,14 +176,14 @@ def horizontal_motion(joystick_input, cur_angles):
     for i in range(len(distance_increment)):
         #calculate new length
         delta_horizontal = joystick_input * distance_increment[i]
-        new_length = math.sqrt(ee_proj_length ** 2 + delta_horizontal ** 2)
+        # new_length = math.sqrt(ee_proj_length ** 2 + delta_horizontal ** 2)
 
-        #calculate new waist angle
-        new_waist_angle = math.asin(delta_horizontal/new_length) + cur_angles[0]
+        # #calculate new waist angle
+        # new_waist_angle = math.asin(delta_horizontal/new_length) + cur_angles[0]
 
         #use trig to get new x and y
-        new_x = new_length * math.cos(new_waist_angle)
-        new_y = new_length * math.sin(new_waist_angle)
+        new_x = cur_ee_pos[0] + delta_horizontal/ee_proj_length * cur_ee_pos[1]
+        new_y = cur_ee_pos[1] + delta_horizontal/ee_proj_length * -cur_ee_pos[0]
 
         #call inverseKinematics
         new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
@@ -191,7 +191,7 @@ def horizontal_motion(joystick_input, cur_angles):
             return arm_kinematics.inverseKinematics(new_pos, cur_angles)
         except:
             continue
-    return cur_ee_pos
+    return cur_angles
 
 # print(depth_motion(0,[0,0,0,0,0]))
 # print(depth_motion(-1,[0,0,0,0,0]))

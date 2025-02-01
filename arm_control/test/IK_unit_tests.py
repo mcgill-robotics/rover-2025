@@ -1,22 +1,23 @@
 import numpy as np
 import math
 from ..src import arm_kinematics
+from ..src import human_arm_control
 
 jointUpperLimits = [
-    118.76 * np.pi / 180,
     90 * np.pi / 180,
-    75 * np.pi / 180,
-    75 * np.pi / 180,
-    np.pi,
+    70 * np.pi / 180,
+    70 * np.pi / 180,
+    38 * np.pi / 180,
+    85 * np.pi / 180,
 ]  # rad
 jointLowerLimits = [
-    -125.97 * np.pi / 180,
+    -90 * np.pi / 180,
     -60 * np.pi / 180,
-    -70 * np.pi / 180,
-    -75 * np.pi / 180,
-    -np.pi,
+    -20 * np.pi / 180,
+    -35 * np.pi / 180,
+    -85 * np.pi / 180,
 ]  # rad
-
+distance_increment = [0.05, 0.05/2, 0.05/4]
 
 def test_inverseKinematicsJointPositions(num_sample_points=10000, verbose=False):
     print("------------------------------------------------------------------")
@@ -108,6 +109,9 @@ def test_inverseKinematicsComputeJointAngles(num_samples=10000, verbose=False):
 
 
 def test_inverseKinematics(num_samples=1000, verbose=False):
+    print("------------------------------------------------------------------")
+    print("-------------test_inverseKinematics-------------------------------")
+    print("------------------------------------------------------------------")
     failed = 0
     for _ in range(num_samples):
         lst = (np.random.random(5) - 0.5) * np.pi
@@ -143,13 +147,199 @@ def test_inverseKinematics(num_samples=1000, verbose=False):
     print(f"Ratio: {(num_samples - failed) / num_samples * 100}%")
     return failed
 
+def test_depthMotionDistance(num_samples=1000, verbose=False):
+    print("------------------------------------------------------------------")
+    print("-------------test_depthMotionDistance-----------------------------")
+    print("------------------------------------------------------------------")
+    failed = 0
+    for _ in range(num_samples):
+        lst = (np.random.random(5) - 0.5) * np.pi
+        legal = True
+        for j in range(len(lst)):
+            if lst[j] < jointLowerLimits[j] or lst[j] > jointUpperLimits[j]:
+                legal = False
+        if not legal:
+            continue
+        joystick = np.random.random() * 2 - 1
+        cur_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(lst))
+        new_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(human_arm_control.depth_motion(joystick, lst)))
+        fail = True
+        dst = 0
+        for j in range(3):
+            dst += (cur_pos[j]-new_pos[j])**2
+        dst = math.sqrt(dst)
+        for i in distance_increment:
+            err = (abs(joystick * i)-dst)**2
+            if err < 1e-4:
+                fail = False
+                break
+        if fail:
+            #print(dst)
+            failed += 1
+        elif (cur_pos[2]-new_pos[2]) ** 2 > 1e-4:
+            failed += 1
+    print(failed)
+    return failed
+
+def test_depthMotionUndo(num_samples=1000, verbose=False):
+    print("------------------------------------------------------------------")
+    print("-------------test_depthMotionUndo---------------------------------")
+    print("------------------------------------------------------------------")
+    failed = 0
+    for _ in range(num_samples):
+        lst = (np.random.random(5) - 0.5) * np.pi
+        legal = True
+        for j in range(len(lst)):
+            if lst[j] < jointLowerLimits[j] or lst[j] > jointUpperLimits[j]:
+                legal = False
+        if not legal:
+            continue
+        joystick = np.random.random() * 2 - 1
+        cur_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(lst))
+        new_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(human_arm_control.depth_motion(-joystick, human_arm_control.depth_motion(joystick, lst))))
+        for j in range(3):
+            err = (cur_pos[j]-new_pos[j])**2
+            if err > 1e-4:
+                #print(dst)
+                failed += 1
+                break
+    print(failed)
+    return failed
+
+def test_verticalMotionDistance(num_samples=1000, verbose=False):
+    print("------------------------------------------------------------------")
+    print("-------------test_verticalMotionDistance--------------------------")
+    print("------------------------------------------------------------------")
+    failed = 0
+    for _ in range(num_samples):
+        lst = (np.random.random(5) - 0.5) * np.pi
+        legal = True
+        for j in range(len(lst)):
+            if lst[j] < jointLowerLimits[j] or lst[j] > jointUpperLimits[j]:
+                legal = False
+        if not legal:
+            continue
+        joystick = np.random.random() * 2 - 1
+        cur_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(lst))
+        new_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(human_arm_control.vertical_motion(joystick, lst)))
+        fail = True
+        dst = 0
+        for j in range(3):
+            dst += (cur_pos[j]-new_pos[j])**2
+        dst = math.sqrt(dst)
+        for i in distance_increment:
+            err = (abs(joystick * i)-dst)**2
+            if err < 1e-4:
+                fail = False
+        if fail:
+            #print(dst)
+            failed += 1
+            continue
+            
+        for i in range(2):
+            if (cur_pos[i] - new_pos[i])**2 > 1e-4:
+                failed += 1
+                break
+    print(failed)
+    return failed
+
+def test_verticalMotionUndo(num_samples=1000, verbose=False):
+    print("------------------------------------------------------------------")
+    print("-------------test_verticalMotionUndo------------------------------")
+    print("------------------------------------------------------------------")
+    failed = 0
+    for _ in range(num_samples):
+        lst = (np.random.random(5) - 0.5) * np.pi
+        legal = True
+        for j in range(len(lst)):
+            if lst[j] < jointLowerLimits[j] or lst[j] > jointUpperLimits[j]:
+                legal = False
+        if not legal:
+            continue
+        joystick = np.random.random() * 2 - 1
+        cur_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(lst))
+        new_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(human_arm_control.vertical_motion(-joystick, human_arm_control.vertical_motion(joystick, lst))))
+        for j in range(3):
+            err = (cur_pos[j]-new_pos[j])**2
+            if err > 1e-4:
+                #print(dst)
+                failed += 1
+                break
+    print(failed)
+    return failed
+
+def test_horizontalMotionDistance(num_samples=1000, verbose=False):
+    print("------------------------------------------------------------------")
+    print("-------------test_horizontalMotionDistance------------------------")
+    print("------------------------------------------------------------------")
+    failed = 0
+    for _ in range(num_samples):
+        lst = (np.random.random(5) - 0.5) * np.pi
+        legal = True
+        for j in range(len(lst)):
+            if lst[j] < jointLowerLimits[j] or lst[j] > jointUpperLimits[j]:
+                legal = False
+        if not legal:
+            continue
+        joystick = np.random.random() * 2 - 1
+        cur_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(lst))
+        new_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(human_arm_control.horizontal_motion(joystick, lst)))
+        fail = True
+        dst = 0
+        for j in range(3):
+            dst += (cur_pos[j]-new_pos[j])**2
+        dst = math.sqrt(dst)
+        for i in distance_increment:
+            err = (abs(joystick * i)-dst)**2
+            if err < 1e-4:
+                fail = False
+        if fail:
+            #print(dst)
+            failed += 1
+        elif (cur_pos[2]-new_pos[2])**2 > 1e-4:
+            failed += 1
+    print(failed)
+    return failed
+
+def test_horizontalMotionUndo(num_samples=1000, verbose=False):
+    print("------------------------------------------------------------------")
+    print("-------------test_horizontalMotionUndo----------------------------")
+    print("------------------------------------------------------------------")
+    failed = 0
+    for _ in range(num_samples):
+        lst = (np.random.random(5) - 0.5) * np.pi
+        legal = True
+        for j in range(len(lst)):
+            if lst[j] < jointLowerLimits[j] or lst[j] > jointUpperLimits[j]:
+                legal = False
+        if not legal:
+            continue
+        joystick = np.random.random() * 2 - 1
+        cur_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(lst))
+        new_pos = arm_kinematics.Mat2Pose(arm_kinematics.forwardKinematics(human_arm_control.horizontal_motion(-joystick, human_arm_control.horizontal_motion(joystick, lst))))
+        for j in range(3):
+            err = (cur_pos[j]-new_pos[j])**2
+            if err > 1e-4:
+                #print(dst)
+                failed += 1
+                break
+    print(failed)
+    return failed
+
 def test_failure():
     target = [40, 40, 40, 0, 0, 0]
     lst = [0, 0, 0, 0, 0]
     joint = arm_kinematics.inverseKinematics(target, lst)
 
 if __name__ == "__main__":
-    test_inverseKinematicsJointPositions()
-    test_inverseKinematicsComputeJointAngles()
-    test_inverseKinematics()
-    test_failure()
+    # test_inverseKinematicsJointPositions()
+    # test_inverseKinematicsComputeJointAngles()
+    # test_inverseKinematics()
+    tests = 10000
+    test_depthMotionDistance(tests)
+    test_depthMotionUndo(tests)
+    test_verticalMotionDistance(tests)
+    test_verticalMotionUndo(tests)
+    test_horizontalMotionDistance(tests)
+    test_horizontalMotionUndo(tests)
+    #test_failure()
