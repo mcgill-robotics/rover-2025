@@ -1,6 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Quantico:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
 body {
   width: 100%;
   height: 100%;
+  background-color: #24252A;
+  color: white;
+  font-family: "Quantico", serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
 }
 
 /* Center the header component */
@@ -11,7 +19,10 @@ header {
 
 /* Add padding to the content to avoid overlap with the header */
 .content {
-  border: 2px solid black;
-  padding-top: 10px; /* Adjust this value based on the height of your header; Joshua note: i'm not sure why we need this I changed it from 30% -> 10px*/
+  border-top: 3px solid black;
+  padding-top: 5px; /* Adjust this value based on the height of your header; Joshua note: i'm not sure why we need this I changed it from 30% -> 10px*/
+  overflow-y: scroll;
+  height: 100vh;
+  scroll-snap-type: y mandatory;
 }
 

@@ -7,26 +7,14 @@
   margin: 0;
 }
 
-/* Responsive grid for medium screens (2 columns) */
-@media (min-width: 768px) {
-  .camera-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* Responsive grid for large screens (3 columns) */
-@media (min-width: 1024px) {
-  .camera-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 /* Styling for each camera card */
 .camera-card {
   height: 100%;
   background-color: white;
   padding: 0.25rem;
-  border-radius: 0.25rem;
+  border-radius: 0.25rem; 
+  transition: border 0.3s ease;
+  cursor: pointer;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
@@ -44,6 +32,134 @@
 .camera-placeholder {
   position:relative;
   background-color: #e5e7eb;
+  color: black;
   height: 100%;
   border-radius: 0.25rem;
+}
+
+/* Camera switch buttons container */
+.camera-switch-buttons {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  border: none;
+}
+
+/* Full width buttons container */
+.camera-button-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Camera button styling */
+.camera-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 16px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  border: none;
+  text-align: center;
+  box-sizing: border-box;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1), -2px -2px 5px rgba(255, 255, 255, 0.5);
+}
+
+/* Circle (status indicator) */
+.camera-connection {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 10px;
+  background: radial-gradient(circle, #d9d9d9 10%, #aaa 90%); /* Default gray gradient */
+  box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.2), /* Inner shadow */
+              2px 2px 4px rgba(0, 0, 0, 0.3); /* Outer shadow for depth */
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Green (Connected) - Glowing effect */
+.camera-connection.connected {
+  background: radial-gradient(circle, #5ffb5f 10%, #2e8b57 90%);
+  box-shadow: 0 0 6px #5ffb5f, /* Outer glow */
+              inset 2px 2px 3px rgba(0, 0, 0, 0.2); /* Inner shadow */
+}
+
+/* Red (Disconnected) - Glowing effect */
+.camera-connection.disconnected {
+  background: radial-gradient(circle, #ff6666 10%, #b30000 90%);
+  box-shadow: 0 0 6px #ff6666, /* Outer glow */
+              inset 2px 2px 3px rgba(0, 0, 0, 0.2); /* Inner shadow */
+}
+
+/* Active camera button styling */
+.active-button {
+  background: linear-gradient(145deg, #d62929, #830101);
+  color: white;
+  border: none;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3), -2px -2px 10px rgba(255, 255, 255, 0.5); /* Darker shadow for depth */
+  transform: scale(1.02);
+}
+
+/* Hover effect */
+.camera-button:hover {
+  background: linear-gradient(145deg, #fa6565, #ff0000);
+  color: white;
+  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.2), -4px -4px 12px rgba(255, 255, 255, 0.3);
+  transform: scale(1.02);
+}
+
+/* Back to grid button styling */
+.back-to-grid {
+  border: none;
+  padding: 8px 16px;
+  color: black;
+  text-align: center;
+  width: 100%;
+  gap: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.back-to-grid:hover {
+  background: linear-gradient(145deg, #ffbaba, #830101);
+  transform: scale(1.02);
+}
+
+.back-arrow {
+  width: 16px;
+  height: 16px;
+  stroke: black;
+}
+
+/* Add a red border when hovering over the corresponding button */
+.hover-highlight {
+  border: 2px solid red;
+  transition: border 0.1s ease-in-out;
+  z-index: 2;
+}
+
+/* Responsive design - Ensure buttons take full width on mobile */
+@media (max-width: 768px) {
+  .camera-switch-buttons {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .camera-button {
+    width: 100%;
+  }
+
+  .back-to-grid {
+    width: 100%;
+  }
+}
+
+/* Responsive grid for large screens (2 columns) */
+@media (min-width: 1024px) {
+  .camera-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

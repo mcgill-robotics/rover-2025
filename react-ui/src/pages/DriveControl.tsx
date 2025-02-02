@@ -4,7 +4,7 @@ import './styles/DriveControl.css';
 
 import { useEffect, useState, useRef } from 'react';
 
-import Controller from "../components/drive/Controller";
+import Controller from "../components/drive/ui/Controller";
 import Container from "../components/Container";
 
 function DriveControl() {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGamepads } from 'react-gamepads';
-import ros from "../../services/ros";
+import ros from "../../../services/ros";
 import * as ROSLIB from 'roslib';
 
 const buttonLabels = [
