@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './styles/Knob.css';
 
+// CodePen Example Credit:
+// Original design and implementation by Kevin Lam
+// URL: https://codepen.io/kevin-lam-the-scripter/pen/QWNeNvo
+
 const Knob: React.FC = () => {
   const [speed, setSpeed] = useState<number>(0); // For tracking speed
   const knobRef = useRef<HTMLDivElement | null>(null);
@@ -14,8 +18,8 @@ const Knob: React.FC = () => {
     const minLabel = minRef.current;
     const maxLabel = maxRef.current;
 
-    const numTicks = 5; // Reduced number of ticks
-    const stepAngle = 270 / (numTicks - 1); // Calculate step angle for resistance (fixed at each tick, with the last one being max)
+    const numTicks = 5; // Number of ticks
+    const stepAngle = 270 / (numTicks - 1); // Calculate step angle for resistance
     const speedValues = [10, 30, 50, 70, 80]; // Speed values for each tick
 
     const handleMouseDown = () => {
@@ -54,12 +58,9 @@ const Knob: React.FC = () => {
         const tickIndex = Math.round(finalAngleInDegrees / stepAngle);
         const newSpeed = speedValues[tickIndex];
 
-        setSpeed(newSpeed); // Update speed
-
-        // Update active ticks (we are no longer showing labels here)
+        setSpeed(newSpeed);
         createTicks(tickContainer, numTicks, tickIndex);
 
-        // Highlight the min or max labels with neon effect
         if (newSpeed === 10 && minLabel) {
           minLabel.classList.add('neon');
         } else if (minLabel) {
@@ -80,7 +81,6 @@ const Knob: React.FC = () => {
       container.innerHTML = '';
       let startingTickAngle = -135;
 
-      // Create ticks, but don't show any speed labels
       for (let i = 0; i < numTicks; i++) {
         const tick = document.createElement('div');
         tick.className = `tick ${i <= highlightNumTicks ? 'activetick' : ''}`;

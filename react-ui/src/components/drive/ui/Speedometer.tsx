@@ -1,6 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import "./styles/Speedometer.css";
 
+// CodePen Example Credit:
+// Original design and implementation by Yudiz Solutions Limited
+// URL: https://codepen.io/yudizsolutions/pen/LYaVmjx
+
 interface SpeedometerProps {
   initialSpeed?: number;
 }
@@ -28,23 +32,19 @@ const Speedometer: React.FC<SpeedometerProps> = ({ initialSpeed = 0 }) => {
     { speed: 80, x: 274.43, y: 220.40 },
   ];
 
-  // Function to update viewBox dimensions dynamically based on container size
   const updateViewBoxSize = () => {
     if (svgContainerRef.current) {
       const containerWidth = svgContainerRef.current.offsetWidth;
       const containerHeight = svgContainerRef.current.offsetHeight;
 
-      // Set the viewBox size (you can adjust this depending on your desired aspect ratio)
       setViewBoxWidth(containerWidth);
       setViewBoxHeight(containerHeight);
     }
   };
 
-  // UseEffect to handle resizing of the container
   useEffect(() => {
     updateViewBoxSize();
 
-    // Listen to window resize to update the viewBox size
     window.addEventListener("resize", updateViewBoxSize);
     return () => {
       window.removeEventListener("resize", updateViewBoxSize);
@@ -72,7 +72,7 @@ const Speedometer: React.FC<SpeedometerProps> = ({ initialSpeed = 0 }) => {
       }
     };
 
-    updateSpeed(); // Call on mount and when speed changes
+    updateSpeed();
   }, [speed]);
 
   return (
