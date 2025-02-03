@@ -1,30 +1,83 @@
-/* Styling for the rover info container */
-.rover-info {
-  padding: 1.5rem;
+/* Main container */
+.info-container {
+  padding: 1rem;
+  padding-top: 0;
   border-radius: 0.25rem;
-}
-
-/* Styling for the info title */
-.info-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
-/* Styling for the info content */
-.info-content {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  min-height: 100vh;
 }
 
-/* Styling for each info item */
-.info-item {
+/* Title styling */
+.info-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Rover Speed Title */
+.speed-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 0.25rem;
+}
+
+/* Container for speedometers */
+.speedometers {
+  width: 400px;
+  position: relative;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* Styling for the info value */
-.info-value {
-  font-weight: 500;
+/* Main speedometer centered */
+.main-speedometer {
+  width: 220px;
+  height: 167px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: -50px;
+  position: relative;
+}
+
+/* Small speedometers arranged around main one */
+.small-speedometers {
+  position: relative;
+  width: 100%;
+  height: 160px; /* Adjust for proper spacing */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Individual speedometer items */
+.speedometer-item {
+  position: absolute;
+  width: 96px;
+  height: 74px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Positioning for each speedometer */
+.fl { top: 18px; left: 5px; }  /* Front Left */
+.fr { top: 18px; right: 5px; } /* Front Right */
+.bl { top: 52px; left: 102px; } /* Back Left */
+.br { top: 52px; right: 102px; } /* Back Right */
+
+.fl svg { border-top-right-radius: 50%; }
+.fr svg { border-top-left-radius: 25%; }
+.br svg { border-top-right-radius: 50%; }
+
+
+/* Speedometer labels */
+.label {
+  position: absolute;
+  bottom: -20px;
+  font-size: 1rem;
+  font-weight: bold;
 }

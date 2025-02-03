@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Camera from './ui/Camera'
 import "./styles/CameraView.css";
 
 const CameraView: React.FC = () => {
@@ -68,6 +69,7 @@ const CameraView: React.FC = () => {
             >
               <div className={`camera-placeholder ${hoveredCameraId === camera.id ? "hover-highlight" : ""}`}>
                 <h2 className="camera-title">{camera.name}</h2>
+                <Camera />
               </div>
             </div>
           ))}
@@ -77,6 +79,7 @@ const CameraView: React.FC = () => {
           <div className="camera-placeholder">
             <h2 className="camera-title">
               {cameras.find((camera) => camera.id === activeCamera)?.name}
+              <Camera />
             </h2>
           </div>
         </div>
