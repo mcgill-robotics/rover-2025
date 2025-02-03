@@ -16,10 +16,12 @@
 /* Styling for the CameraView (left side) */
 .camera-view {
   height: 100%;
+  min-height: 90vh;
   flex: 3;
 }
 
 /* Styling for the RoverInfo (right side) */
 .rover-info {
   flex: 1;
+  min-height: 90vh;
 }

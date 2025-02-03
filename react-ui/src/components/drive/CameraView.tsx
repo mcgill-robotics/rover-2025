@@ -7,7 +7,7 @@ const CameraView: React.FC = () => {
     { id: 1, name: "Camera 1" },
     { id: 2, name: "Camera 2" },
     { id: 3, name: "Camera 3" },
-    { id: 4, name: "Pan Tilt Camera" },
+    { id: 4, name: "Pan Tilt" },
   ];
 
   const [activeCamera, setActiveCamera] = useState<number | null>(null);

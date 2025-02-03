@@ -1,11 +1,11 @@
 /* Main container */
 .info-container {
+  height: 95vh;
   padding: 1rem;
   padding-top: 0;
   border-radius: 0.25rem;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
 }
 
 /* Title styling */
@@ -14,6 +14,8 @@
   font-weight: 600;
   margin: 0;
 }
+
+/* Speedometers */
 
 /* Rover Speed Title */
 .speed-title {
@@ -24,12 +26,14 @@
 }
 
 /* Container for speedometers */
-.speedometers {
+.speedometer-container {
   width: 400px;
+  height: 30%;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-bottom: 17.5%;
 }
 
 /* Main speedometer centered */
@@ -80,4 +84,27 @@
   bottom: -20px;
   font-size: 1rem;
   font-weight: bold;
+}
+
+/* Knob */
+/* Knob Container Styling */
+.knob-container {
+  width: 50%;
+  height: 30%;
+}
+
+/* Maximum Speed Title */
+.knob-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 0.25rem;
+  margin-bottom: 0;
+}
+
+/* GPS */
+/* gps */
+.gps-container {
+  width: 100%;
+  height: 35%;
 }

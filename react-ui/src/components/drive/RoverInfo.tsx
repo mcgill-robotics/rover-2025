@@ -1,13 +1,14 @@
 import Speedometer from "./ui/Speedometer";
+import Knob from './ui/Knob';
+import GPS from './ui/GPS';
 import "./styles/RoverInfo.css";
 
 const RoverInfo: React.FC = () => {
   return (
     <div className="info-container">
       <h1 className="info-title">Information</h1>
-      
-
-      <div className="speedometers">
+    
+      <div className="speedometer-container">
         <h2 className="speed-title">Rover Speed</h2>
         {/* Main speedometer */}
         <div className="main-speedometer">
@@ -34,7 +35,15 @@ const RoverInfo: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
+      <div className="knob-container">
+        <h2 className="knob-title">Maximum speed</h2>
+        <Knob />
+      </div>
+
+      <div className="gps-container">
+        <GPS />
+      </div>
     </div>
   );
 };
