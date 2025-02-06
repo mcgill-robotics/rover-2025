@@ -31,7 +31,7 @@ const axesLabels = [
   "RY",
 ]
 
-export function ControllerDisplay({controllerConnected} : {controllerConnected : boolean}) {
+export default function ControllerDisplay({controllerConnected} : {controllerConnected : boolean}) {
   const [gamepads, setGamepads] = useState<Gamepad[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
 

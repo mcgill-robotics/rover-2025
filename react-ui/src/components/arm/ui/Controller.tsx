@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import ros from '../../../services/ros';
 import * as ROSLIB from 'roslib';
 
-import { ControllerDisplay } from "./ControllerDisplay";
+import ControllerDisplay from "../../arm/ui/ControllerDisplay";
 //import { clearInterval } from "timers";
 
 function Controller() {

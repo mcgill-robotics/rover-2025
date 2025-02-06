@@ -5,8 +5,8 @@ import "./styles/RoverInfo.css";
 
 const RoverInfo: React.FC = () => {
   return (
-    <div className="info-container">
-      <h1 className="info-title">Information</h1>
+    <div className="drive-info-container">
+      <h1 className="drive-info-title">Information</h1>
     
       <div className="speedometer-container">
         <h2 className="speed-title">Rover Speed</h2>
