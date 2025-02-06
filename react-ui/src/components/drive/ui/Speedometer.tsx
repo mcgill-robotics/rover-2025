@@ -78,6 +78,8 @@ const Speedometer: React.FC<SpeedometerProps> = ({ initialSpeed = 0 }) => {
   return (
     <div className="speedometer">
       <svg
+        width="100%"
+        height="100%"
         viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
