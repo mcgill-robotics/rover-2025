@@ -1,0 +1,19 @@
+.wheels-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.wheel-grid {
+    display: grid;
+    grid-template-columns: 0.5fr 0.5fr;
+    grid-template-rows: 0.5fr 0.5fr;
+    width: 100%;
+    height: 100%;
+}
+
+.cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid black;
+}

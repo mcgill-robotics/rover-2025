@@ -2,6 +2,7 @@ import Speedometer from "./ui/Speedometer";
 import Knob from './ui/Knob';
 import GPS from './ui/GPS';
 import "./styles/RoverInfo.css";
+import WheelsContainer from "./ui/wheel_angle_minimap/components/WheelsContainer";
 
 const RoverInfo: React.FC = () => {
   return (
@@ -36,9 +37,14 @@ const RoverInfo: React.FC = () => {
         </div>
       </div>
 
-      <div className="knob-container">
-        <h2 className="knob-title">Maximum speed</h2>
-        <Knob />
+      <div className="knob-and-wheel-angles-grid">
+        <div className="knob-container">
+          <h2 className="knob-title">Maximum speed</h2>
+          <Knob />
+        </div>
+        <div className="wheels-minimap-container">
+          <WheelsContainer />
+        </div>
       </div>
 
       <div className="gps-container">

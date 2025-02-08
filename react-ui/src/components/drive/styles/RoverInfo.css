@@ -86,6 +86,12 @@
   font-weight: bold;
 }
 
+/* Know and Wheels Minimap Styling */
+.knob-and-wheel-angles-grid {
+  display: grid;
+  grid-template-columns: 50% 50%;
+}
+
 /* Knob */
 /* Knob Container Styling */
 .knob-container {
@@ -100,6 +106,12 @@
   text-align: center;
   margin: 0.25rem;
   margin-bottom: 0;
+}
+
+/* Wheels Minimap Container Styling */
+.wheels-minimap-container {
+  width: 50%;
+  height: 30%;
 }
 
 /* GPS */
