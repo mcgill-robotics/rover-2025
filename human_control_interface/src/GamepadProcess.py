@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import rclpy
+from rclpy.node import Node
 # from pynput import keyboard
 from msg_interface.msg import GamePadInput
 #from camera_data.msg import Camera_Orientation
@@ -11,7 +12,7 @@ from std_msgs.msg import Float32MultiArray
 
 
 
-class Node_GamepadProcessing:
+class Node_GamepadProcessing(Node):
     def __init__(self, v_max, w_max):
         """
         The member variables of the GamepadProcess object
@@ -27,7 +28,7 @@ class Node_GamepadProcessing:
 
         """
         # initialize ROS node
-        rospy.init_node("gamepad_process_node")
+        super().__init__("gamepad_process_node")
 
         # Initialize a Gamepad object
         self.gamepad_init_successful = False
@@ -55,7 +56,8 @@ class Node_GamepadProcessing:
         self.cam_ctrl = Float32MultiArray()
         self.cam_ctrl.data = [0, 0] # Elements: [X-axis, Y-axis]
 
-        self.drive_publisher = rospy.Publisher("rover_velocity_controller/cmd_vel", Twist, queue_size=1) # Publisher for twist values.
+        #self.drive_publisher = rospy.Publisher("rover_velocity_controller/cmd_vel", Twist, queue_size=1) # Publisher for twist values.
+        self.drive_publisher = self.create_publisher(Twist, "rover_velocity_controller/cmd_vel", 10)
         self.camera_publisher = rospy.Publisher("panTiltAngles", Float32MultiArray, queue_size=1) # Publisher for pan tilt camera angles.
 
         # Control frequency of the node
