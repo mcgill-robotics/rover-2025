@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from rclpy import Node
+from rclpy.node import Node
 # from rospy import Subscriber
 from std_msgs.msg import Float32MultiArray
 

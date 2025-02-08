@@ -30,6 +30,7 @@ from msg_interface.msg import JoystickInput
         Axis 4      : Range [-1, 1]     : R-stick L/R
         Axis 5      : Range [-1, 1]     : R-stick U/D
         Axis 6      : Range [-1, 1]     : RT - analog
+        ADD
 
 """
 
@@ -121,6 +122,7 @@ class Gamepad():
                     self.data.a4 = self.controller.get_axis(3)
                     self.data.a5 = -1 * self.controller.get_axis(4)
                     self.data.a6 = self.controller.get_axis(5)
+                    self.data.a7 = self.controller.get_hat(0)
 
             except pygame.error:
                 pass
@@ -178,12 +180,14 @@ class GamepadData():
         self.b13 = 0
 
         # Axis
-        self.a1 = 0
-        self.a2 = 0
-        self.a3 = 0
-        self.a4 = 0
-        self.a5 = 0
-        self.a6 = 0
+        self.a1 = 0.0
+        self.a2 = 0.0
+        self.a3 = 0.0
+        self.a4 = 0.0
+        self.a5 = 0.0
+        self.a6 = 0.0
+        self.a7 = (0,0)
+
 
 
 if __name__ == "__main__":

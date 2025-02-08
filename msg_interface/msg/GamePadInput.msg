@@ -17,3 +17,5 @@ float32 a_3
 float32 a_4
 float32 a_5
 float32 a_6
+float32 d_1
+float32 d_2
