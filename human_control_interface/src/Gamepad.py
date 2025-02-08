@@ -30,7 +30,8 @@ from msg_interface.msg import JoystickInput
         Axis 4      : Range [-1, 1]     : R-stick L/R
         Axis 5      : Range [-1, 1]     : R-stick U/D
         Axis 6      : Range [-1, 1]     : RT - analog
-        ADD
+        D-Pad 1     : Range [-1, 1]     : 1:RIGHT arrow, -1 LEFT arrow
+        D-Pad 2     : Range [-1, 1]     : 1:UP arrow, -1:DOWN arrow
 
 """
 
