@@ -96,8 +96,9 @@ class Node_ArmSim (Node):
             "armBrushlessFb",
             10
         )
-
-        self.run()
+        timer_period = 0.1
+        self.timer = self.create_timer(timer_period, self.run)
+        #self.run()
 
     def updateArmBrushedSim(self, cmds: Float32MultiArray):
         self.desiredJointPos[4], self.desiredJointPos[3] = tuple(
@@ -116,55 +117,55 @@ class Node_ArmSim (Node):
         print("Updated desiredJointPos for brushless motors:", self.desiredJointPos)
 
     def run(self):
-        while rclpy.ok():
-            self.t = self.t + 0.01
-            p.stepSimulation()
+        #while rclpy.ok():
+        self.t = self.t + 0.01
+        p.stepSimulation()
 
-            for i in range(self.numJoints):
+        for i in range(self.numJoints):
 
-                p.setJointMotorControl2(
-                    bodyIndex=self.robotId,
-                    jointIndex=i,
-                    controlMode=p.POSITION_CONTROL,
-                    targetPosition=self.desiredJointPos[i],
-                    force=500,
-                    positionGain=0.03,
-                    velocityGain=1,
-                )
-
-            ls = p.getLinkState(self.robotId, self.endEffectorIndex)
-
-            if self.hasPrevPose:
-                p.addUserDebugLine(
-                    self.prevPose, ls[4], [1, 0, 0], 1, self.trailDuration
-                )
-            self.prevPose = ls[4]
-            self.hasPrevPose = 1
-
-            states = p.getJointStates(self.robotId, range(self.numJoints))
-            for i in range(len(states)):
-                self.jointPoses[i] = states[i][0] * (180 / pi)
-                self.jointVels[i] = states[i][1]
-                self.jointTorq[i] = states[i][3]
-
-            state_brushed_msg = Float32MultiArray()
-            state_brushed_msg.data = (
-                self.jointPoses[5],
-                self.jointPoses[4],
-                self.jointPoses[3],
+            p.setJointMotorControl2(
+                bodyIndex=self.robotId,
+                jointIndex=i,
+                controlMode=p.POSITION_CONTROL,
+                targetPosition=self.desiredJointPos[i],
+                force=500,
+                positionGain=0.03,
+                velocityGain=1,
             )
 
-            state_brushless_msg = Float32MultiArray()
-            state_brushless_msg.data = (
-                self.jointPoses[2],
-                self.jointPoses[1],
-                self.jointPoses[0],
+        ls = p.getLinkState(self.robotId, self.endEffectorIndex)
+
+        if self.hasPrevPose:
+            p.addUserDebugLine(
+                self.prevPose, ls[4], [1, 0, 0], 1, self.trailDuration
             )
+        self.prevPose = ls[4]
+        self.hasPrevPose = 1
 
-            self.armBrushedPublisher.publish(state_brushed_msg)
-            self.armBrushlessPublisher.publish(state_brushless_msg)
+        states = p.getJointStates(self.robotId, range(self.numJoints))
+        for i in range(len(states)):
+            self.jointPoses[i] = states[i][0] * (180 / pi)
+            self.jointVels[i] = states[i][1]
+            self.jointTorq[i] = states[i][3]
 
-        p.disconnect()
+        state_brushed_msg = Float32MultiArray()
+        state_brushed_msg.data = (
+            self.jointPoses[5],
+            self.jointPoses[4],
+            self.jointPoses[3],
+        )
+
+        state_brushless_msg = Float32MultiArray()
+        state_brushless_msg.data = (
+            self.jointPoses[2],
+            self.jointPoses[1],
+            self.jointPoses[0],
+        )
+
+        self.armBrushedPublisher.publish(state_brushed_msg)
+        self.armBrushlessPublisher.publish(state_brushless_msg)
+
+        #p.disconnect()
 
 def main(args=None):
     rclpy.init(args=args)
@@ -176,6 +177,7 @@ def main(args=None):
     finally:
         driver.destroy_node()
         rclpy.shutdown()
+        p.disconnect()
 
 if __name__ == "__main__":
     main()
