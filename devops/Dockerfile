@@ -12,7 +12,8 @@ RUN apt-get install -y \
     git \
     build-essential \
     cmake \
-    flex
+    flex \
+    bash
 
 RUN apt-get install -y \
     python3-colcon-common-extensions \
@@ -29,9 +30,15 @@ RUN pip3 install vcstool
 RUN apt-get install -y ros-humble-ament-cmake-python
 RUN sudo apt-get install -y iputils-ping iproute2
 RUN apt-get install -y \
-    ros-humble-rmw-cyclonedds-cpp
+    ros-humble-rmw-cyclonedds-cpp \
+    ros-humble-xacro \
+    ros-humble-robot-state-publisher \
+    ros-humble-rviz2
 
 # Source ROS setup script
+RUN echo "alias sros='source /opt/ros/humble/setup.bash && [ -f install/setup.bash ] && source install/setup.bash'" >> ~/.bashrc
+RUN echo "sros" >> ~/.bashrc
+RUN echo "source ~/.bashrc" >> /root/.bash_profile
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
 SHELL ["/bin/bash", "-c"]
 
