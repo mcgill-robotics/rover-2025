@@ -110,8 +110,12 @@
 
 /* Wheels Minimap Container Styling */
 .wheels-minimap-container {
-  width: 50%;
-  height: 30%;
+  width: 100%; /* Adjust to match parent container */
+  height: 100%; /* Adjust to match parent container */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 /* GPS */
