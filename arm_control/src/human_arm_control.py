@@ -1,6 +1,6 @@
 import numpy as np
 import math
-import arm_kinematics
+from ..src import arm_kinematics
 
 joint_upper_limits = [ 
     118.76 * np.pi / 180, # Waist
@@ -28,6 +28,7 @@ joint_max_speed = [
 
 speed = 1 # TO BE SET LATER
 speed_increment = 0.1 # TO BE SET LATER
+distance_increment = [0.05, 0.05/2, 0.05/4] # TO BE SET LATER
 current_cycle_mode = 0 # 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
 joint_control_is_active = True 
 
@@ -110,3 +111,119 @@ def cycle_down():
     current_cycle_mode -= 1
     current_cycle_mode %= 6
     return current_cycle_mode
+
+def depth_motion(joystick_input, cur_angles):
+    #get current x,y,z,X,Y,Z of arms
+    cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
+    cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
+
+    #get current arm distance
+    #arm as 2D line for x,y plane
+    projection_line = [
+        cur_ee_pos[0],
+        cur_ee_pos[1],
+    ]
+    ee_proj_length = arm_kinematics.projection_length(projection_line, cur_ee_pos[:2])  #length of the arm on the x,y plane
+
+    for i in range(len(distance_increment)):
+        #calculate new arm distance
+        new_length = ee_proj_length + joystick_input * distance_increment[i]
+
+        #use similar triangles to calculate new x,y
+        new_x = new_length / ee_proj_length * cur_ee_pos[0]
+        new_y = new_length / ee_proj_length * cur_ee_pos[1]
+
+        #call inverseKinematics
+        new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
+        try:
+            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
+        except:
+            continue
+    return cur_angles
+
+def vertical_motion(joystick_input, cur_angles):
+    #get current x,y,z,X,Y,Z of arms
+    cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
+    cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
+
+    for i in range(len(distance_increment)):
+        #calculate new arm distance
+        new_z = cur_ee_pos[2] + joystick_input * distance_increment[i]
+
+        #call inverseKinematics
+        new_pos = cur_ee_pos.copy()
+        new_pos[2] = new_z
+        try:
+            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
+        except:
+            continue
+
+    return cur_angles
+
+def horizontal_motion(joystick_input, cur_angles):
+    #get current x,y,z,X,Y,Z of arms
+    cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
+    cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
+
+    #get current arm distance
+    #arm as 2D line for x,y plane
+    projection_line = [
+        cur_ee_pos[0],
+        cur_ee_pos[1],
+    ]
+    ee_proj_length = arm_kinematics.projection_length(projection_line, cur_ee_pos[:2])  #length of the arm on the x,y plane
+
+    for i in range(len(distance_increment)):
+        #calculate new length
+        delta_horizontal = joystick_input * distance_increment[i]
+        # new_length = math.sqrt(ee_proj_length ** 2 + delta_horizontal ** 2)
+
+        # #calculate new waist angle
+        # new_waist_angle = math.asin(delta_horizontal/new_length) + cur_angles[0]
+
+        #use trig to get new x and y
+        new_x = cur_ee_pos[0] + delta_horizontal/ee_proj_length * cur_ee_pos[1]
+        new_y = cur_ee_pos[1] + delta_horizontal/ee_proj_length * -cur_ee_pos[0]
+
+        #call inverseKinematics
+        new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
+        try:
+            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
+        except:
+            continue
+    return cur_angles
+
+# print(depth_motion(0,[0,0,0,0,0]))
+# print(depth_motion(-1,[0,0,0,0,0]))
+# print(depth_motion(1,[0,0,0,0,0]))
+
+
+
+# arm_kinematics.inverseKinematics(new_pos, cur_ee_pos)
+
+
+
+
+# cur_matrix = arm_kinematics.forwardKinematics([0,0,0,0,0])
+# pos = arm_kinematics.Mat2Pose(cur_matrix)
+# print(pos)
+# #print(arm_kinematics.inverseKinematics(pos, [0.1 * np.pi,0.1 * np.pi,-0.1 * np.pi,-0.1 * np.pi,0.01 * np.pi]))
+# print(
+#     arm_kinematics.Mat2Pose(
+#         arm_kinematics.forwardKinematics(
+#             depth_motion(-1, [0,0,0,0,0])
+#         )
+#     )
+#     )
+# print(arm_kinematics.Mat2Pose(
+#         arm_kinematics.forwardKinematics(
+#             vertical_motion(-1, [0,0,0,0,0])
+#         )
+#     )
+#     )
+# print(arm_kinematics.Mat2Pose(
+#         arm_kinematics.forwardKinematics(
+#             horizontal_motion(-1, [0,0,0,0,0])
+#         )
+#     )
+#     )
