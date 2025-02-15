@@ -4,7 +4,7 @@ services:
   ros:
     build: . # Build from Dockerfile in the current directory
     # image: ros:humble-ros-core
-    container_name: ros_core
+    # container_name: ros_core
     tty: true
     stdin_open: true
     restart: unless-stopped
