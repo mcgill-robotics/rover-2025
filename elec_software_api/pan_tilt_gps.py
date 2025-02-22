@@ -1,5 +1,8 @@
+import serial
+
+
 class Pan_tilt_gps:
-    def __init__(self):
+    def __init__(self, connection: serial.Serial):
         """
         """
         pass

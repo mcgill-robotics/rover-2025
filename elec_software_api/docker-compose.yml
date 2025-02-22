@@ -1,0 +1,5 @@
+services:
+  app:
+    build: .
+    privileged: true
+    command: ["python", "main.py"]
