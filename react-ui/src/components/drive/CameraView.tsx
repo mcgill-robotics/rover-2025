@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Camera from './ui/Camera'
+import VideoFeed from './ui/testCamera'
 import DPad from './ui/DPad'
 import "./styles/CameraView.css";
 
@@ -70,7 +70,7 @@ const CameraView: React.FC = () => {
             >
               <div className={`camera-placeholder ${hoveredCameraId === camera.id ? "hover-highlight" : ""}`}>
                 <h2 className="camera-title">{camera.name}</h2>
-                <Camera />
+                <VideoFeed />
                 {camera.id === 4 && (
                   <div className="dpad">
                     <DPad inputStream="down"/>
@@ -85,7 +85,7 @@ const CameraView: React.FC = () => {
           <div className="camera-placeholder">
             <h2 className="camera-title"></h2>
             {cameras.find((camera) => camera.id === activeCamera)?.name}
-              <Camera />
+              <VideoFeed />
               {activeCamera === 4 && (
                 <div className="dpad">
                   <DPad inputStream="up" />
