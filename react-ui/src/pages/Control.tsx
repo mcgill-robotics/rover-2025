@@ -4,6 +4,7 @@ import ArmInfo from '../components/arm/ArmInfo'
 import ArmView from '../components/arm/ArmView'
 import ArmControl from '../components/arm/ArmControl'
 import './styles/Control.css'
+import DriveControl from '../components/drive/DriveControl.tsx';
 
 
 function Control() {
@@ -14,6 +15,10 @@ function Control() {
         <ArmInfo />
         <ArmView />
         <ArmControl />
+
+        <div>
+          <DriveControl />  
+        </div>
       </div>
     </div>
   );

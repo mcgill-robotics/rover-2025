@@ -4,58 +4,64 @@ import './styles/DriveControl.css';
 
 import { useEffect, useState, useRef } from 'react';
 
-import Controller from "../components/drive/ui/Controller";
-import Container from "../components/Container";
+// import Controller from "../components/drive/ui/Controller";
+import Container from "../Container";
 
 function DriveControl() {
     const [linearVelocity, setLinearVelocity] = useState(0.0);
     const [angularVelocity, setAngularVelocity] = useState(0.0);
     const [activeKeys, setActiveKeys] = useState<{ [key: string]: boolean }>({});
+    const [status, setStatus] = useState(false)
+    const [connect, setConnect] = useState(false)
 
     const ws = useRef<WebSocket | null>(null);
 
     useEffect(() => {
-        let socket: WebSocket;
+        if (connect) {
+            let socket: WebSocket;
     
-        const connectWebSocket = () => {
-          // Update the WebSocket URL to match the backend server
-          socket = new WebSocket(`ws://${window.location.hostname}:8080`);
-    
-          socket.onopen = () => {
-            console.log("Connected to WebSocket server");
-          };
-    
-          socket.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            console.log(msg);
-            if (msg.type === 'status') {
-              setLinearVelocity(msg.data.linearVelocity);
-              setAngularVelocity(msg.data.angularVelocity);
-            }
-          };
-    
-          socket.onclose = () => {
-            console.log("Disconnected from WebSocket server. Reconnecting...");
-            setTimeout(connectWebSocket, 3000);
-          };
-    
-          socket.onerror = (err) => {
-            console.error("WebSocket encountered error: ", err, "Closing socket");
-            socket.close();
-          };
-    
-          ws.current = socket;
-        };
-    
-        connectWebSocket();
-    
-        // Cleanup websocket on unmount
-        return () => {
-          if (ws.current) {
-            ws.current.close();
-          }
-        };
-      }, []);
+            const connectWebSocket = () => {
+              socket = new WebSocket(`ws://${window.location.hostname}:8080`);
+        
+              socket.onopen = () => {
+                setStatus(true)
+                console.log("Connected to WebSocket server");
+              };
+        
+              socket.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                console.log(msg);
+                if (msg.type === 'status') {
+                  setLinearVelocity(msg.data.linearVelocity);
+                  setAngularVelocity(msg.data.angularVelocity);
+                }
+              };
+        
+              socket.onclose = () => {
+                setStatus(false)
+                console.log("Disconnected from WebSocket server. Reconnecting...");
+                //remove autoconnect out(connectWebSocket, 3000);
+              };
+        
+              socket.onerror = (err) => {
+                setStatus(false)
+                console.error("WebSocket encountered error: ", err, "Closing socket");
+                socket.close();
+              };
+        
+              ws.current = socket;
+            };
+                
+            connectWebSocket();
+        
+            // Cleanup websocket on unmount
+            return () => {
+              if (ws.current) {
+                ws.current.close();
+              }
+            };
+        }
+      }, [connect]);
 
     // send key via websocket to rclnodejs
     const sendKeyEvent = (type: string, key: string) => {
@@ -94,6 +100,18 @@ function DriveControl() {
         }
     }, [])
 
+    // connect and disconnect handlers
+    const handleDisconnect = () => {
+        if (ws.current) {
+            ws.current.close();
+            setStatus(false);
+        }
+    }
+
+    const handleConnect = () => {
+        setConnect(prev => !prev);
+    }
+
     // mouse click interactions
     const handleMouseDown = (key: string) => {
         sendKeyEvent('keydown', key);
@@ -109,10 +127,11 @@ function DriveControl() {
 
     return (
         <Container title="Drive Control" width="100%" height="100%" border='none'>
-            <div style={{display: 'flex',
-                justifyContent: 'space-between',
+            <div style={{
             }}>
+                
                 <div id='keyboard-controls'>
+                    <p>Run "npm start:all" to start node server for drive control</p>
                     <p>Use your keyboard's WASD keys or the buttons below to control the rover.</p>
 
                     <div className="control-buttons">
@@ -174,13 +193,23 @@ function DriveControl() {
                         </div>
                     </div>
 
-                    <div id="status">
-                        <h2>Current Velocities</h2>
-                        <p>Linear Velocity: <span id="linear">{linearVelocity.toFixed(2)}</span> m/s</p>
-                        <p>Angular Velocity: <span id="angular">{angularVelocity.toFixed(2)}</span> rad/s</p>
+                    <div className='connection-status'>
+                        <p>Connection status: {status? "Connected" : "Disconnected" }</p>
+                        {status ? (
+                            <button onClick={handleDisconnect} onKeyUp={e => e.preventDefault()}>Disconnect</button>
+                        ) : (
+                            <button onClick={handleConnect} onKeyUp={e => e.preventDefault()}>Connect</button>
+                        )}
                     </div>
+
+                    {(status &&
+                        <div className='status'>
+                            <h2>Current Velocities</h2>
+                            <p>Linear Velocity: <span id="linear">{linearVelocity.toFixed(2)}</span> m/s</p>
+                            <p>Angular Velocity: <span id="angular">{angularVelocity.toFixed(2)}</span> rad/s</p>
+                        </div>
+                    )}
                 </div>
-                <div><Controller/></div>
             </div>
         </Container>
     )
