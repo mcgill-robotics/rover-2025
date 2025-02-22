@@ -1,20 +1,21 @@
 .wheel-container {
-    height: 100%;
-    width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 0%;
+    padding: 0;
+    margin: 0;
+
 }
 
 .wheel-size {
-    width: 20%;
-    height: 30%;
+    width: 3vw;
+    aspect-ratio: 1/1.5;
+    min-width: 1rem;
+    max-width: 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-bottom: 0.5rem;
     transform-origin: center;
 }
 
@@ -28,6 +29,7 @@
 }
 
 svg {
+    display: block;
     width: 100%;
     height: 100%;
 }
@@ -35,5 +37,5 @@ svg {
 .wheel-rect {
     width: 100%;
     height: 100%;
-    fill: aquamarine;
+    fill: red;
 }
