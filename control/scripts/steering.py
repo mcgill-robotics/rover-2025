@@ -28,7 +28,7 @@ class Steering:
 
         if curr_angle_rad < 0:
             curr_angle_rad += 2* math.pi
-        return np.full(4,round(curr_angle_rad,2)
+        return np.full(4,round(curr_angle_rad,2))
     
     def rover_rotation(self, wheel_angles, joystick_input):
         """

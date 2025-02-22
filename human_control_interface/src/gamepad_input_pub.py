@@ -8,7 +8,6 @@ import rclpy
 import rclpy.logging
 from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
-from sensor_msgs.msg import Joy
 from gamepad import Gamepad
 import time
 
