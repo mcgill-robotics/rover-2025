@@ -1,0 +1,55 @@
+.stream-controls-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  padding: 20px;
+  background-color: #f4f4f9;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 250px;
+  margin: 0 auto;
+}
+
+.stream-controls-container input {
+  width: 80%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.stream-controls-container input:focus {
+  border-color: #007bff;
+}
+
+.stream-controls-container button {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 80%;
+  margin-top: 10px;
+}
+
+.stream-controls-container button:first-of-type {
+  background-color: #28a745;
+  color: white;
+}
+
+.stream-controls-container button:first-of-type:hover {
+  background-color: #218838;
+}
+
+.stream-controls-container button:last-of-type {
+  background-color: #dc3545;
+  color: white;
+}
+
+.stream-controls-container button:last-of-type:hover {
+  background-color: #c82333;
+}

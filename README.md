@@ -15,3 +15,7 @@ source /opt/ros/humble/setup.bash
 ***UI***
 1. npm install
 2. npm run start:all
+
+***Python virtual environment***
+1. python -m venv rosEnv
+2. source rosEnv/bin/activate

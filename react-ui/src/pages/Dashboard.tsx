@@ -1,16 +1,20 @@
 // Dashboard.tsx
 // Pages for drive controls
 
-import CameraView from "../components/drive/CameraView";
-import RoverHub from "../components/drive/RoverHub";
-import "./styles/Dashboard.css";
+import { useState } from 'react';
+import CameraView from '../components/drive/CameraView';
+import RoverHub from '../components/drive/RoverHub';
+import './styles/Dashboard.css';
 
 const Dashboard: React.FC = () => {
+  // Shared state for camera streams
+  const [streams, setStreams] = useState<(MediaStream | null)[]>(Array(4).fill(null));
+
   return (
     <div className="dashboard">
       <div className="dashboard-content">
-        <CameraView />
-        <RoverHub/>
+        <CameraView streams={streams} />
+        <RoverHub streams={streams} setStreams={setStreams} />
       </div>
     </div>
   );
