@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import VideoFeed from './ui/testCamera'
+import VideoFeed from './ui/Camera'
 import DPad from './ui/DPad'
 import "./styles/CameraView.css";
 

@@ -1,88 +1,118 @@
-import React, { useEffect, useRef } from 'react';
-import Peer from 'peerjs'; // Import Peer from PeerJS
-import './styles/Camera.css';
+import React, { useEffect, useRef, useState } from 'react';
+import './styles/Camera.css'
 
-const Camera: React.FC = () => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const peerRef = useRef<Peer | null>(null); // Use `Peer` type from PeerJS
-
-  useEffect(() => {
-    const connectToWebRTC = async () => {
-      try {
-        // Initialize PeerJS connection with an explicit peer ID
-        const peer = new Peer('peer1', {
-          host: 'localhost', // Replace with your signaling server host
-          port: 9000, // Replace with your signaling server port
-          // path: '/myapp', // Replace with your signaling server path
-        });
-        peerRef.current = peer;
-
-        // Listen for when the connection is open
-        peer.on('open', async (id) => {
-          console.log('PeerJS connection established with ID:', id);
-
-          // Get local media stream
-          const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-
-          // Call another peer (replace 'peer2' with the ID of the peer you want to connect to)
-          const call = peer.call('peer2', localStream);
-
-          // Handle incoming stream
-          call.on('stream', (remoteStream) => {
-            if (videoRef.current) {
-              videoRef.current.srcObject = remoteStream;
-            }
-          });
-
-          call.on('error', (err) => {
-            console.error('Error in call:', err);
-          });
-        });
-
-        // Handle incoming calls
-        peer.on('call', async (call) => {
-          // Answer the call with local media stream
-          try {
-            const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            call.answer(localStream); // Answer the call with the local stream
-
-            // Handle incoming stream
-            call.on('stream', (remoteStream) => {
-              if (videoRef.current) {
-                videoRef.current.srcObject = remoteStream;
-              }
-            });
-          } catch (error) {
-            console.error('Error accessing media devices:', error);
-          }
-        });
-
-        peer.on('error', (err) => {
-          console.error('Error in peer connection:', err);
-        });
-
-        peer.on('close', () => {
-          console.log('Peer connection closed');
-        });
-      } catch (error) {
-        console.error('Error connecting to WebRTC server:', error);
+const waitForIceGatheringComplete = (pc: RTCPeerConnection): Promise<void> => {
+  return new Promise((resolve) => {
+    const checkState = () => {
+      if (pc.iceGatheringState === 'complete') {
+        pc.removeEventListener('icegatheringstatechange', checkState);
+        resolve();
       }
     };
 
-    connectToWebRTC();
+    if (pc.iceGatheringState === 'complete') {
+      resolve();
+    } else {
+      pc.addEventListener('icegatheringstatechange', checkState);
+    }
+  });
+};
 
+const VideoFeed: React.FC = () => {
+  const [pc, setPc] = useState<RTCPeerConnection | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [deviceId, setDeviceId] = useState<number>(0);
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  const hostIp = "127.0.0.1";
+
+  useEffect(() => {
     return () => {
-      // Cleanup: close peer connection and stop media tracks
-      if (peerRef.current) {
-        peerRef.current.destroy();
-      }
-      if (videoRef.current?.srcObject) {
-        (videoRef.current.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
-      }
+      stop();
     };
   }, []);
 
-  return <video className="video" ref={videoRef} autoPlay playsInline />;
+  const negotiate = async (): Promise<void> => {
+    try {
+      if (!pc) return;
+
+      pc.addTransceiver('video', { direction: 'recvonly' });
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      await waitForIceGatheringComplete(pc);
+
+      const offerData = { sdp: pc.localDescription?.sdp, type: pc.localDescription?.type };
+      console.log("Offer data:", offerData);
+
+      const response = await fetch(`http://${hostIp}:8081/offer?id=${deviceId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(offerData),
+      });
+
+      console.log("Fetch response:", response);
+
+      const answer = await response.json();
+      console.log("Answer data:", answer);
+
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    } catch (err: any) {
+      console.error('Error in negotiate:', err);
+      setError(`Error: ${err.message || err}`);
+    }
+  };
+
+  const start = async (): Promise<void> => {
+    alert("Hello");
+    const config: RTCConfiguration = { iceServers: [] };
+    const peerConnection = new RTCPeerConnection(config);
+
+    peerConnection.addEventListener('track', (evt: RTCTrackEvent) => {
+      if (evt.track.kind === 'video' && videoElementRef.current) {
+        videoElementRef.current.srcObject = evt.streams[0];
+      } else {
+        console.error("Video element not found");
+        setError("Video element not found");
+      }
+    });
+
+    setPc(peerConnection);
+    await negotiate();
+  };
+
+  const stop = (): void => {
+    if (pc) {
+      setTimeout(() => {
+        pc.close();
+        setPc(null);
+      }, 500);
+    }
+    setError(null);
+  };
+
+  return (
+    <div>
+      <input
+        type="number"
+        value={deviceId}
+        onChange={(e) => setDeviceId(Number(e.target.value))}
+        placeholder="Enter Device ID"
+        style={{ marginBottom: '10px' }}
+      />
+      <video
+        className="feed"
+        ref={videoElementRef}
+        autoPlay
+        playsInline
+      />
+      {error && <div style={{ color: 'red' }}>{`Error: ${error}`}</div>}
+      <button onClick={start}>Start</button>
+      <button onClick={stop}>Stop</button>
+    </div>
+  );
 };
 
-export default Camera;
+export default VideoFeed;

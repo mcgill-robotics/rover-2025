@@ -1,4 +1,4 @@
-import "../styles/Wheel.css"
+import "./styles/Wheel.css"
 
 export default function Wheel({ angle = 45 }) {
     return(

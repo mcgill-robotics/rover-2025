@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Wheel from './Wheel.tsx'
-import "../styles/WheelsContainer.css"
+import "./styles/WheelsContainer.css"
 
 export default function WheelsContainer() {
 

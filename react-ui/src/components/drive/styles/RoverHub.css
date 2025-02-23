@@ -1,0 +1,57 @@
+/* Main container */
+.hub-view {
+  width: 30%;
+}
+
+/* Hub Container */
+.drive-info-container {
+  height: 95vh;
+  padding: 1rem;
+  padding-top: 0;
+  border-radius: 0.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Toggle Container*/
+.hub {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Toggle Switch */
+.hub-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+  background: #3f414d;
+  border-radius: 30px;
+  padding: 0.5rem;
+  width: 250px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Toggle Option */
+.hub-option {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem 1rem;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+  font-weight: bold;
+}
+
+/* Active Toggle */
+.hub-option.active {
+  background: #24252A;
+  color: white;
+}
+
+.hub-option:not(.active) {
+  color: #757575;
+} 

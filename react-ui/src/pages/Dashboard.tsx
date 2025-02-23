@@ -2,7 +2,7 @@
 // Pages for drive controls
 
 import CameraView from "../components/drive/CameraView";
-import RoverInfo from "../components/drive/RoverInfo";
+import RoverHub from "../components/drive/RoverHub";
 import "./styles/Dashboard.css";
 
 const Dashboard: React.FC = () => {
@@ -10,7 +10,7 @@ const Dashboard: React.FC = () => {
     <div className="dashboard">
       <div className="dashboard-content">
         <CameraView />
-        <RoverInfo />
+        <RoverHub/>
       </div>
     </div>
   );

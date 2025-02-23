@@ -1,0 +1,37 @@
+.knob-light-container {
+    display: flex;
+    flex-direction: row;
+}
+
+/* Knob */
+/* Knob Container Styling */
+.knob-container {
+  width: 50%;
+  height: 30%;
+}
+
+/* Maximum Speed Title */
+.knob-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 0.25rem;
+  margin-bottom: 0;
+}
+
+/* Headlight */
+/* Headlight container styling */
+.headlight-container {
+  width: 50%;
+  height: 75%;
+}
+
+/* Brightness Title */
+.headlight-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 0.25rem;
+  margin-bottom: 1rem;
+}
+

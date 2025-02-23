@@ -1,22 +1,4 @@
-/* Main container */
-.drive-info-container {
-  height: 95vh;
-  padding: 1rem;
-  padding-top: 0;
-  border-radius: 0.25rem;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Title styling */
-.drive-info-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0;
-}
-
 /* Speedometers */
-
 /* Rover Speed Title */
 .speed-title {
   font-size: 1.25rem;
@@ -92,21 +74,6 @@
   grid-template-columns: 50% 50%;
 }
 
-/* Knob */
-/* Knob Container Styling */
-.knob-container {
-  width: 50%;
-  height: 30%;
-}
-
-/* Maximum Speed Title */
-.knob-title {
-  font-size: 1.25rem;
-  font-weight: bold;
-  text-align: center;
-  margin: 0.25rem;
-  margin-bottom: 0;
-}
 
 /* Wheels Minimap Container Styling */
 .wheels-minimap-container {
