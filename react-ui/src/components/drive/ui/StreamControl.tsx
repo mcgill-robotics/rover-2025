@@ -7,6 +7,18 @@ interface StreamControlProps {
   onStop: (index: number) => void;
 }
 
+const PlayIcon: React.FC = () => (
+  <svg className="neon-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="7,6 16,12 7,18" strokeWidth="1.5" transform="translate(2, 0)"/>
+  </svg>
+);
+
+const SquareIcon: React.FC = () => (
+  <svg className="neon-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <rect x="6" y="6" width="12" height="12" strokeWidth="1.5" />
+  </svg>
+);
+
 const StreamControl: React.FC<StreamControlProps> = ({ onStart, onStop }) => {
   const [devices, setDevices] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -14,21 +26,15 @@ const StreamControl: React.FC<StreamControlProps> = ({ onStart, onStop }) => {
   const [cameraConnections, setCameraConnections] = useState<(string | null)[]>([null, null, null, null]);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
 
+  // Fetch Devices (Filter even-numbered devices)
   useEffect(() => {
     const fetchDevices = async () => {
       try {
         const response = await axios.get<{ devices: string[] }>("http://localhost:8081/video-devices");
-
-        // Filter out devices where the number is odd
         const filteredDevices = response.data.devices.filter((device) => {
           const match = device.match(/\/dev\/video(\d+)/);
-          if (match) {
-            const deviceNumber = parseInt(match[1], 10);
-            return deviceNumber % 2 === 0; // Only keep devices with even numbers
-          }
-          return false;
+          return match ? parseInt(match[1], 10) % 2 === 0 : false; // Keep only even devices
         });
-
         setDevices(filteredDevices);
       } catch (error) {
         console.error("Error fetching video devices:", error);
@@ -41,91 +47,89 @@ const StreamControl: React.FC<StreamControlProps> = ({ onStart, onStop }) => {
     fetchDevices();
   }, []);
 
+  // Start Camera
   const handleStart = (device: string, cameraIndex: number) => {
-    onStart(parseInt(device.match(/\d+/)?.[0] ?? "0", 10), cameraIndex);
+    const deviceId = parseInt(device.match(/\d+/)?.[0] ?? "0", 10);
+    onStart(deviceId, cameraIndex);
 
+    // Update connections and available devices
     const updatedConnections = [...cameraConnections];
     updatedConnections[cameraIndex] = device;
     setCameraConnections(updatedConnections);
-
-    setDevices((prevDevices) => {
-      const newDevices = prevDevices.filter((d) => d !== device);
-      setSelectedDevice(null); // Unselect the device
-      return newDevices;
-    });
+    setDevices((prev) => prev.filter((d) => d !== device));
+    setSelectedDevice(null);
   };
 
+  // Stop Camera
   const handleStop = (cameraIndex: number) => {
     onStop(cameraIndex);
 
+    // Restore disconnected device
     const updatedConnections = [...cameraConnections];
+    const disconnectedDevice = updatedConnections[cameraIndex];
     updatedConnections[cameraIndex] = null;
     setCameraConnections(updatedConnections);
-
-    const deviceToReAdd = cameraConnections[cameraIndex];
-    if (deviceToReAdd) {
-      setDevices((prevDevices) => [...prevDevices, deviceToReAdd]);
+    if (disconnectedDevice) {
+      setDevices((prev) => [...prev, disconnectedDevice]);
     }
-  };
-
-  const handleDeviceClick = (device: string) => {
-    setSelectedDevice(device);
   };
 
   return (
     <div className="stream-controls-container">
-      {loading ? (
-        <p>Loading devices...</p>
-      ) : error ? (
-        <div className="list-box-error">
-          <p className="error">{error}</p>
-        </div>
-      ) : devices.length > 0 ? (
-        <div className="devices-list-box">
-          {devices.map((device, index) => (
+      {/* Device List */}
+      <div className="devices-list-box">
+        {loading ? (
+          <p>Loading devices...</p>
+        ) : error ? (
+          <div className="list-box-error">
+            <p className="error">{error}</p>
+          </div>
+        ) : devices.length > 0 ? (
+          devices.map((device, index) => (
             <div
               key={index}
               className={`device-item ${device === selectedDevice ? "selected" : ""}`}
-              onClick={() => handleDeviceClick(device)} // Handle click
+              onClick={() => setSelectedDevice(device)}
             >
               {device}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="devices-list-box">
+          ))
+        ) : (
           <div className="list-box-text">
             <p>No video devices found.</p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
+      {/* Camera Controls */}
       <div className="camera-btn-container">
-        {[...Array(4)].map((_, cameraIndex) => (
+        {cameraConnections.map((connection, cameraIndex) => (
           <div className="camera-btn" key={cameraIndex}>
-            {cameraConnections[cameraIndex] === null ? (
-              <div className="start-btn-container">
-                <button
-                  className="start-btn"
-                  onClick={() => {
-                    if (!selectedDevice) {
-                      console.error("No device selected!");
-                      return;
-                    }
-                    handleStart(selectedDevice, cameraIndex);
-                  }}
-                >
-                  Start Camera {cameraIndex + 1}
-                </button>
-              </div>
-            ) : (
+            <p className="camera-label">
+              {cameraIndex + 1 === 4 ? 'Pan Tilt' : `Camera ${cameraIndex + 1}`}
+            </p>
+            {connection ? (
               <div className="stop-btn-container">
-                <p>Camera {cameraIndex + 1} connected to: {cameraConnections[cameraIndex]}</p>
                 <button
                   className="stop-btn"
                   onClick={() => handleStop(cameraIndex)}
+                  title="Stop Camera"
                 >
-                  Stop Camera {cameraIndex + 1}
+                  <SquareIcon />
+                </button>
+
+                <p className="device-name">{connection}</p>
+              </div>
+            ) : (
+              <div className="start-btn-container">
+                <button
+                  className={`start-btn ${!selectedDevice ? "disabled" : ""}`}
+                  onClick={() => selectedDevice && handleStart(selectedDevice, cameraIndex)}
+                  disabled={!selectedDevice}
+                  title={selectedDevice ? "Start Camera" : "Select Camera"}
+                >
+                  <PlayIcon />
+                  <p className="device-name">{" "}</p>
                 </button>
               </div>
             )}
@@ -134,6 +138,6 @@ const StreamControl: React.FC<StreamControlProps> = ({ onStart, onStop }) => {
       </div>
     </div>
   );
-};
+}
 
 export default StreamControl;

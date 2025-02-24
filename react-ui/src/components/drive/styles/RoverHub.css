@@ -1,12 +1,13 @@
 /* Main container */
 .hub-view {
   width: 30%;
+  user-select: none;
 }
 
 /* Hub Container */
 .drive-info-container {
   height: 95vh;
-  padding: 1rem;
+  padding: 0.5rem;
   padding-top: 0;
   border-radius: 0.25rem;
   display: flex;
