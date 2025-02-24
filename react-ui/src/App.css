@@ -9,6 +9,7 @@ body {
   font-optical-sizing: auto;
   font-weight: 300;
   font-style: normal;
+  user-select: none;
 }
 
 /* Center the header component */
@@ -20,9 +21,7 @@ header {
 /* Add padding to the content to avoid overlap with the header */
 .content {
   border-top: 3px solid black;
-  padding-top: 5px; /* Adjust this value based on the height of your header; Joshua note: i'm not sure why we need this I changed it from 30% -> 10px*/
-  overflow-y: scroll;
+  padding-top: 5px;
   height: 100vh;
-  scroll-snap-type: y mandatory;
+  overflow: hidden;
 }
-

@@ -5,6 +5,7 @@
   padding: 15px 2%;
   background-color: #24252A;
   position: relative;
+  resize: vertical;
 }
 
 .navbar {

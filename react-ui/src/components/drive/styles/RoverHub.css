@@ -80,12 +80,8 @@
 
 /* Metallic Active State */
 .hub-option.active {
-  color: #efff5c; /* Neon yellow */
+  color: #efff5c;
   background: linear-gradient(to top, #1d1d1d, #131313);
-  box-shadow: 
-    0 0.2em 0.1em 0.05em rgba(255, 255, 255, 0.1) inset,
-    0 -0.2em 0.1em 0.05em rgba(0, 0, 0, 0.5) inset,
-    0 0.5em 0.65em 0 rgba(0, 0, 0, 0.3);
 }
 
 /* Inactive State */

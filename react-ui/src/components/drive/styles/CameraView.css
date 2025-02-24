@@ -10,13 +10,13 @@
 /* Styling for each camera card */
 .camera-card {
   height: 100%;
-  background-color: white;
+  background-color: #2d2d38;
   position: relative;
-  padding: 0.25rem;
   border-radius: 0.25rem; 
   transition: border 0.3s ease;
   cursor: pointer;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 2px solid rgba(78, 77, 77, 0.3);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.5), 0 4px 6px rgba(255, 255, 255, 0.25);
 }
 
 /* Styling for the camera title */
@@ -56,9 +56,11 @@
 
 /* Camera button styling */
 .camera-button {
+  width: 100%;
   display: flex;
   align-items: center;
-  width: 100%;
+  background-color: #24252A;
+  color: #888;
   padding: 8px 16px;
   font-size: 16px;
   cursor: pointer;
@@ -66,7 +68,7 @@
   border: none;
   text-align: center;
   box-sizing: border-box;
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1), -2px -2px 5px rgba(255, 255, 255, 0.5);
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4), -2px -2px 8px rgba(255, 255, 255, 0.1);
 }
 
 /* Circle (status indicator) */
@@ -75,40 +77,36 @@
   height: 12px;
   border-radius: 50%;
   margin-right: 10px;
-  background: radial-gradient(circle, #d9d9d9 10%, #aaa 90%); /* Default gray gradient */
-  box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.2), /* Inner shadow */
-              2px 2px 4px rgba(0, 0, 0, 0.3); /* Outer shadow for depth */
+  background: radial-gradient(circle, #d9d9d9 10%, #aaa 90%); 
+  box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.2), 
+              2px 2px 4px rgba(0, 0, 0, 0.3); 
   transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Green (Connected) - Glowing effect */
 .camera-connection.connected {
   background: radial-gradient(circle, #5ffb5f 10%, #2e8b57 90%);
-  box-shadow: 0 0 6px #5ffb5f, /* Outer glow */
-              inset 2px 2px 3px rgba(0, 0, 0, 0.2); /* Inner shadow */
+  box-shadow: 0 0 6px #5ffb5f,
+              inset 2px 2px 3px rgba(0, 0, 0, 0.2); 
 }
 
 /* Red (Disconnected) - Glowing effect */
 .camera-connection.disconnected {
   background: radial-gradient(circle, #ff6666 10%, #b30000 90%);
-  box-shadow: 0 0 6px #ff6666, /* Outer glow */
-              inset 2px 2px 3px rgba(0, 0, 0, 0.2); /* Inner shadow */
+  box-shadow: 0 0 6px #ff6666,
+              inset 2px 2px 3px rgba(0, 0, 0, 0.2); 
 }
 
 /* Active camera button styling */
 .active-button {
-  background: linear-gradient(145deg, #d62929, #830101);
   color: white;
   border: none;
-  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3), -2px -2px 10px rgba(255, 255, 255, 0.5); /* Darker shadow for depth */
   transform: scale(1.02);
 }
 
 /* Hover effect */
 .camera-button:hover {
-  background: linear-gradient(145deg, #fa6565, #ff0000);
   color: white;
-  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.2), -4px -4px 12px rgba(255, 255, 255, 0.3);
   transform: scale(1.02);
 }
 
@@ -116,7 +114,7 @@
 .back-to-grid {
   border: none;
   padding: 8px 16px;
-  color: black;
+  color: #888;
   text-align: center;
   width: 100%;
   gap: 8px;
@@ -125,14 +123,17 @@
 }
 
 .back-to-grid:hover {
-  background: linear-gradient(145deg, #ffbaba, #830101);
   transform: scale(1.02);
 }
 
 .back-arrow {
   width: 16px;
   height: 16px;
-  stroke: black;
+  stroke: #888;
+}
+
+.back-arrow:hover {
+  stroke: white;
 }
 
 /* Add a red border when hovering over the corresponding button */

@@ -26,7 +26,7 @@ const StreamControl: React.FC<StreamControlProps> = ({ onStart, onStop }) => {
   const [cameraConnections, setCameraConnections] = useState<(string | null)[]>([null, null, null, null]);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
 
-  // Fetch Devices (Filter even-numbered devices)
+  // Fetch Devices
   useEffect(() => {
     const fetchDevices = async () => {
       try {
@@ -36,6 +36,7 @@ const StreamControl: React.FC<StreamControlProps> = ({ onStart, onStop }) => {
           return match ? parseInt(match[1], 10) % 2 === 0 : false; // Keep only even devices
         });
         setDevices(filteredDevices);
+        // setDevices(["/dev/video2", "/dev/video4", "/dev/video6", "/dev/video8", "/dev/video10"])`// Extra device examples for UI
       } catch (error) {
         console.error("Error fetching video devices:", error);
         setError("Failed to fetch video devices");
