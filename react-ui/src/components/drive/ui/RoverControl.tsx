@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Knob from './Knob';
 import Headlight from './Headlight';
 import StreamControl from './StreamControl';
@@ -27,65 +27,63 @@ interface RoverControlProps {
 }
 
 const RoverControl: React.FC<RoverControlProps> = ({ streams, setStreams }) => {
-  const [deviceIds, setDeviceIds] = useState<number[]>([0, 1, 2, 3]);
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const hostIp = "127.0.0.1";
 
   useEffect(() => {
     return () => {
       if (pc) {
-        stop(pc);
+        stop(pc); // Clean up peer connection when component unmounts
       }
     };
   }, [pc]);
 
   const startCamera = async (deviceId: number, index: number): Promise<void> => {
     try {
-      if (pc?.signalingState === 'closed') {
+      let peerConnection: RTCPeerConnection;
+
+      // If pc exists and is open, reuse it; otherwise, create a new one
+      if (pc && pc.signalingState !== 'closed') {
+        peerConnection = pc;
+      } else {
         console.log("Peer connection is closed. Recreating peer connection...");
-        const config: RTCConfiguration = { iceServers: [] };
-        const peerConnection = new RTCPeerConnection(config);
-        setPc(peerConnection); // Update the state with the new peer connection
+        peerConnection = new RTCPeerConnection({ iceServers: [] });
+        setPc(peerConnection);  // Set the state with the new peer connection for future reuse
       }
 
-      const peerConnection = pc || new RTCPeerConnection({ iceServers: [] });
-
       peerConnection.addEventListener('track', (evt: RTCTrackEvent) => {
-        if (evt.track.kind === 'video' && videoElementRef.current) {
-          videoElementRef.current.srcObject = evt.streams[0];
+        if (evt.track.kind === 'video') {
           setStreams((prev) => {
             const newStreams = [...prev];
             newStreams[index] = evt.streams[0];
             return newStreams;
           });
         } else {
-          console.error("Video element not found");
-          setError("Video element not found");
+          console.error("Video track not found");
+          setError("Video track not found");
         }
       });
 
-      setPc(peerConnection);
-      await negotiate(deviceId);
+      await negotiate(deviceId, peerConnection); // Pass the peerConnection into the negotiate function
     } catch (err: any) {
       console.error('Error in startCamera:', err);
       setError(`Error: ${err.message || err}`);
     }
   };
 
-  const negotiate = async (deviceId: number): Promise<void> => {
+  const negotiate = async (deviceId: number, peerConnection: RTCPeerConnection): Promise<void> => {
     try {
-      if (!pc || pc.signalingState === 'closed') return;
+      if (!peerConnection || peerConnection.signalingState === 'closed') return;
 
-      pc.addTransceiver('video', { direction: 'recvonly' });
+      peerConnection.addTransceiver('video', { direction: 'recvonly' });
 
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
 
-      await waitForIceGatheringComplete(pc);
+      await waitForIceGatheringComplete(peerConnection);
 
-      const offerData = { sdp: pc.localDescription?.sdp, type: pc.localDescription?.type };
+      const offerData = { sdp: peerConnection.localDescription?.sdp, type: peerConnection.localDescription?.type };
       console.log("Offer data:", offerData);
 
       const response = await fetch(`http://${hostIp}:8081/offer?id=${deviceId}`, {
@@ -101,13 +99,7 @@ const RoverControl: React.FC<RoverControlProps> = ({ streams, setStreams }) => {
       const answer = await response.json();
       console.log("Answer data:", answer);
 
-      // Check if the connection is still open before setting remote description
-      if (pc.signalingState === 'closed' as string) {
-        console.error("Peer connection has been closed before setting remote description");
-        return;
-      }
-
-      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
     } catch (err: any) {
       console.error('Error in negotiate:', err);
       setError(`Error: ${err.message || err}`);
@@ -116,18 +108,20 @@ const RoverControl: React.FC<RoverControlProps> = ({ streams, setStreams }) => {
 
   const stop = (pc: RTCPeerConnection): void => {
     if (pc) {
+      // Stop all tracks of the peer connection before closing it
+      const tracks = pc.getReceivers().map(receiver => receiver.track);
+      tracks.forEach(track => track.stop());
+
+      // Close the peer connection after stopping tracks
       setTimeout(() => {
         pc.close();
         setPc(null);
       }, 500);
     }
-    setError(null);
-  };
 
-  const handleDeviceIdChange = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
-    const updatedDeviceIds = [...deviceIds];
-    updatedDeviceIds[index] = parseInt(event.target.value, 10) || 0;
-    setDeviceIds(updatedDeviceIds);
+    setError(null);
+    // Update the streams state to null for the corresponding camera
+    setStreams((prev) => prev.map((stream) => null));
   };
 
   return (
@@ -144,25 +138,17 @@ const RoverControl: React.FC<RoverControlProps> = ({ streams, setStreams }) => {
         </div>
       </div>
 
-      <div className="camera-controls-container">
-        {deviceIds.map((deviceId, index) => (
-          <StreamControl
-            key={index}
-            deviceId={deviceId}
-            onDeviceIdChange={(event) => handleDeviceIdChange(index, event)}
-            onStart={() => startCamera(deviceId, index)}
-            onStop={() => stop(pc!)}
-          />
-        ))}
-      </div>
-
-      <video
-        className="feed"
-        ref={videoElementRef}
-        autoPlay
-        playsInline
-      />
-      {error && <div style={{ color: 'red' }}>{`Error: ${error}`}</div>}
+      <div className="connection-container">
+          <div className="camera-control-container">
+            <h2 className="camera-control-title">Available Devices</h2>
+            <StreamControl
+              onStart={startCamera}
+              onStop={() => stop(pc!)}
+            />
+          </div>
+        </div>
+      {/* Error handling */}
+      {error && <div className="error">{error}</div>}
     </div>
   );
 };

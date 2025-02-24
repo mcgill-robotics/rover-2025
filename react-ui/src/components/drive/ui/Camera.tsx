@@ -15,7 +15,7 @@ const VideoFeed: React.FC<VideoFeedProps> = ({ stream }) => {
   }, [stream]);
 
   return (
-    <div className="videoContainer">
+    <div className="video-container">
       <video className="video" ref={videoRef} autoPlay playsInline />
     </div>
   );

@@ -1,6 +1,13 @@
+.drive-info-container {
+  display: flex;
+  gap: 0.25rem;
+}
+
 .knob-light-container {
-    display: flex;
-    flex-direction: row;
+  width: 100%;
+  height: 40%;
+  display: flex;
+  flex-direction: row;
 }
 
 /* Knob */
@@ -35,3 +42,25 @@
   margin-bottom: 1rem;
 }
 
+.connection-container {
+  width: 100%;
+  height: 47.5%;
+}
+
+.camera-control-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 5px;
+}
+
+.camera-control-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 0.25rem;
+  margin-bottom: 2rem;
+}

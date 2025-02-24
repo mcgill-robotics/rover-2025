@@ -1,13 +1,20 @@
 import asyncio
 import json
-
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer
 
-pcs = set() #set of all pc
+pcs = set()  # Set of all peer connections
 
-# logging.basicConfig(level=logging.DEBUG) #enable logging
+# CORS middleware to handle preflight and allow all origins
+@web.middleware
+async def cors_middleware(request, handler):
+    response = await handler(request)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
+
 async def offer(request):
     print(request)
     id = request.rel_url.query["id"]
@@ -43,39 +50,57 @@ async def offer(request):
         ),
     )
 
-    # Add CORS headers
-    # response.headers['Access-Control-Allow-Origin'] = 'http://127.0.0.1:4200'  # Replace '*' with your specific allowed origins if necessary
-    response.headers['Access-Control-Allow-Origin'] = '*'  # Replace '*' with your specific allowed origins if necessary
-    response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS, GET'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-
     return response
 
-
 async def handle_options(request):
-    # Get the requested headers from the request
     requested_headers = request.headers.get('Access-Control-Request-Headers', '')
-
-    # Respond to preflight requests
     return web.Response(
         status=200,
         headers={
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': requested_headers,  # Use the requested headers in the response
-        }
+            'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+            'Access-Control-Allow-Headers': requested_headers,
+        },
     )
 
+async def list_video_devices(request):
+    try:
+        # Run "ls /dev/video*" asynchronously
+        result = await asyncio.create_subprocess_shell(
+            'ls /dev/video*',
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        stdout, stderr = await result.communicate()
+
+        if result.returncode != 0:
+            response = web.json_response({"error": stderr.decode()}, status=500)
+        else:
+            # Parse devices and return JSON
+            devices = stdout.decode().strip().split("\n")
+            response = web.json_response({"devices": devices})
+
+        return response
+
+    except Exception as e:
+        response = web.json_response({"error": str(e)}, status=500)
+        return response
+
 async def on_shutdown(app):
-    # close peer connections
     coros = [pc.close() for pc in pcs]
     await asyncio.gather(*coros)
     pcs.clear()
 
 if __name__ == "__main__":
-    app = web.Application()
+    app = web.Application(middlewares=[cors_middleware])
     app.on_shutdown.append(on_shutdown)
-    app.router.add_options("/offer", handle_options)
 
+    # Camera Feed endpoint
+    app.router.add_options("/offer", handle_options)
     app.router.add_post("/offer", offer)
+
+    # Available Devices endpoint
+    app.router.add_get("/video-devices", list_video_devices)
+
     web.run_app(app, host="0.0.0.0", port=8081, ssl_context=None)

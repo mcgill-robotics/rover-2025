@@ -14,7 +14,9 @@ const RoverHub: React.FC<RoverHubProps> = ({ streams, setStreams }) => {
   return (
     <div className="hub-view">
       <div className="hub">
-        <div className="hub-toggle">
+        <div
+          className={`hub-toggle ${isInfoMode ? 'info-mode' : 'control-mode'}`}
+        >
           <div
             className={`hub-option ${isInfoMode ? 'active' : ''}`}
             onClick={() => setIsInfoMode(true)}
@@ -28,7 +30,7 @@ const RoverHub: React.FC<RoverHubProps> = ({ streams, setStreams }) => {
             Controls
           </div>
         </div>
-      </div>
+      </div> 
 
       {isInfoMode ? (
         <RoverInfo />

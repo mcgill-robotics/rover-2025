@@ -1,14 +1,13 @@
 .stream-controls-container {
+  width: 100%;
+  height: 100%;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: center;
   gap: 10px;
   align-items: center;
-  padding: 20px;
-  background-color: #f4f4f9;
+  color: #ffffff;
   border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 250px;
-  margin: 0 auto;
 }
 
 .stream-controls-container input {
@@ -16,13 +15,10 @@
   padding: 10px;
   font-size: 16px;
   border: 1px solid #ccc;
+  background-color: #c82333;
   border-radius: 5px;
   outline: none;
   transition: border-color 0.3s;
-}
-
-.stream-controls-container input:focus {
-  border-color: #007bff;
 }
 
 .stream-controls-container button {
@@ -36,20 +32,77 @@
   margin-top: 10px;
 }
 
-.stream-controls-container button:first-of-type {
-  background-color: #28a745;
-  color: white;
+.camera-btn-container {
+  width: 65%;
 }
 
-.stream-controls-container button:first-of-type:hover {
-  background-color: #218838;
+.camera-btn {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
 }
 
-.stream-controls-container button:last-of-type {
-  background-color: #dc3545;
-  color: white;
+/* Updated camera button styles to match the knob */
+.start-btn, .stop-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  width: 80%;
+  margin-top: 10px;
+  background: #181818;
+  background: linear-gradient(to top, #1d1d1d, #131313);
+  box-shadow: 0 0.2em 0.1em 0.05em rgba(255, 255, 255, 0.1) inset,
+              0 -0.2em 0.1em 0.05em rgba(0, 0, 0, 0.5) inset,
+              0 0.5em 0.65em 0 rgba(0, 0, 0, 0.3);
+  color: #efff5c;
+  transition: background 0.3s, box-shadow 0.3s;
 }
 
-.stream-controls-container button:last-of-type:hover {
-  background-color: #c82333;
+.start-btn:hover, .stop-btn:hover {
+  background: #202020;
+}
+
+.start-btn:active, .stop-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 0 0.05em 0.01em rgba(255, 255, 255, 0.05) inset,
+              0 0 0.05em 0.01em #a8d47a;
+}
+
+/* New Flexbox Layout for Device List and Buttons */
+.devices-list-box {
+  width: 35%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;  
+  gap: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding-top: 5px;
+  overflow-y: auto;
+}
+
+.device-item {
+  font-size: 1.1rem;
+  padding: 8px 10px;
+  margin: 5px auto;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.list-box-text, .list-box-error {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+
+.device-item:hover, .device-item.selected {
+  background-color: #2b2b1e;
+  color: #efff5c;
 }
