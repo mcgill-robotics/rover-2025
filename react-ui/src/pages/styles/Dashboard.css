@@ -1,27 +1,14 @@
 /* Styling for the dashboard container */
 .dashboard {
+  width: 100%;
+  height: 100vh;
   padding: 0.25rem;
-  min-height: 100vh;
-  height: 100%;
 }
 
 /* Styling for the dashboard content */
 .dashboard-content {
   width: 100%;
-  height: 90%;
+  height: 100%;
   display: flex;
   gap: 0.25rem
-}
-
-/* Styling for the CameraView (left side) */
-.camera-view {
-  height: 100%;
-  min-height: 90vh;
-  flex: 3;
-}
-
-/* Styling for the RoverInfo (right side) */
-.rover-info {
-  flex: 1;
-  min-height: 90vh;
 }

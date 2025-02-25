@@ -1,7 +1,7 @@
 /* Main container */
 .hub-view {
   width: 30%;
-  user-select: none;
+  height: 100%;
 }
 
 /* Hub Container */
@@ -9,6 +9,7 @@
   height: 95vh;
   padding: 0.5rem;
   padding-top: 0;
+  margin-right: 1rem;
   border-radius: 0.25rem;
   display: flex;
   flex-direction: column;

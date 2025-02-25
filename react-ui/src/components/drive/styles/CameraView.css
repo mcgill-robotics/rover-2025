@@ -1,3 +1,10 @@
+.camera-view {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Grid layout for the camera cards */
 .camera-grid {
   height: 100%;
@@ -9,7 +16,7 @@
 
 /* Styling for each camera card */
 .camera-card {
-  height: 100%;
+  flex: 11;
   background-color: #2d2d38;
   position: relative;
   border-radius: 0.25rem; 
@@ -40,6 +47,7 @@
 
 /* Camera switch buttons container */
 .camera-switch-buttons {
+  flex: 1;
   display: flex;
   flex-direction: row;
   width: 100%;
