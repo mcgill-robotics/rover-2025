@@ -8,23 +8,21 @@ const ArmInfo: React.FC = () => {
 
     return (
         <div className="arm-info-container">
-            <h1 className="arm-info-title">Information</h1>
+            <CoordinatesDisplay /> 
 
-            <div className="coordinate-container">
-                <CoordinatesDisplay /> 
+            <div className="joint-speed-container">
+                <div className="joint-container">
+                    <h1>Joint Selector</h1>
+                    <JointSelector/>
+                </div>
+
+                <div className="speed-container">
+                    <h1>Speed Control</h1>
+                    <SpeedControl />
+                </div>
             </div>
 
-            <div className="joint-container">
-                <JointSelector/>
-            </div>
-
-            <div className="speed-container">
-                <SpeedControl />
-            </div>
-
-            <div className="graph-container">
-                <GraphPanel />
-            </div>
+            <GraphPanel />
         </div>
     )
 };
