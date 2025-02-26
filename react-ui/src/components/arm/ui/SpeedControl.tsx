@@ -26,6 +26,7 @@ const SpeedControl: React.FC = () => {
                 step="0.01"
                 value={speed}
                 onChange={handleChange}
+                style={{writingMode: "vertical-lr", direction: "rtl"}}
             />
 
             {/* Current Speed Display */}
