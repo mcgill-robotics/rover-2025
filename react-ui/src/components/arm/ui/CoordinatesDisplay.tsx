@@ -14,9 +14,9 @@ const CoordinatesDisplay: React.FC = () => {
             <div className="orientation-display">
                 <h2>Orientation</h2>
                 <div className="orientation-item">
-                    <p>Row (x): 0.00°</p>
+                    <p>Row (x): 90.00°</p>
                     <p>Pitch (y): 90.00°</p>
-                    <p>Yaw (z): 0.00°</p>  
+                    <p>Yaw (z): 90.00°</p>  
                 </div>
             </div>
         </div>

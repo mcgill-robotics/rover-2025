@@ -9,10 +9,7 @@
 
 .speed-slider {
     margin-top: 5% !important;
-    appearance: slider-vertical; /* Vertical slider for modern browsers */
-    -webkit-appearance: slider-vertical; /* Safari support */
-    writing-mode: bt-lr; /* Ensure correct orientation */
-    height: 60%;
+    height: 8rem;
 }
 
 .speed-display {
