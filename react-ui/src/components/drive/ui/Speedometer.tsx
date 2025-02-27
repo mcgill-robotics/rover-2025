@@ -89,7 +89,7 @@ const Speedometer: React.FC<SpeedometerProps> = ({ initialSpeed = 0 }) => {
         <path className="meter-bg-bar" 
           ref={meterBarRef} 
           d="M50.8884 250C37.0172 227.815 29 201.594 29 173.5C29 93.6949 93.6949 29 173.5 29C253.305 29 318 93.6949 318 173.5C318 201.594 309.983 227.815 296.112 250" 
-          stroke="#CFF80B" 
+          stroke="#D63F3F" 
           strokeWidth="57" />
 
         {/* Meter Frame Path */}

@@ -48,7 +48,7 @@
     0 -0.2em 0.1em 0.025em rgba(0, 0, 0, 0.35) inset,
     0 0.4em 0.45em 0 rgba(0, 0, 0, 0.25);
   background: #191a14;
-  color: #efff5c;
+  color: #d63f3f;
 }
 
 .device-item:active {
@@ -129,13 +129,13 @@
 /* Icon Color (Neon Effect) */
 .start-btn svg{
   fill: none;
-  stroke: #efff5c;
+  stroke: #d63f3f;
   stroke-width: 2;
 }
 
 .stop-btn svg {
   fill: none;
-  stroke: #ff4da6;
+  stroke: #a8d47a;
   stroke-width: 2;
 }
 
@@ -143,7 +143,7 @@
 .start-btn:hover {
   background: #202020;
   box-shadow: 
-    0 0 12px #a8d47a,
+    0 0 12px #e91e63,
     0 0.3em 0.15em 0.05em rgba(255, 255, 255, 0.15) inset,
     0 -0.3em 0.15em 0.05em rgba(0, 0, 0, 0.6) inset,
     0 0.6em 0.75em 0 rgba(0, 0, 0, 0.4);
@@ -152,7 +152,7 @@
 .stop-btn:hover {
   background: #202020;
   box-shadow: 
-    0 0 12px #ff4da6,
+    0 0 12px #a8d47a,
     0 0.3em 0.15em 0.05em rgba(255, 255, 255, 0.15) inset,
     0 -0.3em 0.15em 0.05em rgba(0, 0, 0, 0.6) inset,
     0 0.6em 0.75em 0 rgba(0, 0, 0, 0.4);
@@ -160,12 +160,12 @@
 
 .start-btn:active {
   transform: scale(0.95);
-  box-shadow: 0 0 16px #a8d47a;
+  box-shadow: 0 0 16px #e91e63;
 }
 
 .stop-btn:active {
   transform: scale(0.95);
-  box-shadow: 0 0 16px #ff4da6;
+  box-shadow: 0 0 16px #a8d47a;
 }
 
 /* Disabled State */

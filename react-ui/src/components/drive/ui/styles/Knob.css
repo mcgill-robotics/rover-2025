@@ -40,9 +40,9 @@
   left: 19%;
   width: 3%;
   height: 3%;
-  background-color: #d2fca3;
+  background-color: #e91e63;
   border-radius: 50%;
-  box-shadow: 0 0 0.4em 0 #efff5c;
+  box-shadow: 0 0 0.4em 0 #d63f3f;
 }
 
 .min,
@@ -67,8 +67,8 @@
 
 /* Neon effect for min and max */
 .neon {
-  color: #d2fca3;
-  text-shadow: 0 0 5px #efff5c, 0 0 10px #efff5c, 0 0 15px #efff5c, 0 0 20px #d2fca3, 0 0 30px #d2fca3;
+  color: #d63f3f;
+  text-shadow: 0 0 5px #f44336, 0 0 10px #f44336, 0 0 15px #f44336, 0 0 20px #e91e63, 0 0 30px #e91e63;
 }
 
 .tick {
@@ -93,15 +93,15 @@
 }
 
 .activetick:after {
-  background-color: #d2fca3;
-  box-shadow: 0 0 0.3em 0.08em #efff5c;
+  background-color: #e91e63;
+  box-shadow: 0 0 0.3em 0.08em #d63f3f;
   transition: all 50ms ease-in;
 }
 
 .current-speed {
   position: absolute;
   font-size: 0.75rem;
-  color: #efff5c;
+  color: #d63f3f;
   font-weight: bold;
   top: 50%;
   left: 50%;

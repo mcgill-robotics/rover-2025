@@ -113,7 +113,7 @@
 
 .power-button.active .power-icon,
 .power-button.active .power-label {
-  color: #efff5c;
+  color: #d63f3f;
 }
 
 .power-button:hover .power-icon,
@@ -123,7 +123,7 @@
 
 .power-button.active:hover .power-icon,
 .power-button.active:hover .power-label {
-  color: #f0f7b3;
+  color: #f08c8c;;
 }
 
 /* Press effect */

@@ -161,7 +161,7 @@
 
 /* Active metallic button */
 .joint-selector-toggle-button.active {
-  color: #efff5c;
+  color: #d63f3f;
   background: linear-gradient(to top, #1d1d1d, #131313);
   box-shadow: 0 0.5em 0.5em rgba(0, 0, 0, 0.4);
 }

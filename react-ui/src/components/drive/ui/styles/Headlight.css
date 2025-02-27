@@ -28,7 +28,7 @@
 input[type="range"] {
   margin-top: 10px;
   width: 80%;
-  accent-color: #efff5c;
+  accent-color: #d63f3f;
   border-radius: 5px;
   transition: background 0.3s ease;
   outline: none;
@@ -36,6 +36,6 @@ input[type="range"] {
 
 input[type="range"]::-range-track {
   height: 10px;
-  background: #efff5c;
+  background: #d63f3f;
   border-radius: 5px;
 }

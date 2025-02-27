@@ -33,7 +33,7 @@
 }
 
 .terminal-icon {
-  color: #efff5c;
+  color: #d63f3f;
 }
 
 .terminal-title {
@@ -53,7 +53,7 @@
 
 .clear-terminal-btn:hover {
   text-decoration: underline;
-  color: #efff5c;
+  color: #d63f3f;
 }
 
 /* Terminal Body */
@@ -73,7 +73,7 @@
 }
 
 .terminal-prompt {
-  color: #efff5c;
+  color: #d63f3f;
   margin-right: 8px;
 }
 
