@@ -15,7 +15,7 @@
 # Python virtual environments
 **/.venv/
 **/venv/
-**rosEnv/*
+**rosEnv/
 
 # === CMake and Build Artifacts ===
 
