@@ -19,3 +19,9 @@ source /opt/ros/humble/setup.bash
 ***Python virtual environment***
 1. python -m venv rosEnv
 2. source rosEnv/bin/activate
+
+***ROS2 test for terminal UI***
+From rover-2025
+1. colcon build --select-packages cpp_pubsub (From Steve's repo)
+2. source install/set.bash
+3. python3 controller_monitor.py (Make sure to be in venv)

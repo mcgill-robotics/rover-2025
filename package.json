@@ -1,6 +1,8 @@
 {
   "dependencies": {
+    "@types/axios": "^0.9.36",
     "autoprefixer": "^10.4.20",
+    "axios": "^1.7.9",
     "postcss": "^8.5.1",
     "tailwindcss": "^4.0.2"
   }
