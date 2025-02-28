@@ -21,11 +21,27 @@ class speed_controller():
 
     def __init__(self, json_filename="max_wheel_speed_levels.json"):
 
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        conf_path = os.path.join(current_dir, "conf", "max_wheel_speed_levels.json")
-        self.gears = self.load_gears(conf_path)
+        # current_dir = os.path.dirname(os.path.realpath(__file__))
+        # conf_path = os.path.join(current_dir, "conf", "max_wheel_speed_levels.json")
+        # self.gears = self.load_gears(conf_path)
+        self.gears = [{
+                        "gear": 1,
+                        "speed": 2.0
+                    }, {
+                        "gear": 2,
+                        "speed": 4.0
+                    }, {
+                        "gear": 3,
+                        "speed": 6.0
+                    }, {
+                        "gear": 4,
+                        "speed": 8.0
+                    }, {
+                        "gear": 5,
+                        "speed": 10.0
+                    }]
 
-        self.history_size = 25 # How many previous wheels we average over
+        self.history_size = 10 # How many previous wheels we average over
 
         # A 1-D Gaussian array to act as a weighted average on self.wheelspeeds
         # "kernlen" must be the same as "self.history_size".
@@ -49,10 +65,10 @@ class speed_controller():
         kern1d = np.diff(st.norm.cdf(x))
         return kern1d/kern1d.sum()
 
-    def load_gears(self, path):
-        with open(path, "r") as f:
-            data = json.load(f)
-        return data["max_speeds"]
+    # def load_gears(self, path):
+    #     with open(path, "r") as f:
+    #         data = json.load(f)
+    #     return data["max_speeds"]
     
     """
     Change absolute max speed
@@ -94,7 +110,7 @@ class speed_controller():
                     self.current_speed = min(self.current_speed + self.deceleration_rate, 0)
 
         # Add current wheel speed to history, and pop oldest (front) value
-        self.wheel_speeds_history.append(smoothed_speed)
+        self.wheel_speeds_history.append(self.current_speed)
         self.wheel_speeds_history.pop(0)
         smoothed_speed = np.sum(np.array(self.wheel_speeds_history) * self.basis)
 
