@@ -8,7 +8,6 @@ import rclpy
 import rclpy.logging
 from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
-from sensor_msgs.msg import Joy
 from gamepad import Gamepad
 import time
 
@@ -39,46 +38,45 @@ class gamepad_input_publisher(Node):
         self.gamepad_publisher = self.create_publisher(GamePadInput, "gamepad_input", 10)
 
         # Control frequency of the node
-        timer_period = 0.1
+        timer_period = 1e-1
         self.timer = self.create_timer(timer_period, self.run)
 
     # The run loop that updates a controller's value.
     def run(self):
-        while rclpy.ok():
-            try:
+        try:
 
-                self.gamepad.update()
-                msg = GamePadInput()
+            self.gamepad.update()
+            msg = GamePadInput()
 
-                # Transfer Data into msg
+            # Transfer Data into msg
 
-                msg.x_button        = self.gamepad.data.b1
-                msg.o_button        = self.gamepad.data.b2
-                msg.triangle_button = self.gamepad.data.b3
-                msg.square_button   = self.gamepad.data.b4
-                msg.l1_button       = self.gamepad.data.b5
-                msg.r1_button       = self.gamepad.data.b6
-                msg.l2_button       = self.gamepad.data.b7
-                msg.r2_button       = self.gamepad.data.b8
-                msg.select_button   = self.gamepad.data.b9
-                msg.start_button    = self.gamepad.data.b10
-                msg.home_button     = self.gamepad.data.b11
-                msg.l3_button       = self.gamepad.data.b12
-                msg.r3_button       = self.gamepad.data.b13
-                msg.l_stick_x       = self.gamepad.data.a1
-                msg.l_stick_y       = self.gamepad.data.a2
-                msg.l_stick_analog  = self.gamepad.data.a3
-                msg.r_stick_x       = self.gamepad.data.a4
-                msg.r_stick_y       = self.gamepad.data.a5
-                msg.r_stick_analog  = self.gamepad.data.a6
-                msg.d_pad_x         = float(self.gamepad.data.a7[0])
-                msg.d_pad_y         = float(self.gamepad.data.a7[1])
-              
-                self.gamepad_publisher.publish(msg)
+            msg.x_button        = self.gamepad.data.b1
+            msg.o_button        = self.gamepad.data.b2
+            msg.triangle_button = self.gamepad.data.b3
+            msg.square_button   = self.gamepad.data.b4
+            msg.l1_button       = self.gamepad.data.b5
+            msg.r1_button       = self.gamepad.data.b6
+            msg.l2_button       = self.gamepad.data.b7
+            msg.r2_button       = self.gamepad.data.b8
+            msg.select_button   = self.gamepad.data.b9
+            msg.start_button    = self.gamepad.data.b10
+            msg.home_button     = self.gamepad.data.b11
+            msg.l3_button       = self.gamepad.data.b12
+            msg.r3_button       = self.gamepad.data.b13
+            msg.l_stick_x       = self.gamepad.data.a1
+            msg.l_stick_y       = self.gamepad.data.a2
+            msg.l_stick_analog  = self.gamepad.data.a3
+            msg.r_stick_x       = self.gamepad.data.a4
+            msg.r_stick_y       = self.gamepad.data.a5
+            msg.r_stick_analog  = self.gamepad.data.a6
+            msg.d_pad_x         = float(self.gamepad.data.a7[0])
+            msg.d_pad_y         = float(self.gamepad.data.a7[1])
+            
+            self.gamepad_publisher.publish(msg)
 
-            except Exception as error:
-                    print
-                    self.get_logger().info(str(error))
+        except Exception as error:
+                print
+                self.get_logger().info(str(error))
 
 
 
