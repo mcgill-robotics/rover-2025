@@ -1,11 +1,5 @@
-import os
-import rclpy
 import scipy.stats as st
-from geometry_msgs.msg import Twist
-from rclpy.node import Node
-from msg_interface.msg import GamePadInput
 import numpy as np
-import json
 
 
 class speed_controller():
@@ -20,25 +14,23 @@ class speed_controller():
     """
 
     def __init__(self, json_filename="max_wheel_speed_levels.json"):
-
-        # current_dir = os.path.dirname(os.path.realpath(__file__))
-        # conf_path = os.path.join(current_dir, "conf", "max_wheel_speed_levels.json")
-        # self.gears = self.load_gears(conf_path)
+        
+        # (Mar.1, 2025) Max speed is 2000 rpm
         self.gears = [{
                         "gear": 1,
-                        "speed": 2.0
+                        "speed": 400.0
                     }, {
                         "gear": 2,
-                        "speed": 4.0
+                        "speed": 800.0
                     }, {
                         "gear": 3,
-                        "speed": 6.0
+                        "speed": 1200.0
                     }, {
                         "gear": 4,
-                        "speed": 8.0
+                        "speed": 1600.0
                     }, {
                         "gear": 5,
-                        "speed": 10.0
+                        "speed": 2000.0
                     }]
 
         self.history_size = 10 # How many previous wheels we average over
@@ -54,9 +46,9 @@ class speed_controller():
         self.current_speed = 0.0
         self.max_speed = self.gears[self.current_gear_index]["speed"]
 
-        self.acceleration_rate = 0.2
-        self.deceleration_rate = 0.1  # Decay value when no acceleration input is given
-        self.downshift_deceleration_rate = 0.15  # Slightly faster decay when downshifting
+        self.acceleration_rate = 100
+        self.deceleration_rate = 100  # Decay value when no acceleration input is given
+        self.downshift_deceleration_rate = 200  # Slightly faster decay when downshifting
 
     # Function that yields a 1D gaussian
     # Source: https://stackoverflow.com/questions/29731726/how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy
@@ -64,11 +56,6 @@ class speed_controller():
         x      = np.linspace(-sigma, sigma, kernlen+1)
         kern1d = np.diff(st.norm.cdf(x))
         return kern1d/kern1d.sum()
-
-    # def load_gears(self, path):
-    #     with open(path, "r") as f:
-    #         data = json.load(f)
-    #     return data["max_speeds"]
     
     """
     Change absolute max speed

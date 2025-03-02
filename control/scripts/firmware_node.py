@@ -39,7 +39,7 @@ class firmware(Node):
 
         # TODO: Tune values
         self.deadzone = 0.1 
-        self.turning_speed = 4
+        self.turning_speed = 500.0
 
         #TODO: Update code with API calls.
         #Call electrical API to get current state of wheels
@@ -47,7 +47,8 @@ class firmware(Node):
        
         self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input", self.controller_callback, 10)
 
-        timer_period = 1e-1
+        # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
+        timer_period = 0.25
         self.timer = self.create_timer(timer_period, self.run)
 
     def not_in_deadzone_check(self, x_axis, y_axis):
@@ -70,7 +71,7 @@ class firmware(Node):
             #Array with the desired speed for each wheel during rover rotation
             rotation_sp = rover_rotation(self.wheel_angles, rot_inp)
 
-            speed = [direction*4 for direction in rotation_sp]
+            speed = [direction*self.turning_speed for direction in rotation_sp] # TODO Change 500 to acutal value
             # TODO: Send speed to wheels
 
         #Check whether gears change
@@ -87,7 +88,6 @@ class firmware(Node):
         # TODO: Use API to send input values for speed, orientation and rotation.
 
         command = ":".join(map(str, speed))
-        self.get_logger().info(command)
         send_UDP_message(command)
         
     def controller_callback(self, input: GamePadInput):
