@@ -28,11 +28,11 @@ joint_max_speed = [
 
 speed = 1 # TO BE SET LATER
 speed_increment = 0.1 # TO BE SET LATER
-distance_increment = [0.05, 0.05/2, 0.05/4] # TO BE SET LATER
+distance = 0.5
+distance_increment = [distance, distance/2, distance/4] # TO BE SET LATER
 current_cycle_mode = 0 # 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
-joint_control_is_active = True 
 
-def move_joint(joystick_input, cur_angle, index):
+def move_joint(joystick_input, cur_angles):
     """ Moves a singular joint in proportion to the joystick input
     
     Params
@@ -52,11 +52,11 @@ def move_joint(joystick_input, cur_angle, index):
     """
     #assumes joystick_input is normalized to be between -1.0 and 1.0
     #assumes speed to act as a scale factor (between 0.0 and 1.0)
-    cur_angle[index] = cur_angle[index] + speed * joystick_input * joint_max_speed[index]
+    cur_angles[current_cycle_mode] = cur_angles[current_cycle_mode] + speed * joystick_input * joint_max_speed[current_cycle_mode]
 
     #sets the waists angle to be at the limit if it exeeds the limit
-    cur_angle[index] = max(joint_lower_limits[index], min(cur_angle[index], joint_upper_limits[index]))
-    return cur_angle
+    cur_angles[current_cycle_mode] = max(joint_lower_limits[current_cycle_mode], min(cur_angles[current_cycle_mode], joint_upper_limits[current_cycle_mode]))
+    return cur_angles
 
 def speed_up():
     """
@@ -192,38 +192,3 @@ def horizontal_motion(joystick_input, cur_angles):
         except:
             continue
     return cur_angles
-
-# print(depth_motion(0,[0,0,0,0,0]))
-# print(depth_motion(-1,[0,0,0,0,0]))
-# print(depth_motion(1,[0,0,0,0,0]))
-
-
-
-# arm_kinematics.inverseKinematics(new_pos, cur_ee_pos)
-
-
-
-
-# cur_matrix = arm_kinematics.forwardKinematics([0,0,0,0,0])
-# pos = arm_kinematics.Mat2Pose(cur_matrix)
-# print(pos)
-# #print(arm_kinematics.inverseKinematics(pos, [0.1 * np.pi,0.1 * np.pi,-0.1 * np.pi,-0.1 * np.pi,0.01 * np.pi]))
-# print(
-#     arm_kinematics.Mat2Pose(
-#         arm_kinematics.forwardKinematics(
-#             depth_motion(-1, [0,0,0,0,0])
-#         )
-#     )
-#     )
-# print(arm_kinematics.Mat2Pose(
-#         arm_kinematics.forwardKinematics(
-#             vertical_motion(-1, [0,0,0,0,0])
-#         )
-#     )
-#     )
-# print(arm_kinematics.Mat2Pose(
-#         arm_kinematics.forwardKinematics(
-#             horizontal_motion(-1, [0,0,0,0,0])
-#         )
-#     )
-#     )
