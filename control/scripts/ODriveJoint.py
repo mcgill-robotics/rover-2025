@@ -18,20 +18,25 @@ import re
 import math
 import sys
 
-try:
-    import rospy
+# try:
+    # import rclpy
 
-    ROS_ENABLED = True
-except ImportError:
-    ROS_ENABLED = False
+    # rclpy.init()
+    # time_node = rclpy.create_node('time_node')
+    # rate = time_node.create_rate()
+
+#     ROS_ENABLED = True
+# except ImportError:
+    # ROS_ENABLED = False
+ROS_ENABLED = False
 
 
 def custom_sleep(duration):
-    if ROS_ENABLED:
-        rospy.sleep(duration)
-    else:
-        time.sleep(duration)
-
+    # if ROS_ENABLED:
+    #     rclpy.sleep(duration)
+    # else:
+    #     time.sleep(duration)
+    time.sleep(duration)
 
 def watchdog(joint_dict, watchdog_stop_event):
     while not watchdog_stop_event.is_set():

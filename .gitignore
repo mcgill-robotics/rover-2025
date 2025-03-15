@@ -1,29 +1,83 @@
+# === ROS 2 Workspace Directories ===
+
 # Ignore build, install, and log directories for all ROS 2 workspaces
 **/build/
 **/install/
 **/log/
 
-# Python bytecode and virtual environments
+# === Python Bytecode and Virtual Environments ===
+
+# Python cache files
 **/__pycache__/
 **/*.pyc
 **/*.pyo
+
+# Python virtual environments
 **/.venv/
 **/venv/
+**rosEnv/
 
-# CMake and build artifacts
+# === CMake and Build Artifacts ===
+
+# CMake files and build artifacts
 **/CMakeFiles/
 **/CMakeCache.txt
 **/*.so
 **/*.o
 
-# IDE and editor settings
+# === IDE and Editor Settings ===
+
+# Visual Studio Code settings
 **/.vscode/
+
+# IntelliJ IDEA settings
 **/.idea/
+
+# Vim swap files and temporary files
 **/*.swp
 **/*~
 
-# Temporary files
+# === Temporary Files ===
+
+# Temporary and backup files
 **/*.tmp
 **/*.bak
 **/*.old
 **/*.orig
+
+# === Node.js Specific Files and Directories ===
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Optional npm cache directory
+.npm/
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# dotenv environment variables file
+.env
+.env.test
+.env.production
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary files from editors and operating systems
+.DS_Store
+Thumbs.db
