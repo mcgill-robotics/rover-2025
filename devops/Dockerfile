@@ -1,39 +1,41 @@
 # Use the official ROS Humble base image
 FROM ros:humble-ros-core
 
-# Set environment variables for ROS and micro-ROS
+# Set environment variables for ROS Humble and workspace directory
 ENV ROS_DISTRO=humble
-ENV WORKSPACE_DIR=/root/microros_ws
+ENV WORKSPACE_DIR=/root/ros2_ws
 
-# Update and install core dependencies, including rosdep and pip
-RUN apt-get update
-
-RUN apt-get install -y \
+# Update and install ROS core dependencies, including rosdep and pip
+RUN apt-get update && \
+    apt-get install -y \
     git \
     build-essential \
     cmake \
     flex \
-    bash
-
-RUN apt-get install -y \
+    bash \
     python3-colcon-common-extensions \
     python3-rosdep \
-    python3-pip
-
-RUN apt-get install -y \
+    python3-pip\
     libasio-dev \
     libtinyxml2-dev \
-    libcurl4-openssl-dev
-
-RUN apt-get install -y curl
-RUN pip3 install vcstool
-RUN apt-get install -y ros-humble-ament-cmake-python
-RUN sudo apt-get install -y iputils-ping iproute2
-RUN apt-get install -y \
+    libcurl4-openssl-dev\
+    curl\
+    ros-humble-ament-cmake-python\
+    iputils-ping\
+    iproute2\
     ros-humble-rmw-cyclonedds-cpp \
     ros-humble-xacro \
     ros-humble-robot-state-publisher \
-    ros-humble-rviz2
+    ros-humble-rviz2 && \
+    apt-get clean
+
+    RUN pip3 install vcstool
+    RUN pip3 install scipy
+    RUN pip3 install numpy
+    # TODO: Needed in GUI node, but very large package, determine if needed later
+    # RUN pip3 install PyQt5
+    RUN pip3 install pygame
+    RUN pip3 install odrive 
 
 # Source ROS setup script
 RUN echo "alias sros='source /opt/ros/humble/setup.bash && [ -f install/setup.bash ] && source install/setup.bash'" >> ~/.bashrc
@@ -42,20 +44,12 @@ RUN echo "source ~/.bashrc" >> /root/.bash_profile
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
 SHELL ["/bin/bash", "-c"]
 
-# Create workspace and clone micro-ROS setup repository
-RUN mkdir -p $WORKSPACE_DIR/src
-WORKDIR $WORKSPACE_DIR/src
-RUN if [ ! -d "/root/microros_ws/src/micro_ros_setup" ]; then \
-    git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git /root/microros_ws/src/micro_ros_setup;\
-    fi
+# Create workspace and clone rover-2025 repository
+WORKDIR $WORKSPACE_DIR
 
-# Install micro-ROS dependencies
-# WORKDIR $WORKSPACE_DIR
-# RUN rosdep update
-# RUN rosdep install --from-paths src --ignore-src -y
-# RUN colcon build
-# RUN source install/local_setup.bash
-# RUN echo "source $WORKSPACE_DIR/install/local_setup.bash" >> ~/.bashrc
+RUN if [ ! -d "/root/ros2_ws/src/" ]; then \
+    git clone https://github.com/mcgill-robotics/rover-2025.git src;\
+    fi
 
 # Set the default command to bash
 CMD ["/bin/bash"]
