@@ -10,6 +10,20 @@ body {
   font-weight: 300;
   font-style: normal;
   user-select: none;
+  overflow: scroll;
+}
+
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Center the header component */

@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "axios": "^1.8.3",
     "blessed": "^0.1.81",
     "cors": "^2.8.5",
     "express": "^4.21.1",
