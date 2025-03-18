@@ -37,6 +37,17 @@ const StreamControl: React.FC<StreamControlProps> = ({ onStart, onStop }) => {
         });
         setDevices(filteredDevices);
         // setDevices(["/dev/video2", "/dev/video4", "/dev/video6", "/dev/video8", "/dev/video10"])`// Extra device examples for UI
+        
+        const pc = new RTCPeerConnection();  // You need to initialize this properly based on your app setup
+
+        // Wait for stats (you can periodically call this)
+        const stats = await pc.getStats();
+        stats.forEach(report => {
+          if (report.type === 'inbound-rtp' && report.hasOwnProperty('bitrate')) {
+            console.log('Bitrate:', report.bitrate);  // Log bitrate to console
+          }
+        });
+
       } catch (error) {
         console.error("Error fetching video devices:", error);
         setError("Failed to fetch video devices");
