@@ -33,9 +33,9 @@ class gamepad_input_publisher(Node):
                     raise Exception("Failed to connect to controller")
                 time.sleep(1)
 
-        #Declare publisher for Joystick msg
-        # self.gamepad_publisher = self.create_publisher(Joy, "gamepad_input", 10)
-        self.gamepad_publisher = self.create_publisher(GamePadInput, "gamepad_input", 10)
+        #Declare publishers for Joystick msgs to drive and arm nodes
+        self.gamepad_publisher = self.create_publisher(GamePadInput, "gamepad_input_drive", 10)
+        self.arm_gamepad_publisher = self.create_publisher(GamePadInput, "gamepad_input_arm", 10)
 
         # Control frequency of the node
         timer_period = 1e-1
@@ -47,6 +47,7 @@ class gamepad_input_publisher(Node):
 
             self.gamepad.update()
             msg = GamePadInput()
+            arm_msg = GamePadInput()
 
             # Transfer Data into msg
 
@@ -71,8 +72,35 @@ class gamepad_input_publisher(Node):
             msg.r_stick_analog  = self.gamepad.data.a6
             msg.d_pad_x         = float(self.gamepad.data.a7[0])
             msg.d_pad_y         = float(self.gamepad.data.a7[1])
-            
+
             self.gamepad_publisher.publish(msg)
+            
+            if self.gamepad.arm_controller != None:
+                # Transfer Data into arm_msg
+
+                arm_msg.x_button        = self.gamepad.arm_data.b1
+                arm_msg.o_button        = self.gamepad.arm_data.b2
+                arm_msg.triangle_button = self.gamepad.arm_data.b3
+                arm_msg.square_button   = self.gamepad.arm_data.b4
+                arm_msg.l1_button       = self.gamepad.arm_data.b5
+                arm_msg.r1_button       = self.gamepad.arm_data.b6
+                arm_msg.l2_button       = self.gamepad.arm_data.b7
+                arm_msg.r2_button       = self.gamepad.arm_data.b8
+                arm_msg.select_button   = self.gamepad.arm_data.b9
+                arm_msg.start_button    = self.gamepad.arm_data.b10
+                arm_msg.home_button     = self.gamepad.arm_data.b11
+                arm_msg.l3_button       = self.gamepad.arm_data.b12
+                arm_msg.r3_button       = self.gamepad.arm_data.b13
+                arm_msg.l_stick_x       = self.gamepad.arm_data.a1
+                arm_msg.l_stick_y       = self.gamepad.arm_data.a2
+                arm_msg.l_stick_analog  = self.gamepad.arm_data.a3
+                arm_msg.r_stick_x       = self.gamepad.arm_data.a4
+                arm_msg.r_stick_y       = self.gamepad.arm_data.a5
+                arm_msg.r_stick_analog  = self.gamepad.arm_data.a6
+                arm_msg.d_pad_x         = float(self.gamepad.arm_data.a7[0])
+                arm_msg.d_pad_y         = float(self.gamepad.arm_data.a7[1])
+            
+                self.arm_gamepad_publisher.publish(arm_msg)
 
         except Exception as error:
                 print

@@ -45,6 +45,7 @@ class Gamepad():
         """
         # Data container for the Gamepad input data
         self.data = GamepadData()
+        self.arm_data = GamepadData()
 
         # Initialize Gamepad
         pygame.init()
@@ -55,10 +56,12 @@ class Gamepad():
             print("only one joystick")
             self.controller = pygame.joystick.Joystick(0)
             self.controller.init()
+            self.arm_controller = None
             print(pygame.joystick.get_count(), self.controller.get_id(),
                   " ", self.controller.get_name())
 
         elif pygame.joystick.get_count() == 2:
+            #Try to initialize both controllers
             try:
                 controller1 = pygame.joystick.Joystick(0)
                 controller1.init()
@@ -74,10 +77,17 @@ class Gamepad():
             except:
                 print(controller2.get_name(), "failed")
 
-            if controller1.get_id() == 0:
+            if controller1.get_id() == 0 and controller2.get_id() == 1:
+                #If both controllers are correctly detected, initialize both fields
+                print("2 controllers connected")
                 self.controller = controller1
-                # print("gamepad initalize success")
+                self.arm_controller = controller2
+            
+            elif controller1.get_id() == 0:
+                #If only one controller is correctly detected
+                self.controller = controller1
             else:
+                #If the first controller 
                 self.controller = controller2
 
         else:
@@ -111,6 +121,22 @@ class Gamepad():
                     self.data.b12 = self.controller.get_button(11)
                     self.data.b13 = self.controller.get_button(12)
 
+                    if self.arm_controller != None:
+                        #Update arm_data for buttons:
+                        self.arm_data.b1 = self.arm_controller.get_button(0)
+                        self.arm_data.b2 = self.arm_controller.get_button(1)
+                        self.arm_data.b3 = self.arm_controller.get_button(2)
+                        self.arm_data.b4 = self.arm_controller.get_button(3)
+                        self.arm_data.b5 = self.arm_controller.get_button(4)
+                        self.arm_data.b6 = self.arm_controller.get_button(5)
+                        self.arm_data.b7 = self.arm_controller.get_button(6)
+                        self.arm_data.b8 = self.arm_controller.get_button(7)
+                        self.arm_data.b9 = self.arm_controller.get_button(8)
+                        self.arm_data.b10 = self.arm_controller.get_button(9)
+                        self.arm_data.b11 = self.arm_controller.get_button(10)
+                        self.arm_data.b12 = self.arm_controller.get_button(11)
+                        self.arm_data.b13 = self.arm_controller.get_button(12)
+
                 elif an_event.type == pygame.JOYAXISMOTION:
                     self.data.a1 = self.controller.get_axis(0)
                     self.data.a2 = -1 * self.controller.get_axis(1)
@@ -119,6 +145,16 @@ class Gamepad():
                     self.data.a5 = -1 * self.controller.get_axis(4)
                     self.data.a6 = self.controller.get_axis(5)
                     self.data.a7 = self.controller.get_hat(0)
+
+                    if self.arm_controller != None:
+                        #Update arm_data for axes:
+                        self.arm_data.a1 = self.arm_controller.get_axis(0)
+                        self.arm_data.a2 = -1 * self.arm_controller.get_axis(1)
+                        self.arm_data.a3 = self.arm_controller.get_axis(2)
+                        self.arm_data.a4 = self.arm_controller.get_axis(3)
+                        self.arm_data.a5 = -1 * self.arm_controller.get_axis(4)
+                        self.arm_data.a6 = self.arm_controller.get_axis(5)
+                        self.arm_data.a7 = self.arm_controller.get_hat(0)
 
             except pygame.error:
                 pass
