@@ -270,7 +270,7 @@
   height: 50px;
   right: -2px;
 }
-.lstick.active {
+.lstick.active, .lstick.moving{
   width: 100%;
   height: 100%;
   display: block;
@@ -279,7 +279,7 @@
   background-position: center;
   background-repeat: no-repeat;
 }
-.rstick.active {
+.rstick.active, .rstick.moving{
   width: 100%;
   height: 100%;
   display: block;

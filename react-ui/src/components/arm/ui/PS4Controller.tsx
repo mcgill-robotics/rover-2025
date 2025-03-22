@@ -9,7 +9,7 @@ interface GamepadState {
 const PS4Controller = () => {
   const [gamepadState, setGamepadState] = useState<GamepadState>({
     buttons: Array(17).fill(false),
-    axes: [0, 0, 0, 0],
+    axes: [0, 0, 0, 0, 0, 0],
   });
 
   const [isConnected, setIsConnected] = useState(false);
@@ -18,6 +18,7 @@ const PS4Controller = () => {
     const gamepads = navigator.getGamepads();
     if (gamepads[0]) {
       const gp = gamepads[0];
+      console.log(gp);
       setGamepadState({
         buttons: gp.buttons.map((button) => button.pressed),
         axes: gp.axes.map((axis) => axis),
@@ -34,7 +35,7 @@ const PS4Controller = () => {
 
     const handleDisconnect = () => {
       setIsConnected(false);
-      setGamepadState({ buttons: Array(17).fill(false), axes: [0, 0, 0, 0]});
+      setGamepadState({ buttons: Array(17).fill(false), axes: [0, 0, 0, 0, 0, 0]});
     };
 
     window.addEventListener("gamepadconnected", handleConnect);
@@ -55,10 +56,16 @@ const PS4Controller = () => {
 
         <div className="triggers">
           <div className="trigger-left">
-            <span className={`rtrigger ${isActive(6)}`} data-name="button-left-shoulder-bottom"></span>
+            <span 
+            className={`rtrigger ${isActive(6)}`} 
+            data-name="button-left-shoulder-bottom">
+            </span>
           </div>
           <div className="trigger-right">
-            <span className={`ltrigger ${isActive(7)}`} data-name="button-right-shoulder-bottom"></span>
+            <span 
+            className={`ltrigger ${isActive(7)}`} 
+            data-name="button-right-shoulder-bottom">
+            </span>
           </div>
         </div>
 
@@ -80,6 +87,8 @@ const PS4Controller = () => {
           </div>
         </div>
 
+        <div className={`touchpad`}></div>
+
         <div className="abxy">
           <div className="button-a">
             <span className={`a ${isActive(0)}`} data-name="button-1"></span>
@@ -98,7 +107,7 @@ const PS4Controller = () => {
         <div className="sticks">
           <div className="stick-left">
             <span
-              className="lstick"
+              className={`lstick ${isActive(10)} ${gamepadState.axes[0] !== 0 || gamepadState.axes[1] !== 0 ? 'moving' : ''}`}
               data-name="stick-1"
               style={{
                 transform: `translate(${gamepadState.axes[0] * 20}px, ${gamepadState.axes[1] * 20}px)`,
@@ -107,7 +116,7 @@ const PS4Controller = () => {
           </div>
           <div className="stick-right">
             <span
-              className="rstick"
+              className={`rstick ${isActive(11)} ${gamepadState.axes[2] !== 0 || gamepadState.axes[3] !== 0 ? 'moving' : ''}`}
               data-name="stick-2"
               style={{
                 transform: `translate(${gamepadState.axes[2] * 20}px, ${gamepadState.axes[3] * 20}px)`,
