@@ -32,10 +32,12 @@ class MinimalPublisher(Node):
         self.i = 0
 
     def updateArmBrushedSim(self, cmds):
+        print("brushed_update")
         self.brushed_angles = cmds.data
         #print("Brushed:", self.brushed_angles)
     
     def updateArmBrushlessSim(self, cmds):
+        print("brushless_update")
         self.brushless_angles = cmds.data
         #print("Brushless:", self.brushless_angles)
     
@@ -45,6 +47,7 @@ class MinimalPublisher(Node):
         motion = input("Motion type: (d, h, v)")
         joystick = float(input("Joystick: (-1.0 - 1.0)"))
         cur_angles = list(self.brushless_angles)
+        cur_angles.reverse()
         cur_angles.append(self.brushed_angles[2])
         cur_angles.append(self.brushed_angles[1])
         cur_angles_rad = [x*math.pi/180 for x in cur_angles]
@@ -83,21 +86,25 @@ class MinimalPublisher(Node):
             self.brushless_publisher_.publish(brushless_msg)
             self.brushed_publisher_.publish(brushed_msg)
         else:
+            print(cur_angles)
             new_angles = human_arm_control.vertical_motion(joystick, cur_angles)
+            print(new_angles)
             brushless_msg.data = (
                 new_angles[2] * 180 / math.pi,
                 new_angles[1] * 180 / math.pi,
                 new_angles[0] * 180 / math.pi
             )
-            print(brushless_msg.data)
+            #print(brushless_msg.data)
             brushed_msg.data = (
                 0.0,
                 new_angles[4] * 180 / math.pi,
                 new_angles[3] * 180 / math.pi
             )
-            print(brushed_msg.data)
+            #print(brushed_msg.data)
             self.brushless_publisher_.publish(brushless_msg)
+            print("hi")
             self.brushed_publisher_.publish(brushed_msg)
+            print("hi2")
 
 
 def main(args=None):

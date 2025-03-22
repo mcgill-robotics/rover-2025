@@ -26,13 +26,13 @@ joint_max_speed = [
     np.pi/3 # Hand
 ] # rad per method call
 
-speed = 1 # TO BE SET LATER
+#speed = 1 # TO BE SET LATER
 speed_increment = 0.1 # TO BE SET LATER
-distance = 0.5
+distance = 0.1
 distance_increment = [distance, distance/2, distance/4] # TO BE SET LATER
 current_cycle_mode = 0 # 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
 
-def move_joint(joystick_input, cur_angles):
+def move_joint(joystick_input, cur_angles, speed):
     """ Moves a singular joint in proportion to the joystick input
     
     Params
@@ -58,7 +58,7 @@ def move_joint(joystick_input, cur_angles):
     cur_angles[current_cycle_mode] = max(joint_lower_limits[current_cycle_mode], min(cur_angles[current_cycle_mode], joint_upper_limits[current_cycle_mode]))
     return cur_angles
 
-def speed_up():
+def speed_up(speed):
     """
     Increases the speed of movement by speed_increment.
 
@@ -71,7 +71,7 @@ def speed_up():
     speed += speed_increment
     return speed
 
-def speed_down():
+def speed_down(speed):
     """
     Decreases the speed of movement by speed_increment.
 
