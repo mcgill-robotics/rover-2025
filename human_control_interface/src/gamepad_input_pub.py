@@ -34,7 +34,6 @@ class gamepad_input_publisher(Node):
                 time.sleep(1)
 
         #Declare publishers for Joystick msgs to drive and arm nodes
-        # self.gamepad_publisher = self.create_publisher(Joy, "gamepad_input", 10)
         self.gamepad_publisher = self.create_publisher(GamePadInput, "gamepad_input_drive", 10)
         self.arm_gamepad_publisher = self.create_publisher(GamePadInput, "gamepad_input_arm", 10)
 

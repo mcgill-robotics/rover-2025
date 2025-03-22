@@ -61,6 +61,7 @@ class Gamepad():
                   " ", self.controller.get_name())
 
         elif pygame.joystick.get_count() == 2:
+            #Try to initialize both controllers
             try:
                 controller1 = pygame.joystick.Joystick(0)
                 controller1.init()
@@ -77,14 +78,16 @@ class Gamepad():
                 print(controller2.get_name(), "failed")
 
             if controller1.get_id() == 0 and controller2.get_id() == 1:
+                #If both controllers are correctly detected, initialize both fields
                 print("2 controllers connected")
                 self.controller = controller1
                 self.arm_controller = controller2
             
             elif controller1.get_id() == 0:
+                #If only one controller is correctly detected
                 self.controller = controller1
-                # print("gamepad initalize success")
             else:
+                #If the first controller 
                 self.controller = controller2
 
         else:
