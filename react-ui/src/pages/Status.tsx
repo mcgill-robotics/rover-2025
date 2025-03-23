@@ -1,4 +1,5 @@
 import { RosStatus } from "../components/RosStatus";
+import './styles/Status.css';
 
 function Status() {
     return (
