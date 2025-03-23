@@ -9,7 +9,8 @@
     "start:all": "concurrently \"npm run drive\" \"npm run dev\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "launch_camera": "python3 src/services/drive/webrtc.py"
   },
   "dependencies": {
     "blessed": "^0.1.81",
