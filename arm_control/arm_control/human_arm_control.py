@@ -52,32 +52,39 @@ def upDownTilt(joystick_input, cur_angles):
             pass
 
     return cur_angles
-    
-    #get current arm distance
-    #arm as 2D line for x,y plane
-    #projection_line = [
-        #cur_ee_pos[0],
-        #cur_ee_pos[1],
-    #]
 
     #z is up (blue)
     #y is side (green)
     #x is in front (red)
-    #initial position is 0,0,0
 
 
-def test():
-    """Testing the tilt function """
+def assertListEqual(list1, list2):
+    if len(list1) != len(list2):
+        raise AssertionError
+    for i in range(len(list1)):
+        assert abs(list1[i] - list2[i]) <= 0.01
+
+if __name__ == "__main__":
+    # test make wrist go up
     cur_angles = [0.13184217,0.1213004,0.35479,0.593412,0.00087]
     old_position = arm_kinematics.forwardKinematics(cur_angles)
     old_position = arm_kinematics.Mat2Pose(old_position)
-    print(cur_angles)
     new_angles = upDownTilt(0.5, cur_angles)
-    print(new_angles)
     new_position = arm_kinematics.forwardKinematics(new_angles)
     new_position = arm_kinematics.Mat2Pose(new_position)
-    print(old_position)
-    print(new_position)
+    assertListEqual(new_angles, [0.13184217, 0.11062309090561215, 0.3843967744956389, 0.1748286182178238, 0.0])
+    assertListEqual(old_position[:3], new_position[:3])
 
-if __name__ == "__main__":
-    test()
+    # test make wrist go down
+    cur_angles_down = [0.13184217,0.1213004,0.35479,0,0.00087]
+    old_position_down = arm_kinematics.forwardKinematics(cur_angles_down)
+    old_position_down = arm_kinematics.Mat2Pose(old_position_down)
+    new_angles_down = upDownTilt(-0.5, cur_angles_down)
+    new_position_down = arm_kinematics.forwardKinematics(new_angles_down)
+    new_position_down = arm_kinematics.Mat2Pose(new_position_down)
+    assertListEqual(new_angles_down, [0.13184217, 0.1271976350518043, 0.3310117280892946, 0.4226906251782738, 0.0])
+    assertListEqual(old_position_down[:3], new_position_down[:3])
+
+    print("All tests passed")
+
+
