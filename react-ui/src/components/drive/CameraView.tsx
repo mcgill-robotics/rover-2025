@@ -29,7 +29,7 @@ const CameraView: React.FC<CameraViewProps> = ({ streams }) => {
   };
 
   return (
-    <div className="camera-view">
+    <div className="camera-view" style={{ width: "75%"}}>
       {/* Camera Selection Buttons */}
       <div className="camera-switch-buttons">
         {activeCamera !== null && (
