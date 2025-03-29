@@ -31,6 +31,7 @@ setup(
             "odrive_node = scripts.node_odrive_drive:main",
             "gui_node = scripts.node_control_gui:main",
             "firmware_node = scripts.firmware_node:main",
+            "pantilt_node = scripts.pantilt_control:main", 
         ],
     },
 )

@@ -1,7 +1,8 @@
 import rclpy
 import math
 from rclpy.node import Node
-from msg_interface.msg import GamePadInput
+from msg_srv_interface.msg import GamePadInput
+
 
 import rclpy.subscription
 
@@ -27,12 +28,12 @@ class PanTiltController():
 
     def update_angles(self, controller):
 
-        if controller.l1_button:
+        if controller.l1_button == 1:
             """Assuming that d_pad_x -1.0 when left pressed, 0.0 no input and +1.0 when right pressed"""
             y_delta = controller.d_pad_x * self.step_size
             self.yaw = self.adjust(self.yaw + y_delta, 0, 2*math.pi)    # to contrain according to 0 ≤ yaw ≤ 2π 
 
-        if controller.r1_button:
+        if controller.r1_button == 1:
             """Assuming that d_pad_y pressedn down: +1.0 and d_pad_y pressed up: -1.0 (if so make -controller.d_pad_y)"""
             p_delta = controller.d_pad_y * self.step_size
             self.pitch = self.adjust(self.pitch + p_delta, 0, math.pi) #  to contrain according to 0 ≤ pitch ≤ π 
@@ -51,25 +52,23 @@ class PanTiltSubscriber(Node):
     """Test ROS node to rest pan-tilt controller with ps4 controller"""
 
     def __init__(self):
-        super().__init__('pan_tilt_subsriber') # activate ros node
+        super().__init__('pan_tilt_subscriber') # activate ros node
         self.controller = PanTiltController(step_size=0.1)
 
-        self.subscription = self.create_subscription(
-            GamePadInput,
-            "gampad_input",
-            10
-        )
+        self.subscription = self.create_subscription(GamePadInput, "gamepad_input_drive", self.listener_callback, 10)
 
         self.get_logger().info("Pan-tilt ready, use L1+D-pad for yaw, R1+D-pad for pitch")
 
     def listener_callback(self, msg):
+        self.get_logger().info("started callback")
         self.controller.update_angles(msg)
+        self.get_logger().info("updated angles")
         yaw_deg, pitch_deg = self.controller.get_deg()
         
         self.get_logger().info(f"Yaw: {yaw_deg:6.1f} | Pitch: {pitch_deg:6.1f}")
 
 def main():
-    rclpy.init(None)
+    rclpy.init()
     subscriber = PanTiltSubscriber()
     rclpy.spin(subscriber)
     subscriber.destroy_node()
