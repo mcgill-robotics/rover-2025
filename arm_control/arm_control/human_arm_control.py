@@ -27,10 +27,10 @@ joint_max_speed = [
 ] # rad per method call
 
 speed = 1 # TO BE SET LATER
-angle_increment = [np.pi/2, np.pi/4, np.pi/8] # TO BE SET LATER
+angle_increment = [np.pi/4, np.pi/8, np.pi/16] # TO BE SET LATER
 
 def upDownTilt(joystick_input, cur_angles):
-    """Returns new angles needed to change tilt. Tries amount, then half, then half again. 
+    """Returns new angles in radians needed to change tilt. Tries amount, then half, then half again. 
     Assumes joystick_input is normalized between -1 and 1"""
 
     #get current x,y,z,X,Y,Z of arms (XYZ are euler)
@@ -43,7 +43,7 @@ def upDownTilt(joystick_input, cur_angles):
         cur_pos[4] = copy[4] + speed*angle_increment[i]*joystick_input  # modify Y euler angle (pitch)
         try:
             #use inverse kinematics to get positions of each joint needed for change of tilt
-            new_angles = arm_kinematics.inverseKinematics(cur_pos, cur_angles)
+            new_angles = list(arm_kinematics.inverseKinematics(cur_pos, cur_angles))
 
             #if no exception raised, return
             return new_angles
@@ -67,12 +67,17 @@ def upDownTilt(joystick_input, cur_angles):
 
 
 def test():
-    """Testing the tilt function!"""
-    cur_angles = [0,0,0,0,0]
+    """Testing the tilt function """
+    cur_angles = [0.13184217,0.1213004,0.35479,0.593412,0.00087]
+    old_position = arm_kinematics.forwardKinematics(cur_angles)
+    old_position = arm_kinematics.Mat2Pose(old_position)
     print(cur_angles)
-    new_angles = upDownTilt(-0.6, cur_angles)
+    new_angles = upDownTilt(0.5, cur_angles)
     print(new_angles)
-
+    new_position = arm_kinematics.forwardKinematics(new_angles)
+    new_position = arm_kinematics.Mat2Pose(new_position)
+    print(old_position)
+    print(new_position)
 
 if __name__ == "__main__":
     test()
