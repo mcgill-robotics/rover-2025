@@ -155,7 +155,9 @@ def vertical_motion(joystick_input, cur_angles):
         new_pos = cur_ee_pos.copy()
         new_pos[2] = new_z
         try:
-            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
+            out = arm_kinematics.inverseKinematics(new_pos, cur_angles)
+            if not(math.pi - math.pi/12 <= abs(cur_angles[0] - out[0]) <= math.pi + math.pi/12):
+                return out
         except:
             continue
 
