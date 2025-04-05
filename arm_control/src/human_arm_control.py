@@ -142,7 +142,7 @@ def depth_motion(joystick_input, cur_angles):
             continue
     return cur_angles
 
-def vertical_motion(joystick_input, cur_angles):
+def vertical_motion(joystick_input, cur_angles, enforceStopgaps):
     #get current x,y,z,X,Y,Z of arms
     cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
     cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
@@ -156,7 +156,10 @@ def vertical_motion(joystick_input, cur_angles):
         new_pos[2] = new_z
         try:
             out = arm_kinematics.inverseKinematics(new_pos, cur_angles)
-            if not(math.pi - math.pi/12 <= abs(cur_angles[0] - out[0]) <= math.pi + math.pi/12):
+            if enforceStopgaps:
+                if not(math.pi - math.pi/12 <= abs(cur_angles[0] - out[0]) <= math.pi + math.pi/12):
+                    return out
+            else:
                 return out
         except:
             continue
@@ -287,3 +290,29 @@ if __name__ == "__main__":
     assertListEqual(old_position_down[:3], new_position_down[:3])
 
     print("All tests passed")
+
+    # testing stopgaps 
+    cur_angles = [0, 0, 0, 0, 0]
+    prev = []
+    new_angles = [0]
+    counter = 0
+    # continuously increment until stopgap is required
+    while set(new_angles) != set(prev):
+        counter += 1
+        prev = new_angles
+        new_angles = list(vertical_motion(1, cur_angles, True))
+    print(new_angles)
+    print(counter)
+
+    #try without the stopgaps:
+    cur_angles = [0, 0, 0, 0, 0]
+    prev = []
+    new_angles = [0]
+    counter = 0
+    # continuously increment until stopgap is required
+    while set(new_angles) != set(prev):
+        counter += 1
+        prev = new_angles
+        new_angles = list(vertical_motion(1, cur_angles, False))
+    print(new_angles)
+    print(counter)
