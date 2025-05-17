@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.offline';
+import ROSLIB from 'roslib';
 
 // extend Leaflet types
 declare module 'leaflet' {
@@ -14,6 +15,19 @@ declare module 'leaflet' {
         }): Promise<void>;
     }
 }
+
+const ros = new ROSLIB.Ros({
+    url: 'ws://localhost:9090'
+});
+ros.on('connection', () => {
+    console.log('✅ Connected to rosbridge');
+});
+ros.on('error', (error) => {
+    console.error('❌ Connection error:', error);
+});
+ros.on('close', () => {
+    console.warn('⚠️ Connection closed');
+});
 
 interface Coordinates {
     latitude: number;
@@ -53,6 +67,36 @@ const GPS: React.FC = () => {
     });
 
     const [inputError, setInputError] = useState<string | null>(null);
+
+
+    const subscribeToTopic = (callback: (msg: any) => void) => {
+        const subscriber = new ROSLIB.Topic({
+            ros: ros,
+            // CHANGE THIS TO CRRECT TOPIC NAME
+            name: '/minimal_publisher',  
+            messageType: 'std_msgs/msg/Float64MultiArray'  
+        });
+
+        console.log('Subscribing to /minimal_publisher...');
+
+        subscriber.subscribe((message) => {
+            console.log('Received:', message);
+            callback(message);
+        });
+    };
+
+    // connect to ROS
+    useEffect(() => {
+        console.log('Connecting to ROS...');
+        subscribeToTopic((msg) => {
+            const data = msg.data;
+            console.log('Received data:', data);
+            setCurrentLocation({
+                latitude: data[0],
+                longitude: data[1]
+            })
+        });
+    }, []);
 
     // initialize map
     useEffect(() => {
