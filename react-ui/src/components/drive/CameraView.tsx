@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import VideoFeed from "./ui/Camera";
+import MJPEGFeed from "./ui/Camera";
 import DPad from "./ui/DPad";
 import "./styles/CameraView.css";
 
@@ -83,7 +83,8 @@ const CameraView: React.FC<CameraViewProps> = ({ streams }) => {
                 <h2 className="camera-title">{camera.name}</h2>
 
                 {/* Display individual camera streams */}
-                <VideoFeed stream={streams[index]} />
+                <MJPEGFeed url="http://localhost:8080" />
+
 
                 {camera.id === 4 && (
                   <div className="dpad">
@@ -103,7 +104,8 @@ const CameraView: React.FC<CameraViewProps> = ({ streams }) => {
             </h2>
 
             {/* Display the selected camera stream */}
-            <VideoFeed stream={streams[activeCamera - 1]} />
+            <MJPEGFeed url="http://localhost:8080" />
+
 
             {activeCamera === 4 && (
               <div className="dpad">

@@ -4,30 +4,19 @@
   <name>cameras</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="martin.nguyen3@mail.mcgill.ca">mn297</maintainer>
+  <maintainer email="kevin@todo.todo">kevin</maintainer>
   <license>TODO: License declaration</license>
 
-  <exec_depend>ros2launch</exec_depend>
-
-  <buildtool_depend>ament_cmake</buildtool_depend>
-
-  <depend>ros_gz_bridge</depend>
-  <depend>ros_gz_sim</depend>
-
-  <depend>xacro</depend>
-  <depend>robot_state_publisher</depend>
-  <depend>rviz2</depend>
-  <depend>gazebo_ros</depend>
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
+  <depend>cv_bridge</depend>
 
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
-
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
 
   <export>
-    <build_type>ament_cmake</build_type>
+    <build_type>ament_python</build_type>
   </export>
-
-
 </package>

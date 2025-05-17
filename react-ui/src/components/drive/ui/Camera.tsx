@@ -1,24 +1,20 @@
-import React, { useEffect, useRef } from 'react';
-import './styles/Camera.css';
+import React from 'react';
 
-interface VideoFeedProps {
-  stream: MediaStream | null;
+interface MJPEGFeedProps {
+  url: string; // MJPEG stream URL (e.g. http://localhost:8080)
 }
 
-const VideoFeed: React.FC<VideoFeedProps> = ({ stream }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream ?? null;
-    }
-  }, [stream]);
-
+const MJPEGFeed: React.FC<MJPEGFeedProps> = ({ url }) => {
   return (
     <div className="video-container">
-      <video className="video" ref={videoRef} autoPlay playsInline />
+      <img
+        src={url}
+        alt="MJPEG Stream"
+        className="video"
+        style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
+      />
     </div>
   );
 };
 
-export default VideoFeed;
+export default MJPEGFeed;
