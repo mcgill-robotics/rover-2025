@@ -26,10 +26,11 @@ joint_max_speed = [
     np.pi/3 # Hand
 ] # rad per method call
 
-#speed = 1 # TO BE SET LATER
+speed = 1 # TO BE SET LATER
 speed_increment = 0.1 # TO BE SET LATER
 distance = 0.1
 distance_increment = [distance, distance/2, distance/4] # TO BE SET LATER
+angle_increment = [np.pi/4, np.pi/8, np.pi/16] # TO BE SET LATER
 current_cycle_mode = 0 # 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
 
 def move_joint(joystick_input, cur_angles, speed):
@@ -207,3 +208,30 @@ def get_old_horiz_pos(cur_angles):
     ]
 
     return projection_line
+def upDownTilt(joystick_input, cur_angles):
+    """Returns new angles in radians needed to change tilt. Tries amount, then half, then half again. 
+    Assumes joystick_input is normalized between -1 and 1"""
+
+    #get current x,y,z,X,Y,Z of arms (XYZ are euler)
+    cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
+    cur_pos = arm_kinematics.Mat2Pose(cur_matrix)
+    copy = cur_pos.copy()
+
+    for i in range(3):
+
+        cur_pos[4] = copy[4] + speed*angle_increment[i]*joystick_input  # modify Y euler angle (pitch)
+        try:
+            #use inverse kinematics to get positions of each joint needed for change of tilt
+            new_angles = list(arm_kinematics.inverseKinematics(cur_pos, cur_angles))
+
+            #if no exception raised, return
+            return new_angles
+        except Exception as e:
+            print(e)
+            pass
+
+    return cur_angles
+
+    #z is up (blue)
+    #y is side (green)
+    #x is in front (red)
