@@ -28,7 +28,7 @@ joint_max_speed = [
 
 speed = 1 # TO BE SET LATER
 speed_increment = 0.1 # TO BE SET LATER
-distance = 0.1
+distance = 0.05
 distance_increment = [distance, distance/2, distance/4] # TO BE SET LATER
 angle_increment = [np.pi/4, np.pi/8, np.pi/16] # TO BE SET LATER
 current_cycle_mode = 0 # 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
@@ -139,6 +139,7 @@ def depth_motion(joystick_input, cur_angles):
         try:
             return arm_kinematics.inverseKinematics(new_pos, cur_angles)
         except:
+            print("Failed")
             continue
     return cur_angles
 
@@ -157,6 +158,7 @@ def vertical_motion(joystick_input, cur_angles):
         try:
             return arm_kinematics.inverseKinematics(new_pos, cur_angles)
         except:
+            print("Failed")
             continue
 
     return cur_angles
@@ -167,13 +169,15 @@ def horizontal_motion(joystick_input, cur_angles, old_horiz_pos):
     cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
 
     ee_proj_length = math.sqrt(old_horiz_pos[0]**2+old_horiz_pos[1]**2)  #length of the arm on the x,y plane
+    # print("ee_proj_length:", ee_proj_length)
+    # print("old x:",old_horiz_pos[0])
+    # print("old y:",old_horiz_pos[1])
 
     for i in range(len(distance_increment)):
         #calculate new length
         delta_horizontal = joystick_input * distance_increment[i]
         total_horiz_dst = delta_horizontal + math.sqrt(abs(cur_ee_pos[0]**2+cur_ee_pos[1]**2 - old_horiz_pos[0]**2+old_horiz_pos[1]**2))
-        old_angle = math.atan(old_horiz_pos[1]/old_horiz_pos[0])
-        adj_angle = math.pi/2-old_angle
+        # print("total horiz:",total_horiz_dst)
 
         # new_length = math.sqrt(ee_proj_length ** 2 + delta_horizontal ** 2)
 
@@ -181,10 +185,6 @@ def horizontal_motion(joystick_input, cur_angles, old_horiz_pos):
         # new_waist_angle = math.asin(delta_horizontal/new_length) + cur_angles[0]
 
         #use trig to get new x and y
-        print("total horiz:",total_horiz_dst)
-        print("ee_proj_length:", ee_proj_length)
-        print("old x:",old_horiz_pos[0])
-        print("old y:",old_horiz_pos[1])
         new_x = old_horiz_pos[0] + total_horiz_dst/ee_proj_length * old_horiz_pos[1]
         new_y = old_horiz_pos[1] + total_horiz_dst/ee_proj_length * -old_horiz_pos[0]
 
@@ -193,6 +193,7 @@ def horizontal_motion(joystick_input, cur_angles, old_horiz_pos):
         try:
             return arm_kinematics.inverseKinematics(new_pos, cur_angles)
         except:
+            print("Failed")
             continue
     return cur_angles
 

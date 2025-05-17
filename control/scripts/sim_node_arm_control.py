@@ -192,9 +192,22 @@ class arm_contol_node(Node):
             #TODO: Send angles to arm
 
         #Check if there is input for up and down tilt
-        #if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
-            #TODO: call the up/down tilt function(s)
-            
+        if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
+            new_angles = upDownTilt(self.gamepad_input.l2_button-self.gamepad_input.r2_button, cur_angles_rad)
+            brushless_msg.data = (
+                new_angles[2] * 180 / math.pi,
+                new_angles[1] * 180 / math.pi,
+                new_angles[0] * 180 / math.pi
+            )
+            #print(brushless_msg.data)
+            brushed_msg.data = (
+                0.0,
+                new_angles[4] * 180 / math.pi,
+                new_angles[3] * 180 / math.pi
+            )
+
+            self.brushless_publisher_.publish(brushless_msg)
+            self.brushed_publisher_.publish(brushed_msg)            
         
         #Check if there is input for enabling/disabling joint control
         if self.gamepad_input.start_button:
