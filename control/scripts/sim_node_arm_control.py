@@ -47,6 +47,7 @@ class arm_contol_node(Node):
 
         self.brushed_angles = [0.0, 0.0, 0.0]
         self.brushless_angles = [0.0, 0.0, 0.0]
+        self.old_horiz_position = [0.0,0.0]
         self.brushless_publisher_ = self.create_publisher(Float32MultiArray, 'armBrushlessCmd', 10)
         self.brushed_publisher_ = self.create_publisher(Float32MultiArray, 'armBrushedCmd', 10)
         self.armBrushedSubscriber = self.create_subscription(
@@ -62,8 +63,8 @@ class arm_contol_node(Node):
             self.updateArmBrushlessSim,
             10
         )
-        timer_period = 2  # seconds
-        self.timer = self.create_timer(timer_period, self.run)
+        # timer_period = 2  # seconds
+        # self.timer = self.create_timer(timer_period, self.run)
 
         # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
         # timer_period = 0.25
@@ -71,11 +72,11 @@ class arm_contol_node(Node):
 
     def updateArmBrushedSim(self, cmds):
         self.brushed_angles = cmds.data
-        #print("Brushed:", self.brushed_angles)
+        #print("Brushed")
     
     def updateArmBrushlessSim(self, cmds):
         self.brushless_angles = cmds.data
-        #print("Brushless:", self.brushless_angles)
+        #print("Brushless")
 
     def not_in_deadzone_check(self, x_axis, y_axis):
         return not ((-self.deadzone <= x_axis <= self.deadzone) and (-self.deadzone <= y_axis <= self.deadzone))
@@ -104,7 +105,7 @@ class arm_contol_node(Node):
         #Check if there is input value for vertical plannar motion:
         if self.not_in_deadzone_check(self.gamepad_input.d_pad_y, 0):
             print("vert")
-            new_angles = vertical_motion(self.gamepad_input.d_pad_y, cur_angles)
+            new_angles = vertical_motion(self.gamepad_input.d_pad_y, cur_angles_rad)
             brushless_msg.data = (
                 new_angles[2] * 180 / math.pi,
                 new_angles[1] * 180 / math.pi,
@@ -126,7 +127,7 @@ class arm_contol_node(Node):
         #Check if there is input value for horizontal plannar motion:
         if self.not_in_deadzone_check(self.gamepad_input.d_pad_x, 0):
             print("horiz")
-            new_angles = horizontal_motion(self.gamepad_input.d_pad_x, cur_angles)
+            new_angles = horizontal_motion(self.gamepad_input.d_pad_x, cur_angles_rad, self.old_horiz_position)
             brushless_msg.data = (
                 new_angles[2] * 180 / math.pi,
                 new_angles[1] * 180 / math.pi,
@@ -147,8 +148,11 @@ class arm_contol_node(Node):
         
         #Check if there is joystick value for depth plannar motion:
         if self.not_in_deadzone_check(self.gamepad_input.l_stick_y, 0):
+            print("depth")
+            print(cur_angles_rad)
 
-            new_angles = depth_motion(self.gamepad_input.l_stick_y, cur_angles)
+            new_angles = depth_motion(self.gamepad_input.l_stick_y, cur_angles_rad)
+            print(new_angles)
             brushless_msg.data = (
                 new_angles[2] * 180 / math.pi,
                 new_angles[1] * 180 / math.pi,
@@ -169,7 +173,7 @@ class arm_contol_node(Node):
 
         #Check if there is joystick value for specific angle adjustment and if individual joint moment allowed
         if self.not_in_deadzone_check(self.gamepad_input.r_stick_y, 0) and self.joint_control_active:
-            new_angles = move_joint(self.gamepad_input.r_stick_y, self.cur_angles, self.speed)
+            new_angles = move_joint(self.gamepad_input.r_stick_y, cur_angles, self.speed)
 
             brushless_msg.data = (
                 new_angles[2] * 180 / math.pi,
@@ -196,12 +200,16 @@ class arm_contol_node(Node):
         if self.gamepad_input.start_button:
             self.joint_control_active = not self.joint_control_active
 
+        if self.gamepad_input.select_button:
+            self.old_horiz_position = get_old_horiz_pos(cur_angles_rad)
+            print(self.old_horiz_position)
+
         #command = ":".join(map(str, speed))
         #send_UDP_message(command)
         
     def controller_callback(self, input: GamePadInput):
         self.gamepad_input = input
-        #self.run()
+        self.run()
 
 def main(args=None):
     rclpy.init(args=args)

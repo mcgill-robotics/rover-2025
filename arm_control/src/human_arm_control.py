@@ -160,8 +160,42 @@ def vertical_motion(joystick_input, cur_angles):
 
     return cur_angles
 
-def horizontal_motion(joystick_input, cur_angles):
+def horizontal_motion(joystick_input, cur_angles, old_horiz_pos):
     #get current x,y,z,X,Y,Z of arms
+    cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
+    cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
+
+    ee_proj_length = math.sqrt(old_horiz_pos[0]**2+old_horiz_pos[1]**2)  #length of the arm on the x,y plane
+
+    for i in range(len(distance_increment)):
+        #calculate new length
+        delta_horizontal = joystick_input * distance_increment[i]
+        total_horiz_dst = delta_horizontal + math.sqrt(abs(cur_ee_pos[0]**2+cur_ee_pos[1]**2 - old_horiz_pos[0]**2+old_horiz_pos[1]**2))
+        old_angle = math.atan(old_horiz_pos[1]/old_horiz_pos[0])
+        adj_angle = math.pi/2-old_angle
+
+        # new_length = math.sqrt(ee_proj_length ** 2 + delta_horizontal ** 2)
+
+        # #calculate new waist angle
+        # new_waist_angle = math.asin(delta_horizontal/new_length) + cur_angles[0]
+
+        #use trig to get new x and y
+        print("total horiz:",total_horiz_dst)
+        print("ee_proj_length:", ee_proj_length)
+        print("old x:",old_horiz_pos[0])
+        print("old y:",old_horiz_pos[1])
+        new_x = old_horiz_pos[0] + total_horiz_dst/ee_proj_length * old_horiz_pos[1]
+        new_y = old_horiz_pos[1] + total_horiz_dst/ee_proj_length * -old_horiz_pos[0]
+
+        #call inverseKinematics
+        new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
+        try:
+            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
+        except:
+            continue
+    return cur_angles
+
+def get_old_horiz_pos(cur_angles):
     cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
     cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
 
@@ -171,24 +205,5 @@ def horizontal_motion(joystick_input, cur_angles):
         cur_ee_pos[0],
         cur_ee_pos[1],
     ]
-    ee_proj_length = arm_kinematics.projection_length(projection_line, cur_ee_pos[:2])  #length of the arm on the x,y plane
 
-    for i in range(len(distance_increment)):
-        #calculate new length
-        delta_horizontal = joystick_input * distance_increment[i]
-        # new_length = math.sqrt(ee_proj_length ** 2 + delta_horizontal ** 2)
-
-        # #calculate new waist angle
-        # new_waist_angle = math.asin(delta_horizontal/new_length) + cur_angles[0]
-
-        #use trig to get new x and y
-        new_x = cur_ee_pos[0] + delta_horizontal/ee_proj_length * cur_ee_pos[1]
-        new_y = cur_ee_pos[1] + delta_horizontal/ee_proj_length * -cur_ee_pos[0]
-
-        #call inverseKinematics
-        new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
-        try:
-            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
-        except:
-            continue
-    return cur_angles
+    return projection_line

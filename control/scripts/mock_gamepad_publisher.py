@@ -30,22 +30,30 @@ class MinimalPublisher(Node):
     def gamepad_callback(self):
         gamepad_input = GamePadInput()
         type_of_input = input("What button/joystick?")
-        if type_of_input == "s":
+        if type_of_input == "s":                                #speed up
             gamepad_input.square_button = 1
-        elif type_of_input == "x":
+        elif type_of_input == "x":                              #cycle down
             gamepad_input.x_button = 1
-        elif type_of_input == "t":
+        elif type_of_input == "t":                              #cycle up
             gamepad_input.triangle_button = 1
-        elif type_of_input == "o":
+        elif type_of_input == "o":                              #speed down
             gamepad_input.o_button = 1
-        elif type_of_input == "dy":
+        elif type_of_input == "select":                         #enable disable joint ctrl
+            gamepad_input.select_button = 1
+        elif type_of_input == "start":                          #set plane for horiz motion
+            gamepad_input.start_button = 1
+        elif type_of_input == "dy":                             #vert motion
             gamepad_input.d_pad_y = float(input("-1 or 1"))
-        elif type_of_input == "dx":
+        elif type_of_input == "dx":                             #horiz motion
             gamepad_input.d_pad_x = float(input("-1 or 1"))
-        elif type_of_input == "ly":
+        elif type_of_input == "ly":                             #depth motion
             gamepad_input.l_stick_y = float(input("-1 to 1"))
-        elif type_of_input == "ry":
+        elif type_of_input == "ry":                             #joint adjustment
             gamepad_input.r_stick_y = float(input("-1 to 1"))
+        elif type_of_input == "l2":                             #up tilt
+            gamepad_input.l2_button = int(input("1 or 0"))
+        elif type_of_input == "r2":                             #down tilt
+            gamepad_input.r2_button = int(input("1 or 0"))
         self.publisher_.publish(gamepad_input)
 
 

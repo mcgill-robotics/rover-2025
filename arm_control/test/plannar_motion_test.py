@@ -12,6 +12,7 @@ class MinimalPublisher(Node):
         super().__init__('minimal_publisher')
         self.brushed_angles = [0.0, 0.0, 0.0]
         self.brushless_angles = [0.0, 0.0, 0.0]
+        self.old_horiz_pos = [0.0,0.0]
         self.brushless_publisher_ = self.create_publisher(Float32MultiArray, 'armBrushlessCmd', 10)
         self.brushed_publisher_ = self.create_publisher(Float32MultiArray, 'armBrushedCmd', 10)
         self.armBrushedSubscriber = self.create_subscription(
@@ -32,12 +33,10 @@ class MinimalPublisher(Node):
         self.i = 0
 
     def updateArmBrushedSim(self, cmds):
-        print("brushed_update")
         self.brushed_angles = cmds.data
         #print("Brushed:", self.brushed_angles)
     
     def updateArmBrushlessSim(self, cmds):
-        print("brushless_update")
         self.brushless_angles = cmds.data
         #print("Brushless:", self.brushless_angles)
     
@@ -46,15 +45,20 @@ class MinimalPublisher(Node):
         brushed_msg = Float32MultiArray()
         motion = input("Motion type: (d, h, v)")
         joystick = float(input("Joystick: (-1.0 - 1.0)"))
+
+        #in degrees
         cur_angles = list(self.brushless_angles)
         cur_angles.reverse()
         cur_angles.append(self.brushed_angles[2])
         cur_angles.append(self.brushed_angles[1])
+        #convert to rad for IK purposes
         cur_angles_rad = [x*math.pi/180 for x in cur_angles]
-        #print(cur_angles)
+
         if motion == "d":
             #print(human_arm_control.depth_motion(joystick, cur_angles))
-            new_angles = human_arm_control.depth_motion(joystick, cur_angles)
+            new_angles = human_arm_control.depth_motion(joystick, cur_angles_rad)
+
+            #IK outputs radians, sim takes degrees, convert to degrees
             brushless_msg.data = (
                 new_angles[2] * 180 / math.pi,
                 new_angles[1] * 180 / math.pi,
@@ -70,7 +74,7 @@ class MinimalPublisher(Node):
             self.brushless_publisher_.publish(brushless_msg)
             self.brushed_publisher_.publish(brushed_msg)
         elif motion == "h":
-            new_angles = human_arm_control.horizontal_motion(joystick, cur_angles)
+            new_angles = human_arm_control.horizontal_motion(joystick, cur_angles_rad, self.old_horiz_pos)
             brushless_msg.data = (
                 new_angles[2] * 180 / math.pi,
                 new_angles[1] * 180 / math.pi,
@@ -85,10 +89,10 @@ class MinimalPublisher(Node):
             print(brushed_msg.data)
             self.brushless_publisher_.publish(brushless_msg)
             self.brushed_publisher_.publish(brushed_msg)
-        else:
+        elif motion == "v":
             print(cur_angles)
-            new_angles = human_arm_control.vertical_motion(joystick, cur_angles)
-            print(new_angles)
+            new_angles = human_arm_control.vertical_motion(joystick, cur_angles_rad)
+            print([x*180/math.pi for x in new_angles])
             brushless_msg.data = (
                 new_angles[2] * 180 / math.pi,
                 new_angles[1] * 180 / math.pi,
@@ -106,6 +110,9 @@ class MinimalPublisher(Node):
             self.brushed_publisher_.publish(brushed_msg)
             print("hi2")
 
+        elif motion == "u":
+            self.old_horiz_pos = human_arm_control.get_old_horiz_pos(cur_angles)
+            print("updated")
 
 def main(args=None):
     rclpy.init(args=args)
