@@ -1,9 +1,8 @@
 # Author: mn297
 import scipy.stats as st
 from scipy.ndimage import gaussian_filter1d
-from drive_control.msg import WheelSpeed
+# from drive_control.msg import WheelSpeed
 from odrive_interface.msg import MotorState, MotorError, ODriveStatus
-from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32MultiArray
 from enum import Enum
 from odrive.enums import AxisState, ODriveError, ProcedureResult
@@ -11,11 +10,10 @@ from odrive.utils import dump_errors
 from ODriveJoint import *
 import threading
 from threading import Lock
-from queue import Queue
 
-import rospy
 import os
 import sys
+import rclpy
 
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
@@ -31,15 +29,16 @@ class NodeODriveInterfaceComb:
         # CONFIGURATION ---------------------------------------------------------------
         # Serial number of the ODrive controlling the joint
         self.joint_serial_numbers = {
-            # Drive
-            # "rover_drive_rf": "384F34683539",
-            "rover_drive_rf": "385C347A3539",
-            # "rover_drive_lf": "386134503539",
-            "rover_drive_lf": "387134683539",
-            # "rover_drive_rb": "387134683539",
-            "rover_drive_rb": "386134503539",
-            # "rover_drive_lb": "385C347A3539",
-            "rover_drive_lb": "384F34683539",
+            # # Drive
+            # # "rover_drive_rf": "384F34683539",
+            # "rover_drive_rf": "385C347A3539",
+            # # "rover_drive_lf": "386134503539",
+            # "rover_drive_lf": "387134683539",
+            # # "rover_drive_rb": "387134683539",
+            # "rover_drive_rb": "386134503539",
+            # # "rover_drive_lb": "385C347A3539",
+            # "rover_drive_lb": "384F34683539",
+
             # Arm
             # 0x383834583539 = 61814047520057 in decimal
             "rover_arm_elbow": "383834583539",
@@ -53,11 +52,12 @@ class NodeODriveInterfaceComb:
         # VARIABLES -------------------------------------------------------------------
         # Dictionary of ODriveJoint objects, key is the joint name in string format, value is the ODriveJoint object
         self.joint_dict = {
-            # Drive
-            "rover_drive_rf": None,
-            "rover_drive_lf": None,
-            "rover_drive_rb": None,
-            "rover_drive_lb": None,
+            # # Drive
+            # "rover_drive_rf": None,
+            # "rover_drive_lf": None,
+            # "rover_drive_rb": None,
+            # "rover_drive_lb": None,
+
             # Arm
             "rover_arm_elbow": None,
             "rover_arm_shoulder": None,
@@ -79,94 +79,112 @@ class NodeODriveInterfaceComb:
 
         self.locks = {joint_name: Lock() for joint_name in self.joint_dict.keys()}
 
-        rospy.init_node("odrive_interface_comb")
+        # rospy.init_node("odrive_interface_comb")
+        rclpy.init(ars=sys.argv)
+        self.node = rclpy.create_node("odrive_interface_comb")
 
         # Subscriptions
         # Cmd comes from the external control node, we convert it to setpoint and apply it to the ODrive
+        
         # Drive
-        self.drive_cmd_subscriber = rospy.Subscriber(
-            "/wheel_velocity_cmd", WheelSpeed, self.handle_drive_cmd
-        )
+        # self.drive_cmd_subscriber = self.node.create_subscription(
+        #     WheelSpeed, #msg type
+        #     "/wheel_velocity_cmd", #topic
+        #     self.handle_drive_cmd, #callback function
+        #     rclpy.qos.QoSProfile()
+        # )
 
         # Arm
-        self.outshaft_pos_fb_subscriber = rospy.Subscriber(
-            "/armBrushlessFb",
-            Float32MultiArray,
-            self.handle_outshaft_fb,
+        self.outshaft_pos_fb_subscriber = self.node.create_subscription(
+            Float32MultiArray, #msg type
+            "/armBrushlessFb", #topic
+            self.handle_outshaft_fb, #callback function
+            rclpy.qos.QoSProfile()
         )
 
-        self.arm_joint_cmd_subscriber = rospy.Subscriber(
-            "/armBrushlessCmd", Float32MultiArray, self.handle_arm_cmd
+        self.arm_joint_cmd_subscriber = self.node.create_subscription(
+            Float32MultiArray, #msg type
+            "/armBrushlessCmd", #topic
+            self.handle_arm_cmd, #callback function
+            rclpy.qos.QoSProfile()
         )
 
         # Publishers
-        # drive
-        self.drive_fb_publisher = rospy.Publisher(
-            "/wheel_velocity_feedback", WheelSpeed, queue_size=1
-        )
+        # # drive
+        # self.drive_fb_publisher = self.node.create_publisher(
+        #     WheelSpeed, #msg type
+        #     "/wheel_velocity_feedback", #topic
+        #     1 #message buffer size
+        # )
 
-        self.odrive_publisher = rospy.Publisher(
-            "/odrive_state", ODriveStatus, queue_size=1
+        self.odrive_publisher = self.node.create_publisher(
+            ODriveStatus, #msg type
+            "/odrive_state", #topic
+            1 #message buffer size
         )
 
         # Arm
-        self.odrive_state_publisher = rospy.Publisher(
-            "/odrive_status", MotorState, queue_size=1
+        self.odrive_state_publisher = self.node.create_publisher(
+            MotorState, #msg type
+            "/odrive_status", #topic
+            1 #message buffer size
         )
-        self.odrive_pos_fb_publisher = rospy.Publisher(
-            "/odrive_armBrushlessFb", Float32MultiArray, queue_size=1
+        self.odrive_pos_fb_publisher = self.node.create_publisher(
+            Float32MultiArray, #msg type
+            "/odrive_armBrushlessFb", #topic
+            1 #message buffer size
         )
 
-        rospy.on_shutdown(self.shutdown_hook)
+        rclpy.get_default_context().on_shutdown(self.shutdown_hook)
 
         # Frequency of the ODrive I/O
-        self.rate = rospy.Rate(100)
+        self.rate = self.node.create_rate(100)
 
         self.run()
 
     # Receive setpoint from external control node
-    def handle_drive_cmd(self, msg):
-        if not self.is_calibrated:
-            print("ODrive not calibrated. Ignoring command.")
-            return
-        try:
-            self.joint_dict["rover_drive_lb"].vel_cmd = msg.left[0]
-        except KeyError:
-            # print("KeyError: 'rover_drive_lb' not found in joint_dict")
-            pass
-        try:
-            self.joint_dict["rover_drive_lf"].vel_cmd = msg.left[1]
-        except KeyError:
-            # print("KeyError: 'rover_drive_lf' not found in joint_dict")
-            pass
-        try:
-            self.joint_dict["rover_drive_rb"].vel_cmd = msg.right[0]
-        except KeyError:
-            # print("KeyError: 'rover_drive_rb' not found in joint_dict")
-            pass
-        try:
-            self.joint_dict["rover_drive_rf"].vel_cmd = msg.right[1]
-        except KeyError:
-            # print("KeyError: 'rover_drive_rf' not found in joint_dict")
-            pass
+    # def handle_drive_cmd(self, msg):
+    #     if not self.is_calibrated:
+    #         print("ODrive not calibrated. Ignoring command.")
+    #         return
+    #     try:
+    #         self.joint_dict["rover_drive_lb"].vel_cmd = msg.left[0]
+    #     except KeyError:
+    #         # print("KeyError: 'rover_drive_lb' not found in joint_dict")
+    #         pass
+    #     try:
+    #         self.joint_dict["rover_drive_lf"].vel_cmd = msg.left[1]
+    #     except KeyError:
+    #         # print("KeyError: 'rover_drive_lf' not found in joint_dict")
+    #         pass
+    #     try:
+    #         self.joint_dict["rover_drive_rb"].vel_cmd = msg.right[0]
+    #     except KeyError:
+    #         # print("KeyError: 'rover_drive_rb' not found in joint_dict")
+    #         pass
+    #     try:
+    #         self.joint_dict["rover_drive_rf"].vel_cmd = msg.right[1]
+    #     except KeyError:
+    #         # print("KeyError: 'rover_drive_rf' not found in joint_dict")
+    #         pass
 
-        # APPLY Velocity CMD
-        for joint_name, joint_obj in self.joint_dict.items():
-            if "drive" in joint_name:
-                if not joint_obj.odrv:
-                    continue
-                try:
-                    # setpoint in rev/s
-                    joint_obj.odrv.axis0.controller.input_vel = (
-                        joint_obj.vel_cmd * joint_obj.direction
-                    )
-                except fibre.libfibre.ObjectLostError:
-                    joint_obj.odrv = None
-                except:
-                    print(
-                        f"""Cannot apply vel_cmd {
-                            joint_obj.vel_cmd} to joint: {joint_name}"""
-                    )
+    #     # APPLY Velocity CMD
+    #     for joint_name, joint_obj in self.joint_dict.items():
+    #         if "drive" in joint_name:
+    #             if not joint_obj.odrv:
+    #                 continue
+    #             try:
+    #                 # setpoint in rev/s
+    #                 joint_obj.odrv.axis0.controller.input_vel = (
+    #                     joint_obj.vel_cmd * joint_obj.direction
+    #                 )
+    #             except fibre.libfibre.ObjectLostError:
+    #                 joint_obj.odrv = None
+    #             except:
+    #                 print(
+    #                     f"""Cannot apply vel_cmd {
+    #                         joint_obj.vel_cmd} to joint: {joint_name}"""
+    #                 )
 
     def reconnect_joint(self, joint_name, joint_obj):
         # Attempt to reconnect...
@@ -177,57 +195,57 @@ class NodeODriveInterfaceComb:
         with self.locks[joint_name]:
             joint_obj.is_reconnecting = False
 
-    # Deprecated because enter_closed_loop_control() will call calibrate() if necessary
-    def calibrate_and_enter_closed_loop_control(self, joint_obj):
-        if joint_obj.odrv is not None:
-            print(f"CALIBRATING joint {joint_obj.name}...")
-            joint_obj.calibrate()
+    # # Deprecated because enter_closed_loop_control() will call calibrate() if necessary
+    # def calibrate_and_enter_closed_loop_control(self, joint_obj):
+    #     if joint_obj.odrv is not None:
+    #         print(f"CALIBRATING joint {joint_obj.name}...")
+    #         joint_obj.calibrate()
 
-            print(f"ENTERING CLOSED LOOP CONTROL for joint {joint_obj.name}...")
-            joint_obj.enter_closed_loop_control()
+    #         print(f"ENTERING CLOSED LOOP CONTROL for joint {joint_obj.name}...")
+    #         joint_obj.enter_closed_loop_control()
 
     def enter_closed_loop_control(self, joint_obj):
         if joint_obj.odrv is not None:
             print(f"ENTERING CLOSED LOOP CONTROL for joint {joint_obj.name}...")
             joint_obj.enter_closed_loop_control()
 
-    def publish_joints_feedback_drive(self):
-        # PUBLISH Odrive velocity FB
-        feedback = WheelSpeed()
-        for joint_name, joint_obj in self.joint_dict.items():
-            if "drive" in joint_name:
-                if not joint_obj.odrv:
-                    continue
-                try:
-                    self.joint_dict[joint_name].vel_fb = (
-                        joint_obj.odrv.encoder_estimator0.vel_estimate
-                    )
-                except fibre.libfibre.ObjectLostError:
-                    joint_obj.odrv = None
-                except:
-                    print(f"""Cannot get feedback from joint: {joint_name}""")
-            # Publish
-            try:
-                feedback.left[0] = self.joint_dict["rover_drive_lb"].vel_fb
-            except KeyError:
-                # print("KeyError: 'rover_drive_lb' not found in joint_dict")
-                feedback.left[0] = 0.0  # Default value if key is missing
-            try:
-                feedback.left[1] = self.joint_dict["rover_drive_lf"].vel_fb
-            except KeyError:
-                # print("KeyError: 'rover_drive_lf' not found in joint_dict")
-                feedback.left[1] = 0.0  # Default value if key is missing
-            try:
-                feedback.right[0] = self.joint_dict["rover_drive_rb"].vel_fb
-            except KeyError:
-                # print("KeyError: 'rover_drive_rb' not found in joint_dict")
-                feedback.right[0] = 0.0  # Default value if key is missing
-            try:
-                feedback.right[1] = self.joint_dict["rover_drive_rf"].vel_fb
-            except KeyError:
-                # print("KeyError: 'rover_drive_rf' not found in joint_dict")
-                feedback.right[1] = 0.0  # Default value if key is missing
-            self.drive_fb_publisher.publish(feedback)
+    # def publish_joints_feedback_drive(self):
+    #     # PUBLISH Odrive velocity FB
+    #     feedback = WheelSpeed()
+    #     for joint_name, joint_obj in self.joint_dict.items():
+    #         if "drive" in joint_name:
+    #             if not joint_obj.odrv:
+    #                 continue
+    #             try:
+    #                 self.joint_dict[joint_name].vel_fb = (
+    #                     joint_obj.odrv.encoder_estimator0.vel_estimate
+    #                 )
+    #             except fibre.libfibre.ObjectLostError:
+    #                 joint_obj.odrv = None
+    #             except:
+    #                 print(f"""Cannot get feedback from joint: {joint_name}""")
+    #         # Publish
+    #         try:
+    #             feedback.left[0] = self.joint_dict["rover_drive_lb"].vel_fb
+    #         except KeyError:
+    #             # print("KeyError: 'rover_drive_lb' not found in joint_dict")
+    #             feedback.left[0] = 0.0  # Default value if key is missing
+    #         try:
+    #             feedback.left[1] = self.joint_dict["rover_drive_lf"].vel_fb
+    #         except KeyError:
+    #             # print("KeyError: 'rover_drive_lf' not found in joint_dict")
+    #             feedback.left[1] = 0.0  # Default value if key is missing
+    #         try:
+    #             feedback.right[0] = self.joint_dict["rover_drive_rb"].vel_fb
+    #         except KeyError:
+    #             # print("KeyError: 'rover_drive_rb' not found in joint_dict")
+    #             feedback.right[0] = 0.0  # Default value if key is missing
+    #         try:
+    #             feedback.right[1] = self.joint_dict["rover_drive_rf"].vel_fb
+    #         except KeyError:
+    #             # print("KeyError: 'rover_drive_rf' not found in joint_dict")
+    #             feedback.right[1] = 0.0  # Default value if key is missing
+    #         self.drive_fb_publisher.publish(feedback)
 
     # Send joints angle feedback to ROS
     def publish_joints_feedback_arm(self):
@@ -341,27 +359,27 @@ class NodeODriveInterfaceComb:
         self.joint_dict["rover_arm_shoulder"].gear_ratio = 100
         self.joint_dict["rover_arm_waist"].gear_ratio = 1
 
-        # Set the direction of the motors
-        try:
-            self.joint_dict["rover_drive_lb"].direction = -1
-        except KeyError:
-            # print("KeyError: 'rover_drive_lb' not found in joint_dict")
-            pass
-        try:
-            self.joint_dict["rover_drive_lf"].direction = -1
-        except KeyError:
-            # print("KeyError: 'rover_drive_lf' not found in joint_dict")
-            pass
-        try:
-            self.joint_dict["rover_drive_rb"].direction = 1
-        except KeyError:
-            # print("KeyError: 'rover_drive_rb' not found in joint_dict")
-            pass
-        try:
-            self.joint_dict["rover_drive_rf"].direction = 1
-        except KeyError:
-            # print("KeyError: 'rover_drive_rf' not found in joint_dict")
-            pass
+        # # Set the direction of the motors
+        # try:
+        #     self.joint_dict["rover_drive_lb"].direction = -1
+        # except KeyError:
+        #     # print("KeyError: 'rover_drive_lb' not found in joint_dict")
+        #     pass
+        # try:
+        #     self.joint_dict["rover_drive_lf"].direction = -1
+        # except KeyError:
+        #     # print("KeyError: 'rover_drive_lf' not found in joint_dict")
+        #     pass
+        # try:
+        #     self.joint_dict["rover_drive_rb"].direction = 1
+        # except KeyError:
+        #     # print("KeyError: 'rover_drive_rb' not found in joint_dict")
+        #     pass
+        # try:
+        #     self.joint_dict["rover_drive_rf"].direction = 1
+        # except KeyError:
+        #     # print("KeyError: 'rover_drive_rf' not found in joint_dict")
+        #     pass
         print("Entering closed loop control step completed.")
 
     # SEND ODRIVE INFO AND HANDLE ERRORS
@@ -472,11 +490,11 @@ class NodeODriveInterfaceComb:
 
     def loop_odrive(self):
         # MAIN LOOP -----------------------------------------------------
-        while not rospy.is_shutdown() and not self.shutdown_flag:
+        while not rclpy.ok() and not self.shutdown_flag:
             # PRINT TIMESTAMP
             # print(f"""Time: {rospy.get_time()}""")
 
-            self.publish_joints_feedback_drive()
+            # self.publish_joints_feedback_drive()
 
             self.publish_joints_feedback_arm()
 
@@ -491,7 +509,7 @@ class NodeODriveInterfaceComb:
         thread.start()
         print_thread = threading.Thread(target=self.print_loop)
         print_thread.start()
-        rospy.spin()
+        rclpy.spin(self.node)
         self.shutdown_hook()
 
     def shutdown_hook(self):
@@ -508,4 +526,4 @@ class NodeODriveInterfaceComb:
 
 if __name__ == "__main__":
     driver = NodeODriveInterfaceComb()
-    rospy.spin()
+    rclpy.spin(driver.node)
