@@ -13,17 +13,17 @@ import numpy as np
 
 
 ### TEMP for Drive Test ###
-import socket
-import pygame
-import time
+# import socket
+# import pygame
+# import time
 
 
-JETSON_IP = "192.168.0.101"  # IP of the motor computer
-UDP_PORT = 5005           # Port to send data
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP socket
+# JETSON_IP = "192.168.0.101"  # IP of the motor computer
+# UDP_PORT = 5005           # Port to send data
+# sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP socket
 
-def send_UDP_message(msg):
-    sock.sendto(msg.encode(), (JETSON_IP, UDP_PORT))
+# def send_UDP_message(msg):
+#     sock.sendto(msg.encode(), (JETSON_IP, UDP_PORT))
 ### TEMP for Drive Test ###
 
 class firmware(Node):
@@ -87,8 +87,8 @@ class firmware(Node):
 
         # TODO: Use API to send input values for speed, orientation and rotation.
 
-        command = ":".join(map(str, speed))
-        send_UDP_message(command)
+        # command = ":".join(map(str, speed))
+        # send_UDP_message(command)
         
     def controller_callback(self, input: GamePadInput):
         self.gamepad_input = input
