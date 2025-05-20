@@ -339,131 +339,50 @@ class DriveInterface:
         """ This function is simply used to make sure there is reliable feedback with the esc in the ID"""
         self.esc.read(ReadSpec.GET_PING, MotorType.DRIVE, node, is_single=True)
 
+    def getAllMotorStatus(self):
+        time.sleep(0.2)
+        motor_names = ['RF Drive', 'RB Drive', 'LB Drive', 'LF Drive']
+        nodes       = [
+            NodeID.RF_DRIVE,
+            NodeID.RB_DRIVE,
+            NodeID.LB_DRIVE,
+            NodeID.LF_DRIVE
+        ]
 
-def test1():
-    '''
-    This test is used to make sure the incrementing  logic on the ESC works. For the incrementing logic, once the motor is already moving, it will only go
-    to the speed setpoint iwthin a current range of the current speed it is moving. This is so as to avoid any unrealistic speed changes in very small amounts 
-    of time, especially when controlled with a controller.
-    '''
+        status_list = []
 
-    #first get to speed
-    drive.run_motor(NodeID.RF_DRIVE, 1500)
-    time.sleep(5) # enough time to initially ramp up
-    drive.run_motor(NodeID.RF_DRIVE, 1000)
-    time.sleep(0.01)
-    drive.run_motor(NodeID.RF_DRIVE, 500)
-    time.sleep(0.01)
-    drive.run_motor(NodeID.RF_DRIVE, 500)
-    time.sleep(0.01)
-    drive.run_motor(NodeID.RF_DRIVE, 500)
-    time.sleep(0.01)
-    drive.run_motor(NodeID.RF_DRIVE, 400)
-    time.sleep(0.01)
+        for node in nodes:
+            # ask ESC to send its fault count
+            self.read_all_faults(node)
 
+            # wait for up to 20ms for a reply
+            info = self.esc.station.recv_msg(timeout=0.025)
 
-def test2():
-    ''' This is a test that will go through a direction change to see how its handled
-    The main purpose of this test is to try adn trigger overvoltage faults on the esc, by attempting to go through very durastic changes. 
-    The main portion that may cause that is the sudden change in direction of the esc. This test is properly handled if the motor does not fault.
-    '''
+            # if we got nothing, treat it as a fault
+            if info is None:
+                ok = False
+            else:
+                # info is [node_id, spec_string, value]
+                ok = (info[2] == 0.0)
 
-    #first get to speed
-    drive.run_motor(NodeID.RF_DRIVE, 1500)
-    time.sleep(5) # enough time to initially ramp up
-    drive.run_motor(NodeID.RF_DRIVE, 1200)
-    time.sleep(0.025)
-    drive.run_motor(NodeID.RF_DRIVE, 800)
-    time.sleep(0.025)
-    drive.run_motor(NodeID.RF_DRIVE, 500)
-    time.sleep(0.025)
-    drive.run_motor(NodeID.RF_DRIVE, 300)
-    time.sleep(0.025)
-    drive.run_motor(NodeID.RF_DRIVE, 100)
-    time.sleep(0.025)
-    drive.run_motor(NodeID.RF_DRIVE, -1000)
-    time.sleep(0.025)
-    drive.run_motor(NodeID.RF_DRIVE, -1000)
-    time.sleep(0.025)
-    drive.run_motor(NodeID.RF_DRIVE, -1000)
-    time.sleep(0.025)
-    drive.run_motor(NodeID.RF_DRIVE, -1000)
-    time.sleep(0.025)
+            status_list.append(ok)
 
+        # pretty-print
+        print("\nMotor Fault Status:")
+        for name, ok in zip(motor_names, status_list):
+            symbol = 'ONLINE' if ok else 'NOT AVAILABLE'
+            print(f"  {symbol}  {name}")
+        print()
 
-
-
-def test3():
-    '''
-    Even more abrupt direction change!
-    '''
-    drive.run_motor(NodeID.RF_DRIVE, 1500)
-    time.sleep(5) # enough time to initially ramp up
-    drive.run_motor(NodeID.RF_DRIVE, 1000)
-    time.sleep(0.01)
-    drive.run_motor(NodeID.RF_DRIVE, -500)
-    time.sleep(0.01)
-    drive.run_motor(NodeID.RF_DRIVE, -600)
-    time.sleep(0.01)
-
-def test4():
-    '''
-    Direction Changes in quick succession
-    '''
-    drive.run_motor(NodeID.RF_DRIVE, 1500)
-    time.sleep(5) # enough time to initially ramp up
-    drive.run_motor(NodeID.RF_DRIVE, 1000)
-    time.sleep(0.05)
-    drive.run_motor(NodeID.RF_DRIVE, -500)
-    time.sleep(0.05)
-    drive.run_motor(NodeID.RF_DRIVE, -600)
-    time.sleep(0.05)
-
-
-def test5():
-    '''
-    Direction Changes in quick succession, but wayy worse
-    '''
-    drive.run_motor(NodeID.RF_DRIVE, 1500)
-    time.sleep(5) # enough time to initially ramp up
-    drive.run_motor(NodeID.RF_DRIVE, 1000)
-    time.sleep(1)
-    drive.run_motor(NodeID.RF_DRIVE, -500)
-    time.sleep(1)
-    drive.run_motor(NodeID.RF_DRIVE, -500)
-    time.sleep(1)
-    drive.run_motor(NodeID.RF_DRIVE, 1000)
-    time.sleep(1)
-    drive.run_motor(NodeID.RF_DRIVE, -1000)
-    time.sleep(1)
-    drive.run_motor(NodeID.RF_DRIVE, 200)
-    time.sleep(1)
-    drive.run_motor(NodeID.RF_DRIVE, -600)
-    time.sleep(1)
+        return status_list
     
-def test6():
-    '''
-    This test is used to make sure the incrementing  logic on the ESC works, but in the opposite direction form that of test1 For the incrementing logic, once the motor is already moving, it will only go
-    to the speed setpoint iwthin a current range of the current speed it is moving. This is so as to avoid any unrealistic speed changes in very small amounts 
-    of time, especially when controlled with a controller.
-    '''
-
-    #first get to speed
-    drive.run_motor(NodeID.RF_DRIVE, -1500)
-    time.sleep(5) # enough time to initially ramp up
-    drive.run_motor(NodeID.RF_DRIVE, -1000)
-    time.sleep(0.01)
-    drive.run_motor(NodeID.RF_DRIVE, -500)
-    time.sleep(0.01)
-    drive.run_motor(NodeID.RF_DRIVE, -500)
-    time.sleep(0.01)
-    drive.run_motor(NodeID.RF_DRIVE, -500)
-    time.sleep(0.01)
-    drive.run_motor(NodeID.RF_DRIVE, -400)
-    time.sleep(0.01)
-
-
+    def acknowledgeAllMotorFaults(self):
+        for node in [NodeID.RF_DRIVE, NodeID.RB_DRIVE, NodeID.LB_DRIVE, NodeID.LF_DRIVE]:
+            drive.acknowledge_motor_fault(node)
+            time.sleep(0.05)
+    
 if __name__ == "__main__":
+
     # Example usage
     station = CANStation(interface="slcan", channel="COM12", bitrate=500000)
 
@@ -473,23 +392,25 @@ if __name__ == "__main__":
     # Create Drive interface for high-level drive control
     drive = DriveInterface(escInterface)
     # drive.read_all_faults(NodeID.RF_DRIVE)
-    # drive.acknowledge_motor_fault(NodeID.RF_DRIVE)
-    # drive.ping_motor(NodeID.RF_DRIVE)
-    # drive.acknowledge_motor_fault(NodeID.RF_DRIVE)
-    # test4()
-    # # test2()
-    drive.stop_motor(NodeID.RF_DRIVE)
-    # drive.run_motor(NodeID.RF_DRIVE, 500)
 
-    # drive.ping_motor(NodeID.RF_DRIVE)
+    ## CODE BELOW HERE
+    # drive.getAllMotorStatus()
 
+    # drive.read_all_faults(NodeID.LB_DRIVE)
+    # drive.acknowledgeAllMotorFaults()
+
+    # drive.broadcast_multi_motor_speeds([1000,-1000,-1000,1000])
+    # time.sleep(7)
     # drive.broadcast_multi_motor_stop()
-    # drive.read_voltage(NodeID.RF_DRIVE)
-    # drive.broadcast_multi_momtor_speeds([100,200,300,400])
-    # drive.acknowledge_motor_fault(NodeID.LB_DRIVE)
-    # drive.run_motor(NodeID.LB_DRIVE, 500)
-    # drive.read_speed(NodeID.RF_DRIVE)
-    # station.recv_msg(0.020)
+
+    # drive.run_motor(NodeID.LB_DRIVE, -1500)
+    # time.sleep(10)
+    # drive.broadcast_multi_motor_stop()
+
+
+    # drive.stop_motor(NodeID.RF_DRIVE)
+    # drive.read_all_faults(NodeID.LB_DRIVE)
+
+    station.recv_msg(0.03)
     
     station.close()
-
