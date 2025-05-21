@@ -72,7 +72,7 @@ class firmware(Node):
             rotation_sp = rover_rotation(self.wheel_angles, rot_inp)
 
             speed = [direction*self.turning_speed for direction in rotation_sp] # TODO Change 500 to acutal value
-            # TODO: Send speed to wheels
+            # TODO: Send speed to wheels -> Publish speed
 
         #Check whether gears change
         if self.gamepad_input.r2_button or self.gamepad_input.l2_button:

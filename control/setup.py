@@ -30,7 +30,8 @@ setup(
             "drive_control_node = scripts.drive_control_node:main",
             "odrive_node = scripts.node_odrive_drive:main",
             "gui_node = scripts.node_control_gui:main",
-            "firmware_node = scripts.firmware_node:main",
+            "drive_firmware_node = scripts.drive_firmware_node:main",
+            "driveCAN_firmware_node = scripts.driveCAN_firmware_node:main"
         ],
     },
 )
