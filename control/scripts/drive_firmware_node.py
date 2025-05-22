@@ -10,6 +10,7 @@ from msg_srv_interface.msg import GamePadInput
 from steering import rover_rotation , wheel_orientation_rot
 import math
 import numpy as np
+from std_msgs.msg import Float32MultiArray
 
 
 ### TEMP for Drive Test ###
@@ -46,6 +47,7 @@ class firmware(Node):
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
        
         self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.controller_callback, 10)
+        self.speedInputPublisher = self.create_publisher(Float32MultiArray, "drive_speed_input", 10)
 
         # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
         timer_period = 0.25
@@ -59,6 +61,7 @@ class firmware(Node):
         #Speed given button input
         speed = self.speed_controller.updateSpeed(self.gamepad_input.x_button, self.gamepad_input.o_button)
         speed = [speed for _ in range(4)]
+        msg = Float32MultiArray()
         
         #Check whether there is an input value for rover rotation
         if self.gamepad_input.r1_button or self.gamepad_input.l1_button:
@@ -74,6 +77,10 @@ class firmware(Node):
             speed = [direction*self.turning_speed for direction in rotation_sp] # TODO Change 500 to acutal value
             # TODO: Send speed to wheels -> Publish speed
 
+            msg.data = speed
+            self.speedInputPublisher.publish(msg)
+
+
         #Check whether gears change
         if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
             self.speed_controller.shifting_gear(self.gamepad_input.r2_button, self.gamepad_input.l2_button)
@@ -86,6 +93,8 @@ class firmware(Node):
             # TODO: Send new orientation to wheels
 
         # TODO: Use API to send input values for speed, orientation and rotation.
+        msg.data = speed
+        self.speedInputPublisher.publish(msg)
 
         # command = ":".join(map(str, speed))
         # send_UDP_message(command)
