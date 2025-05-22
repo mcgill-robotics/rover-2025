@@ -18,9 +18,9 @@ class CameraNode(Node):
 
         # Check if it actually opened
         if not self.cap.isOpened():
-            self.get_logger().error(f"❌ Failed to open camera at index {cam}")
+            self.get_logger().debug(f"❌ Failed to open camera at index {cam}")
         else:
-            self.get_logger().info(f"✅ Camera at index {cam} opened successfully")
+            self.get_logger().debug(f"✅ Camera at index {cam} opened successfully")
             
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimize latency
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -29,13 +29,12 @@ class CameraNode(Node):
         self.timer = self.create_timer(1.0 / 20.0, self.timer_callback)
 
     def timer_callback(self):
-        print("ANY MESSAGE HERE")
         ret, frame = self.cap.read()
         if not ret:
-            self.get_logger().error("❌ Failed to capture frame")
+            self.get_logger().debug("❌ Failed to capture frame")
             return
 
-        self.get_logger().info("✅ Frame captured")
+        self.get_logger().debug("✅ Frame captured")
         
 
         msg = CompressedImage()
@@ -43,8 +42,6 @@ class CameraNode(Node):
         msg.format = "jpeg"
 
         msg.data = cv2.imencode('.jpg', frame)[1].tobytes()
-        # gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # msg = self.bridge.cv2_to_imgmsg(gray_frame, encoding="mono8")
         self.publisher_.publish(msg)
     
 def main(args=None):

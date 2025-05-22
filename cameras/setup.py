@@ -20,8 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'usbcam_node = cameras.usbcam_node:main',
-            'sub = cameras.sub:main',
+            'cam_publisher_node = cameras.cam_publisher_node:main',
+            'cam_subscriber_node = cameras.cam_subscriber_node:main',
         ],
     },
 )

@@ -14,18 +14,18 @@ class ImageSubscriber(Node):
             10
         )
         self.subscription  # prevent unused variable warning
-        self.get_logger().info("📷 Subscribed to 'usbcam_image'")
+        self.get_logger().debug("📷 Subscribed to 'usbcam_image'")
 
     def listener_callback(self, msg):
         np_arr = np.frombuffer(msg.data, np.uint8)
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
         if frame is not None:
-            self.get_logger().info('✅ Received image')
+            self.get_logger().debug('✅ Received image')
             cv2.imshow("Subscribed Camera Feed", frame)
             cv2.waitKey(1)
         else:
-            self.get_logger().error("❌ Failed to decode image")
+            self.get_logger().debug("❌ Failed to decode image")
 
 def main(args=None):
     rclpy.init(args=args)
