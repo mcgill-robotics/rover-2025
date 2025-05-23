@@ -1,12 +1,17 @@
+import os
+import sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(currentdir)
 import driveCANCommunication as dCAN
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
+import can
 
 class driveCan(Node):
 
     def __init__(self):
-        super.__init__("drivecan_node")
+        super().__init__("drivecan_node")
 
         self.driveSpeedInputSubscriber = self.create_subscription(Float32MultiArray, "drive_speed_input", self.publish_speeds, 10)
 
