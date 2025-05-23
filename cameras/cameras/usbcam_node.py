@@ -1,68 +1,100 @@
-import rclpy  # Import the ROS 2 Python client library
-from rclpy.node import Node  # Import the Node class from ROS 2
-import cv2  # Import OpenCV for computer vision tasks
-from cv_bridge import CvBridge  # Import CvBridge to convert between ROS and OpenCV images
-from sensor_msgs.msg import Image, CompressedImage  # Import the Image message type from sensor_msgs
-import argparse  # Import argparse for command-line arguments
+import rclpy
+from rclpy.node import Node
+import cv2
+from cv_bridge import CvBridge
+from sensor_msgs.msg import CompressedImage
+import argparse
+import subprocess
+import re
+import os
+
+def find_video_device_by_name(camera_name: str):
+    try:
+        output = subprocess.check_output(['v4l2-ctl', '--list-devices'], text=True)
+    except subprocess.CalledProcessError:
+        raise RuntimeError("Failed to run v4l2-ctl. Is v4l-utils installed?")
+
+    lines = output.strip().split("\n")
+    device_map = {}
+    current_name = None
+
+    for line in lines:
+        if not line.startswith('\t'):
+            current_name = line.strip()
+            device_map[current_name] = []
+        elif current_name:
+            device_map[current_name].append(line.strip())
+
+    for name, paths in device_map.items():
+        if camera_name.lower() in name.lower():
+            for path in paths:
+                if "/dev/video" in path:
+                    return path
+
+    # Extra fallback: list all video devices and use udevadm
+    import glob
+    video_devices = glob.glob("/dev/video*")
+    for dev in video_devices:
+        try:
+            udev_output = subprocess.check_output(['udevadm', 'info', '--query=all', '--name', dev], text=True)
+            if camera_name.lower() in udev_output.lower():
+                return dev
+        except subprocess.CalledProcessError:
+            continue
+
+    raise RuntimeError(f"No matching video device found for camera '{camera_name}'")
 
 class CameraNode(Node):
-    def __init__(self, cam):
-        super().__init__('usbcam_node')  # Initialize the Node
-        self.publisher_ = self.create_publisher(CompressedImage, 'usbcam_image', 0)  # Slightly bigger queue
-        # Open the specified webcam
-        self.cap = cv2.VideoCapture(cam, 0)
+    def __init__(self, cam_path):
+        super().__init__('usbcam_node')
+        self.publisher_ = self.create_publisher(CompressedImage, 'usbcam_image', 0)
 
-        # Wait a bit for the camera to initialize
-        import time
-        time.sleep(1)
-
-        # Check if it actually opened
+        self.cap = cv2.VideoCapture(cam_path)
         if not self.cap.isOpened():
-            self.get_logger().error(f"❌ Failed to open camera at index {cam}")
+            self.get_logger().error(f"❌ Failed to open camera at {cam_path}")
         else:
-            self.get_logger().info(f"✅ Camera at index {cam} opened successfully")
-            
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimize latency
+            self.get_logger().info(f"✅ Camera at {cam_path} opened successfully")
+
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         self.bridge = CvBridge()
         self.timer = self.create_timer(1.0 / 20.0, self.timer_callback)
 
     def timer_callback(self):
-        print("ANY MESSAGE HERE")
         ret, frame = self.cap.read()
         if not ret:
             self.get_logger().error("❌ Failed to capture frame")
             return
 
-        self.get_logger().info("✅ Frame captured")
-        
-
         msg = CompressedImage()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.format = "jpeg"
-
         msg.data = cv2.imencode('.jpg', frame)[1].tobytes()
-        # gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # msg = self.bridge.cv2_to_imgmsg(gray_frame, encoding="mono8")
         self.publisher_.publish(msg)
-    
+
 def main(args=None):
     parser = argparse.ArgumentParser(description='ROS2 USB Camera Node')
-    parser.add_argument('--cam', type=int, default=0, help='Index of the camera (default is 0)')
+    parser.add_argument('--cam-name', type=str, required=True, help='Name of the camera to look for (e.g. "Centerm Camera")')
     cli_args = parser.parse_args()
 
-    rclpy.init(args=args)  # Initialize the ROS 2 Python client library
-    node = CameraNode(cli_args.cam)  # Create an instance of the CameraNode with the specified camera index
     try:
-        rclpy.spin(node)  # Spin the node to keep it alive and processing callbacks
+        cam_path = find_video_device_by_name(cli_args.cam_name)
+    except RuntimeError as e:
+        print(str(e))
+        return
+
+    rclpy.init(args=args)
+    node = CameraNode(cam_path)
+    try:
+        rclpy.spin(node)
     except KeyboardInterrupt:
-        pass  # Allow the user to exit with Ctrl+C
+        pass
     finally:
-        node.cap.release()  # Release the webcam
-        cv2.destroyAllWindows()  # Close any OpenCV windows
-        node.destroy_node()  # Destroy the ROS 2 node
-        rclpy.shutdown()  # Shut down the ROS 2 Python client library
+        node.cap.release()
+        cv2.destroyAllWindows()
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
-    main()  # Run the main function if this script is executed
+    main()

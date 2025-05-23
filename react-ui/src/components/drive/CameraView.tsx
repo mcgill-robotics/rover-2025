@@ -83,7 +83,7 @@ const CameraView: React.FC<CameraViewProps> = ({ streams }) => {
                 <h2 className="camera-title">{camera.name}</h2>
 
                 {/* Display individual camera streams */}
-                <MJPEGFeed url="http://localhost:8080" />
+                <MJPEGFeed url="/mjpeg" />
 
 
                 {camera.id === 4 && (
