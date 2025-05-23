@@ -60,6 +60,8 @@ class MJPEGHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'\r\n')
             time.sleep(0.05)  # ~20 FPS
 
+
+
 def start_mjpeg_server():
     server = HTTPServer(('0.0.0.0', 8080), MJPEGHandler)
     print("📡 MJPEG stream at http://localhost:8080")
