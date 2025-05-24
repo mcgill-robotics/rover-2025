@@ -1,4 +1,3 @@
-# webrtc.py
 import asyncio
 import json
 import re
@@ -35,14 +34,20 @@ async def offer(request):
             pcs.discard(pc)
 
     try:
-        player = MediaPlayer(device_path, format="v4l2", options={
-            "framerate": "20",
-            "video_size": "640x480"
-        })
+        player = MediaPlayer(
+            device_path,
+            format="v4l2",
+            options={
+                "framerate": "30",
+                "video_size": "640x480",
+                "input_format": "yuyv422"
+            }
+        )
         print("[DEBUG] player.video:", player.video)
     except Exception as e:
-        print("[OFFER] MediaPlayer creation failed:", e)
-        return web.json_response({"error": str(e)}, status=500)
+        error_message = f"[OFFER] MediaPlayer creation failed: {e}"
+        print(error_message)
+        return web.json_response({"error": f"Failed to open {device_path}. {str(e)}"}, status=500)
 
     await pc.setRemoteDescription(offer)
     print("[DEBUG] Transceivers:", pc.getTransceivers())
@@ -108,7 +113,7 @@ async def list_video_devices(request):
             if not line.startswith("\t"):
                 if current:
                     devices.append(current)
-                name = re.sub(r"\\s*\\(.*\\):?$", "", line.strip())
+                name = re.sub(r"\s*\(.*\):?$", "", line.strip())
                 current = {"name": name, "devices": []}
             else:
                 if current:

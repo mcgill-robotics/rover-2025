@@ -1,16 +1,17 @@
 import React, { useEffect, useRef } from "react";
 
 interface WebRTCPlayerProps {
-  devicePath: string; // e.g., "/dev/video1"
+  devicePath: string;
+  forwardedRef?: React.RefObject<HTMLVideoElement>;
 }
 
-const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({ devicePath }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({ devicePath, forwardedRef }) => {
+  const localRef = useRef<HTMLVideoElement>(null);
+  const videoRef = forwardedRef || localRef;
 
   useEffect(() => {
     const pc = new RTCPeerConnection();
 
-    // 🔥 Force video transceiver to fix MID error
     pc.addTransceiver("video", { direction: "recvonly" });
 
     pc.ontrack = (event) => {

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Knob from './Knob';
 import Headlight from './Headlight';
-import StreamControl from './StreamControl';
 import './styles/RoverControl.css';
 
 const waitForIceGatheringComplete = (pc: RTCPeerConnection): Promise<void> => {
