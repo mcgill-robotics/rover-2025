@@ -4,6 +4,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import WebRTCPlayer from "./ui/WebRTCPlayer";
 import DPad from "./ui/DPad";
+import PowerButton from "../arm/ui/PowerButton";
 import axios from "axios";
 import "./styles/CameraView.css";
 
@@ -199,8 +200,8 @@ const CameraView: React.FC = () => {
             color: "white",
             border: "none",
             borderRadius: "50%",
-            width: "40px",
-            height: "40px",
+            width: "50px",
+            height: "50px",
             fontSize: "1.5rem",
             cursor: "pointer"
           }}>⟵</button>
@@ -215,49 +216,64 @@ const CameraView: React.FC = () => {
             color: "white",
             border: "none",
             borderRadius: "50%",
-            width: "40px",
-            height: "40px",
+            width: "50px",
+            height: "50px",
             fontSize: "1.5rem",
             cursor: "pointer"
           }}>⟶</button>
 
           {/* D-Pad */}
-          {currentCamera.name.includes("Pan Tilt") && (
-            <div style={{ position: "absolute", bottom: "2rem", left: "50%", transform: "translateX(-50%)" }}>
+          {currentCamera.name.includes("USB 2.0 Camera") && (
+            <div style={{ position: "absolute", height: "100px", width: "100px", bottom: "2rem", right: "2rem", transform: "translateX(-50%)" }}>
               <DPad inputStream="up" />
             </div>
           )}
+          
         </div>
       ) : (
-        <div style={{ color: "white", textAlign: "center", paddingTop: "2rem" }}>
-          <p>Click Start to begin stream...</p>
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          background: "rgba(0, 0, 0, 0.6)",
+          color: "white",
+          fontSize: "1.2rem",
+          flexDirection: "column",
+          textAlign: "center",
+          zIndex: 5
+        }}>
+          <p style={{
+            background: "rgba(255,255,255,0.1)",
+            padding: "0.75rem 1.5rem",
+            borderRadius: "12px",
+            fontWeight: "500",
+            backdropFilter: "blur(8px)"
+          }}>
+            No stream yet.<br />Click <strong>Start</strong> to begin.
+          </p>
         </div>
       )}
 
-      {/* Start / Stop Controls */}
+      {/* Power Toggle Button */}
       <div style={{
         position: "absolute",
-        bottom: "1.5rem",
-        width: "100%",
-        textAlign: "center"
+        bottom: "-75px",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        zIndex: 10
       }}>
-        <button onClick={handleStart} disabled={isStreaming} style={{
-          marginRight: "1rem",
-          padding: "0.5rem 1.5rem",
-          backgroundColor: "#4CAF50",
-          color: "white",
-          border: "none",
-          borderRadius: "6px",
-          cursor: "pointer"
-        }}>Start</button>
-        <button onClick={handleStop} disabled={!isStreaming} style={{
-          padding: "0.5rem 1.5rem",
-          backgroundColor: "#f44336",
-          color: "white",
-          border: "none",
-          borderRadius: "6px",
-          cursor: "pointer"
-        }}>Stop</button>
+        <PowerButton
+          isActive={isStreaming}
+          onClick={() => {
+            if (isStreaming) {
+              handleStop();
+            } else {
+              handleStart();
+            }
+          }}
+        />
       </div>
     </div>
   );

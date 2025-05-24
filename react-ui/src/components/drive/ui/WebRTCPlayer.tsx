@@ -53,7 +53,7 @@ const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({ devicePath, forwardedRef })
       autoPlay
       playsInline
       muted
-      style={{ width: "100%", height: "auto", objectFit: "cover" }}
+      style={{ width: "100%", height: "100%", objectFit: "cover" }}
     />
   );
 };
