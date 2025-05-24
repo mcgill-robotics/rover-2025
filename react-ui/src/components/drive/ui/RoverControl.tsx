@@ -136,16 +136,6 @@ const RoverControl: React.FC<RoverControlProps> = ({ streams, setStreams }) => {
           <Headlight />
         </div>
       </div>
-
-      <div className="connection-container">
-          <div className="camera-control-container">
-            <h2 className="camera-control-title">Available Devices</h2>
-            <StreamControl
-              onStart={startCamera}
-              onStop={() => stop(pc!)}
-            />
-          </div>
-        </div>
       {/* Error handling */}
       {error && <div className="error">{error}</div>}
     </div>

@@ -26,6 +26,7 @@ const CameraView: React.FC = () => {
   const [frameTimestamps, setFrameTimestamps] = useState<number[]>([]);
   const [lastFrameTime, setLastFrameTime] = useState<number | null>(null);
   const [resolution, setResolution] = useState<string>("N/A");
+  const [rtt, setRtt] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastSeenTimeRef = useRef<number>(0);
 
@@ -87,6 +88,30 @@ const CameraView: React.FC = () => {
     return () => cancelAnimationFrame(animationId);
   }, [isStreaming, lastFrameTime]);
 
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const fetchStats = async () => {
+      try {
+        const res = await axios.get("http://localhost:8081/bandwidth-stats");
+        const stats = res.data.bandwidth_stats?.[0];
+        if (stats?.rtt_ms != null) {
+          setRtt(stats.rtt_ms);
+        }
+      } catch (err) {
+        console.error("Failed to fetch bandwidth stats:", err);
+      }
+    };
+
+    if (isStreaming) {
+      fetchStats(); // initial fetch
+      intervalId = setInterval(fetchStats, 2000); // poll every 2s
+    }
+
+    return () => clearInterval(intervalId);
+  }, [isStreaming]);
+
+
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % cameras.length);
     resetStats();
@@ -116,31 +141,106 @@ const CameraView: React.FC = () => {
     ? ((frameTimestamps.length - 1) / ((frameTimestamps.at(-1)! - frameTimestamps[0]) / 1000)).toFixed(1)
     : "0.0";
   const isLive = lastFrameTime && Date.now() - lastFrameTime < 2000;
-
   return (
-    <div className="camera-view" style={{ width: "100%", maxWidth: "960px", margin: "0 auto", padding: "1rem" }}>
-      <div className="camera-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-        <button onClick={handlePrevious} className="nav-button">⟵ Previous</button>
-        <h2 style={{ textAlign: "center" }}>{currentCamera?.name ?? "Loading..."}</h2>
-        <button onClick={handleNext} className="nav-button">Next ⟶</button>
-      </div>
+    <div className="camera-view" style={{ height: "100vh", position: "relative", backgroundColor: "#000" }}>
+      {currentCamera && isStreaming ? (
+        <div style={{ height: "100%", width: "100%", position: "relative", overflow: "hidden" }}>
+          {/* WebRTC Video Feed */}
+          <WebRTCPlayer devicePath={currentCamera.path} forwardedRef={videoRef} />
 
-      <div className="camera-card" style={{ borderRadius: "12px", overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}>
-        {currentCamera && isStreaming ? (
-          <>
-            <WebRTCPlayer devicePath={currentCamera.path} forwardedRef={videoRef} />
-            {currentCamera.name.includes("Pan Tilt") && (
-              <div className="dpad" style={{ marginTop: "1rem" }}>
-                <DPad inputStream="up" />
-              </div>
-            )}
-          </>
-        ) : (
+          {/* Top Left - Camera Name + Live Status */}
+          <div style={{
+            position: "absolute",
+            top: "1rem",
+            left: "1rem",
+            color: "white",
+            fontSize: "1.2rem",
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            padding: "0.5rem 1rem",
+            borderRadius: "8px"
+          }}>
+            <strong>{currentCamera.name}</strong><br />
+            <span style={{
+              display: "inline-block",
+              width: "10px",
+              height: "10px",
+              borderRadius: "50%",
+              backgroundColor: isLive ? "limegreen" : "red",
+              marginRight: "0.5rem",
+            }}></span>
+            Live
+          </div>
+
+          {/* Top Right - Diagnostic Info */}
+          <div style={{
+            position: "absolute",
+            top: "1rem",
+            right: "1rem",
+            color: "white",
+            textAlign: "right",
+            fontSize: "0.9rem",
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            padding: "0.5rem 1rem",
+            borderRadius: "8px"
+          }}>
+            FPS: {fps}<br />
+            Res: {resolution}<br />
+            Ping: {rtt ? `${rtt.toFixed(0)} ms` : "N/A"}
+          </div>
+
+
+          {/* Prev Button - Left */}
+          <button onClick={handlePrevious} style={{
+            position: "absolute",
+            left: "1rem",
+            top: "50%",
+            transform: "translateY(-50%)",
+            background: "rgba(0,0,0,0.5)",
+            color: "white",
+            border: "none",
+            borderRadius: "50%",
+            width: "40px",
+            height: "40px",
+            fontSize: "1.5rem",
+            cursor: "pointer"
+          }}>⟵</button>
+
+          {/* Next Button - Right */}
+          <button onClick={handleNext} style={{
+            position: "absolute",
+            right: "1rem",
+            top: "50%",
+            transform: "translateY(-50%)",
+            background: "rgba(0,0,0,0.5)",
+            color: "white",
+            border: "none",
+            borderRadius: "50%",
+            width: "40px",
+            height: "40px",
+            fontSize: "1.5rem",
+            cursor: "pointer"
+          }}>⟶</button>
+
+          {/* D-Pad */}
+          {currentCamera.name.includes("Pan Tilt") && (
+            <div style={{ position: "absolute", bottom: "2rem", left: "50%", transform: "translateX(-50%)" }}>
+              <DPad inputStream="up" />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ color: "white", textAlign: "center", paddingTop: "2rem" }}>
           <p>Click Start to begin stream...</p>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div style={{ marginTop: "1rem", textAlign: "center" }}>
+      {/* Start / Stop Controls */}
+      <div style={{
+        position: "absolute",
+        bottom: "1.5rem",
+        width: "100%",
+        textAlign: "center"
+      }}>
         <button onClick={handleStart} disabled={isStreaming} style={{
           marginRight: "1rem",
           padding: "0.5rem 1.5rem",
@@ -158,20 +258,8 @@ const CameraView: React.FC = () => {
           borderRadius: "6px",
           cursor: "pointer"
         }}>Stop</button>
-        <div style={{ marginTop: "0.75rem" }}>
-          <span style={{
-            display: "inline-block",
-            width: "10px",
-            height: "10px",
-            borderRadius: "50%",
-            backgroundColor: isLive ? "green" : "red",
-            marginRight: "0.5rem"
-          }}></span>
-          Live Status • FPS: {fps} • Resolution: {resolution} • Total Frames: {frameTimestamps.length}
-        </div>
       </div>
     </div>
   );
-};
-
+}
 export default CameraView;

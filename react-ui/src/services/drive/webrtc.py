@@ -4,9 +4,14 @@ import re
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer
+import traceback
+import time
 
 pcs = set()
 previous_stats = {}
+
+MAX_RETRIES = 3
+RETRY_BACKOFF = [1, 2, 4]  # seconds
 
 @web.middleware
 async def cors_middleware(request, handler):
@@ -17,59 +22,80 @@ async def cors_middleware(request, handler):
     return response
 
 async def offer(request):
-    device_path = request.rel_url.query["id"]
-    print(f"[OFFER] Using v4l2 device: {device_path}")
-
+    device_path = request.rel_url.query.get("id")
+    if not device_path:
+        return web.json_response({"error": "Missing 'id' query param for video device"}, status=400)
+    
+    print(f"[OFFER] Requested v4l2 device: {device_path}")
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
-
     pc = RTCPeerConnection()
     pcs.add(pc)
 
     @pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
-        print("ICE connection state is", pc.iceConnectionState)
-        if pc.iceConnectionState == "failed":
+        print("[ICE] Connection state:", pc.iceConnectionState)
+        if pc.iceConnectionState in ["failed", "disconnected", "closed"]:
             await pc.close()
             pcs.discard(pc)
+            print("[ICE] Connection closed and cleaned up.")
+
+    # Retry creating the MediaPlayer
+    player = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            player = MediaPlayer(
+                device_path,
+                format="v4l2",
+                options={"framerate": "30", "video_size": "640x480", "input_format": "yuyv422"}
+            )
+            print(f"[DEBUG] MediaPlayer started on {device_path}")
+            break
+        except Exception as e:
+            print(f"[ERROR] MediaPlayer attempt {attempt+1} failed: {e}")
+            if attempt < MAX_RETRIES - 1:
+                await asyncio.sleep(RETRY_BACKOFF[attempt])
+            else:
+                traceback.print_exc()
+                return web.json_response({"error": f"Failed to open {device_path} after {MAX_RETRIES} attempts: {str(e)}"}, status=500)
 
     try:
-        player = MediaPlayer(
-            device_path,
-            format="v4l2",
-            options={
-                "framerate": "30",
-                "video_size": "640x480",
-                "input_format": "yuyv422"
-            }
-        )
-        print("[DEBUG] player.video:", player.video)
+        await pc.setRemoteDescription(offer)
+        print("[DEBUG] Set remote description.")
+
+        for t in pc.getTransceivers():
+            if t.kind == "video" and player.video:
+                pc.addTrack(player.video)
+                print("[DEBUG] Video track added to PC.")
+
+        answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
+        print("[DEBUG] Answer created.")
+
+        return web.json_response({
+            "sdp": pc.localDescription.sdp,
+            "type": pc.localDescription.type
+        })
+
     except Exception as e:
-        error_message = f"[OFFER] MediaPlayer creation failed: {e}"
-        print(error_message)
-        return web.json_response({"error": f"Failed to open {device_path}. {str(e)}"}, status=500)
-
-    await pc.setRemoteDescription(offer)
-    print("[DEBUG] Transceivers:", pc.getTransceivers())
-
-    for t in pc.getTransceivers():
-        if t.kind == "video" and player.video:
-            pc.addTrack(player.video)
-
-    answer = await pc.createAnswer()
-    await pc.setLocalDescription(answer)
-
-    return web.json_response({
-        "sdp": pc.localDescription.sdp,
-        "type": pc.localDescription.type
-    })
+        traceback.print_exc()
+        await pc.close()
+        pcs.discard(pc)
+        if player:
+            await player.stop()
+        return web.json_response({"error": f"WebRTC setup failed: {str(e)}"}, status=500)
 
 async def get_bandwidth_stats(request):
     global previous_stats
     stats_list = []
+
     for pc in pcs:
         stats = await pc.getStats()
+        bitrate_kbps = None
+        rtt_ms = None
+
         for report in stats.values():
+            # Bitrate calculation (can be removed if not needed)
             if report.type == "outbound-rtp" and getattr(report, "kind", None) == "video":
                 if hasattr(report, "bytesSent") and hasattr(report, "timestamp"):
                     timestamp_ms = report.timestamp.timestamp() * 1000
@@ -79,15 +105,27 @@ async def get_bandwidth_stats(request):
                         byte_diff = report.bytesSent - prev_report["bytesSent"]
                         if time_diff > 0:
                             bitrate_kbps = (byte_diff * 8) / time_diff / 1000
-                            stats_list.append({
-                                "bitrate_kbps": bitrate_kbps,
-                                "timestamp": timestamp_ms
-                            })
-                            print(f"[STATS] Bitrate: {bitrate_kbps:.1f} kbps")
                     previous_stats[pc] = {
                         "bytesSent": report.bytesSent,
                         "timestamp": timestamp_ms
                     }
+
+        for report in stats.values():
+            if report.type == "candidate-pair" and getattr(report, "state", "") == "succeeded":
+                if getattr(report, "nominated", False) and hasattr(report, "currentRoundTripTime"):
+                    rtt_ms = report.currentRoundTripTime * 1000
+                    break  # use the first valid one
+
+        # Safe logging
+        bitrate_str = f"{bitrate_kbps:.1f} kbps" if bitrate_kbps is not None else "N/A"
+        rtt_str = f"{rtt_ms:.1f} ms" if rtt_ms is not None else "N/A"
+        print(f"[STATS] Bitrate: {bitrate_str}, RTT: {rtt_str}")
+
+        stats_list.append({
+            "bitrate_kbps": bitrate_kbps,
+            "rtt_ms": rtt_ms
+        })
+
     return web.json_response({"bandwidth_stats": stats_list})
 
 async def list_video_devices(request):
