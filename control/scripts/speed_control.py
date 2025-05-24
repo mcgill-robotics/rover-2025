@@ -31,9 +31,12 @@ class speed_controller():
                     }, {
                         "gear": 5,
                         "speed": 2000.0
+                    }, {
+                        "gear": 6,
+                        "speed": 3200.0
                     }]
 
-        self.history_size = 10 # How many previous wheels we average over
+        self.history_size = 3 # How many previous wheels we average over
 
         # A 1-D Gaussian array to act as a weighted average on self.wheelspeeds
         # "kernlen" must be the same as "self.history_size".
@@ -46,9 +49,9 @@ class speed_controller():
         self.current_speed = 0.0
         self.max_speed = self.gears[self.current_gear_index]["speed"]
 
-        self.acceleration_rate = 100
-        self.deceleration_rate = 100  # Decay value when no acceleration input is given
-        self.downshift_deceleration_rate = 200  # Slightly faster decay when downshifting
+        self.acceleration_rate = 800
+        self.deceleration_rate = 800  # Decay value when no acceleration input is given
+        self.downshift_deceleration_rate = 800  # Slightly faster decay when downshifting
 
     # Function that yields a 1D gaussian
     # Source: https://stackoverflow.com/questions/29731726/how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy

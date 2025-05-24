@@ -40,7 +40,7 @@ class firmware(Node):
 
         # TODO: Tune values
         self.deadzone = 0.1 
-        self.turning_speed = 500.0
+        self.turning_speed = 2000.0
 
         #TODO: Update code with API calls.
         #Call electrical API to get current state of wheels
@@ -50,7 +50,7 @@ class firmware(Node):
         self.speedInputPublisher = self.create_publisher(Float32MultiArray, "drive_speed_input", 10)
 
         # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
-        timer_period = 0.25
+        timer_period = 0.2
         self.timer = self.create_timer(timer_period, self.run)
 
     def not_in_deadzone_check(self, x_axis, y_axis):
@@ -78,6 +78,8 @@ class firmware(Node):
             # TODO: Send speed to wheels -> Publish speed
 
             msg.data = speed
+            #speed[1] = -speed[1]
+            #speed[2] = -speed[2]
             self.speedInputPublisher.publish(msg)
 
 

@@ -77,6 +77,43 @@ def parse_can_id(can_id):
         "node": node
     }
 
+def getAllMotorStatus(self):
+    time.sleep(0.2)
+    motor_names = ['RF Drive', 'RB Drive', 'LB Drive', 'LF Drive']
+    nodes       = [
+        NodeID.RF_DRIVE,
+        NodeID.RB_DRIVE,
+        NodeID.LB_DRIVE,
+        NodeID.LF_DRIVE
+    ]
+
+    status_list = []
+
+    for node in nodes:
+        # ask ESC to send its fault count
+        self.read_all_faults(node)
+
+        # wait for up to 20ms for a reply
+        info = self.esc.station.recv_msg(timeout=0.025)
+
+        # if we got nothing, treat it as a fault
+        if info is None:
+            ok = False
+        else:
+            # info is [node_id, spec_string, value]
+            ok = (info[2] == 0.0)
+
+        status_list.append(ok)
+
+    # pretty-print
+    print("\nMotor Fault Status:")
+    for name, ok in zip(motor_names, status_list):
+        symbol = 'ONLINE' if ok else 'NOT AVAILABLE'
+        print(f"  {symbol}  {name}")
+    print()
+
+    return status_list
+
 class CANMessage:
     def __init__(self, sender_id, DLC, data_bytes):
         if isinstance(sender_id, int):

@@ -42,27 +42,27 @@ def rover_rotation(wheel_angles, rotation_dir):
 
     # CASE 1: approximately perpendicular to rover
     # front of wheel facing right
-    if abs(wheel_angles[0]) <= tolerance or abs(math.pi*2-wheel_angles[0]) <= tolerance: 
-        if rotation_dir < 0: #turn left
-            # top wheels go backward, bottom wheel rotate forward
-            return [i*abs(rotation_dir) for i in [-1, -1, 1, 1]] 
-        else: #turning right
-            # top wheels go forward, bottom wheel rotate backward
-            return [i*abs(rotation_dir) for i in [1, 1, -1, -1]] 
+    # if abs(wheel_angles[0]) <= tolerance or abs(math.pi*2-wheel_angles[0]) <= tolerance: 
+    #     if rotation_dir < 0: #turn left
+    #         # top wheels go backward, bottom wheel rotate forward
+    #         return [i*abs(rotation_dir) for i in [-1, -1, 1, 1]] 
+    #     else: #turning right
+    #         # top wheels go forward, bottom wheel rotate backward
+    #         return [i*abs(rotation_dir) for i in [1, 1, -1, -1]] 
 
-    # front of wheel facing left
-    elif abs(wheel_angles[0] - math.pi) <= tolerance:
-        if rotation_dir < 0: #turn left
-            # top wheels go forward, bottom wheel rotate backward
-            return [i*abs(rotation_dir) for i in [1, 1, -1, -1]] 
-        else: #turning right
-            # top wheels go backward, bottom wheel rotate forward
-            return [i*abs(rotation_dir) for i in [-1, -1, 1, 1]]
+    # # front of wheel facing left
+    # elif abs(wheel_angles[0] - math.pi) <= tolerance:
+    #     if rotation_dir < 0: #turn left
+    #         # top wheels go forward, bottom wheel rotate backward
+    #         return [i*abs(rotation_dir) for i in [1, 1, -1, -1]] 
+    #     else: #turning right
+    #         # top wheels go backward, bottom wheel rotate forward
+    #         return [i*abs(rotation_dir) for i in [-1, -1, 1, 1]]
 
         
     # CASE 2: approximately parallel to rover
     # front of wheel facing front
-    elif abs(wheel_angles[0]-math.pi/2) <= tolerance:
+    if abs(wheel_angles[0]-math.pi/2) <= tolerance:
         if rotation_dir < 0: #turn left
             # left wheels go backward, right wheels rotate forward
             return [i*abs(rotation_dir) for i in [1, -1, -1, 1]] 
@@ -71,13 +71,13 @@ def rover_rotation(wheel_angles, rotation_dir):
             return [i*abs(rotation_dir) for i in [-1, 1, 1, -1]]
     
     # front of wheel facing backward
-    elif abs(wheel_angles[0]-3*math.pi/2) <= tolerance:
-        if rotation_dir < 0: #turn left
-            # left wheels go forward, right wheels rotate backward
-            return [i*abs(rotation_dir) for i in [-1, 1, 1, -1]] 
-        else: #turning right
-            # left wheels go backward, right wheel rotate forward
-            return [i*abs(rotation_dir) for i in [1, -1, -1, 1]]
+    # elif abs(wheel_angles[0]-3*math.pi/2) <= tolerance:
+    #     if rotation_dir < 0: #turn left
+    #         # left wheels go forward, right wheels rotate backward
+    #         return [i*abs(rotation_dir) for i in [-1, 1, 1, -1]] 
+    #     else: #turning right
+    #         # left wheels go backward, right wheel rotate forward
+    #         return [i*abs(rotation_dir) for i in [1, -1, -1, 1]]
 
 
     # CASE 3: wheels / relative to rover
