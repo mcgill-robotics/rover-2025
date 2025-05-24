@@ -1,0 +1,27 @@
+import os
+import sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(currentdir)
+import pantilt_firmware as pf
+import pantilt_control as pc
+import rclpy
+from rclpy.node import Node
+from msg_srv_interface.msg import GamePadInput
+
+class pantilt(Node):
+
+    def __init__(self):
+        super().__init__("pantilt_node")
+        self.gampepad_subscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.update_pantilt, 10)
+        self.pantilt_firmware = pf.PanTiltFirmware("/dev/ttyACM0", 115200)
+        self.pantilt_firmware.connect()
+        self.pantilt_control = pc.PanTiltController(0.1)
+
+
+    def update_pantilt(self, gamepad_input : GamePadInput) :
+        # Update the angles based on the gamepad input
+        delta_angles = self.pantilt_control.update_angles(gamepad_input)
+        # Send the angles to the firmware
+        self.pantilt_firmware.add_pan_angle(delta_angles[0])
+        self.pantilt_firmware.add_tilt_angle(delta_angles[1])
+        

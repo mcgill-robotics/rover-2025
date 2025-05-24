@@ -26,16 +26,15 @@ class PanTiltController():
 
 
     def update_angles(self, controller):
-
-        if controller.l1_button:
-            """Assuming that d_pad_x -1.0 when left pressed, 0.0 no input and +1.0 when right pressed"""
-            y_delta = controller.d_pad_x * self.step_size
-            self.yaw = self.adjust(self.yaw + y_delta, 0, 2*math.pi)    # to contrain according to 0 ≤ yaw ≤ 2π 
-
-        if controller.r1_button:
-            """Assuming that d_pad_y pressedn down: +1.0 and d_pad_y pressed up: -1.0 (if so make -controller.d_pad_y)"""
-            p_delta = controller.d_pad_y * self.step_size
-            self.pitch = self.adjust(self.pitch + p_delta, 0, math.pi) #  to contrain according to 0 ≤ pitch ≤ π 
+        old_yaw = self.yaw
+        old_pitch = self.pitch
+        """Assuming that d_pad_x -1.0 when left pressed, 0.0 no input and +1.0 when right pressed"""
+        y_delta = controller.d_pad_x * self.step_size
+        self.yaw = self.adjust(self.yaw + y_delta, 0, 2*math.pi)    # to contrain according to 0 ≤ yaw ≤ 2π 
+        """Assuming that d_pad_y pressedn down: +1.0 and d_pad_y pressed up: -1.0 (if so make -controller.d_pad_y)"""
+        p_delta = controller.d_pad_y * self.step_size
+        self.pitch = self.adjust(self.pitch + p_delta, 0, math.pi) #  to contrain according to 0 ≤ pitch ≤ π 
+        return [self.yaw - old_yaw, self.pitch - old_pitch] # return the difference in angles to be used in the firmware
     
 
     def adjust(self, value, min_val, max_val):
