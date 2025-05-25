@@ -3,7 +3,6 @@ import sys
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
 import pantilt_firmware as pf
-import pantilt_control as pc
 import rclpy
 from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
@@ -55,3 +54,11 @@ class pantilt(Node):
             self.get_logger().error(f"Failed to update pan/tilt angles: {e}")
             return
         
+
+def main(args=None):
+    rclpy.init(args=args)
+    pantilt_node = pantilt()
+    rclpy.spin(pantilt_node)
+
+if __name__ == "__main__":
+    main()
