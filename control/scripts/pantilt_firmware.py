@@ -16,8 +16,8 @@ class PanTiltGPS():
         Whether the board is connected to the computer
     buffer: bytes
         The buffer of bytes received from the serial port
-    has_gps: bool
-        Whether the board has at least one connected satellites
+    gps_sats: float
+        Number of satellites connected to the gps
     coords: list[float]
         The latitude and longitude
     imu: list[float]
@@ -43,7 +43,7 @@ class PanTiltGPS():
         self.ser: serial.Serial = None
         self.is_connected: bool = False
         self.buffer : bytes = b""
-        self.has_gps: bool = False
+        self.gps_sats: float = 0
         self.coords: list[float] = [-1.0, -1.0]
         self.imu: list[float] = [0, 0, 0, 0, 0, 0]
 
@@ -90,7 +90,7 @@ class PanTiltGPS():
         data = line.split(',')
         if len(data) != 9:
             return
-        self.has_gps = True if float(data[0]) > 0 else False
+        self.gps_sats = float(data[0])
         self.coords[0] = float(data[1])
         self.coords[1] = float(data[2])
         for i in range(3,9):
@@ -109,7 +109,17 @@ class PanTiltGPS():
         bool
             True if the gps is connected, False if not
         '''
-        return self.has_gps
+        return (self.gps_sats >= 3)
+    
+    def get_gps_satellites(self) -> float:
+        ''' Gets the number of satelittes connected to the GPS.
+        
+        Returns
+        -------
+        float
+            The number of GPS satelittes connected.
+        '''
+        return self.gps_sats
 
     def get_gps(self) -> list[float]:
         ''' Gets the last available gps coordinates (latitude, longitude)
@@ -173,12 +183,15 @@ class PanTiltGPS():
 if __name__ == "__main__":
     # Test script
     import time
-    board = PanTiltGPS("COM4")
+    board = PanTiltGPS("COM3")
     try:
         board.connect()
     except ConnectionError as e:
         print(e)
         exit(1)
+
+    board.add_pan_angle(30)
+    board.add_tilt_angle(30)
 
     while True:
         # print data, no servo for now
