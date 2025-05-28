@@ -49,9 +49,9 @@ class speed_controller():
         self.current_speed = 0.0
         self.max_speed = self.gears[self.current_gear_index]["speed"]
 
-        self.acceleration_rate = 800
-        self.deceleration_rate = 800  # Decay value when no acceleration input is given
-        self.downshift_deceleration_rate = 800  # Slightly faster decay when downshifting
+        self.acceleration_rate = 1000
+        self.deceleration_rate = 2000  # Decay value when no acceleration input is given
+        self.downshift_deceleration_rate = 1000  # Slightly faster decay when downshifting
 
     # Function that yields a 1D gaussian
     # Source: https://stackoverflow.com/questions/29731726/how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy

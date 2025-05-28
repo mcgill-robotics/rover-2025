@@ -78,7 +78,6 @@ def parse_can_id(can_id):
     }
 
 def getAllMotorStatus(self):
-    time.sleep(0.2)
     motor_names = ['RF Drive', 'RB Drive', 'LB Drive', 'LF Drive']
     nodes       = [
         NodeID.RF_DRIVE,
@@ -174,8 +173,6 @@ class CANStation:
 
         try:
             self.bus.send(can_msg)
-            print(f"[TX] ID: 0x{can_msg.arbitration_id:03X} ({can_msg.arbitration_id}) "
-                f"[{bin_id}] | Data: {list(can_msg.data)}{float_val_str}")
             return 0
         except can.CanError as e:
             print(f"Send fail: {e}")
@@ -377,7 +374,6 @@ class DriveInterface:
         self.esc.read(ReadSpec.GET_PING, MotorType.DRIVE, node, is_single=True)
 
     def getAllMotorStatus(self):
-        time.sleep(0.2)
         motor_names = ['RF Drive', 'RB Drive', 'LB Drive', 'LF Drive']
         nodes       = [
             NodeID.RF_DRIVE,

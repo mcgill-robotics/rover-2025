@@ -3,18 +3,11 @@ from launch_ros.actions import Node
 
 def generate_launch_description() -> LaunchDescription:
 
-    #Node for Gamepad
-    gamepad = Node(
-        package='human_control_interface',
-        executable='gamepad_input_pub',
-        name='gamepad',
-        output='screen'
-    )
 
     drive_firmware = Node(
         package='control',
-        executable='drive_firmware_node',
-        name='drive_firmware',
+        executable='drive_control_node',
+        name='drive_control',
         output='screen'
     )
 
@@ -25,4 +18,4 @@ def generate_launch_description() -> LaunchDescription:
         output='screen'
     )
 
-    return LaunchDescription([gamepad, drive_firmware, can_communication])
+    return LaunchDescription([drive_firmware, can_communication])

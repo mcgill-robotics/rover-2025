@@ -129,7 +129,8 @@ class PanTiltGPS():
         list[float]
             The list of latitude and longitude coordinates
         '''
-        return self.coords
+        new_list = [float(self.gps_sats), self.coords[0], self.coords[1]]
+        return new_list
     
     def get_imu_data(self) -> list[float]:
         ''' Gets the last available imu data.

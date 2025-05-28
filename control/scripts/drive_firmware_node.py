@@ -1,114 +1,100 @@
-#!/usr/bin/env python3
 import os
 import sys
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
+import driveCANCommunication as dCAN
 import rclpy
-from speed_control import speed_controller
 from rclpy.node import Node
-from msg_srv_interface.msg import GamePadInput
-from steering import rover_rotation , wheel_orientation_rot
-import math
-import numpy as np
 from std_msgs.msg import Float32MultiArray
+from msg_srv_interface.msg import GamePadInput
+import can
 
+class driveCan(Node):
 
-### TEMP for Drive Test ###
-# import socket
-# import pygame
-# import time
-
-
-# JETSON_IP = "192.168.0.101"  # IP of the motor computer
-# UDP_PORT = 5005           # Port to send data
-# sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP socket
-
-# def send_UDP_message(msg):
-#     sock.sendto(msg.encode(), (JETSON_IP, UDP_PORT))
-### TEMP for Drive Test ###
-
-class firmware(Node):
     def __init__(self):
+        super().__init__("drivecan_node")
 
-        super().__init__("firmware_node")
+        self.driveSpeedInputSubscriber = self.create_subscription(Float32MultiArray, "drive_speed_input", self.publish_speeds, 10)
+        self.gampepad_subscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.clear_motor_faults, 10)
 
-        #Declare fields corresponging to controller input
-        self.gamepad_input = GamePadInput()
+        # TODO: Create custom msg type to send the dictionary
+        #self.motorInfoPublisher = self.create_publisher(dict, "drive_motors_info", 10) 
 
-        #Declare field corresponding to speed control node and current state of wheels
-        self.speed_controller = speed_controller()
-
-        # TODO: Tune values
-        self.deadzone = 0.1 
-        self.turning_speed = 2000.0
-
-        #TODO: Update code with API calls.
-        #Call electrical API to get current state of wheels
-        self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
-       
-        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.controller_callback, 10)
-        self.speedInputPublisher = self.create_publisher(Float32MultiArray, "drive_speed_input", 10)
-
-        # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
-        timer_period = 0.2
-        self.timer = self.create_timer(timer_period, self.run)
-
-    def not_in_deadzone_check(self, x_axis, y_axis):
-        return not ((-self.deadzone <= x_axis <= self.deadzone) and (-self.deadzone <= y_axis <= self.deadzone))
-    
-    def run(self):
-
-        #Speed given button input
-        speed = self.speed_controller.updateSpeed(self.gamepad_input.x_button, self.gamepad_input.o_button)
-        speed = [speed for _ in range(4)]
-        msg = Float32MultiArray()
+        self.motorSpeedsPublisher = self.create_publisher(Float32MultiArray, "drive_speeds_info", 10)
         
-        #Check whether there is an input value for rover rotation
-        if self.gamepad_input.r1_button or self.gamepad_input.l1_button:
-            rot_inp = 0
-            if (self.gamepad_input.r1_button):
-                rot_inp = 1
-            elif (self.gamepad_input.l1_button):
-                rot_inp = -1
+        # TODO: Create custom .srv
+        # self.drivePingService = self.create_service(Float32MultiArray, "drive_motors_status", self.drive_ping_callback)
 
-            #Array with the desired speed for each wheel during rover rotation
-            rotation_sp = rover_rotation(self.wheel_angles, rot_inp)
+        station = dCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
+        esc_interface = dCAN.ESCInterface(station)
+        self.drive_interface = dCAN.DriveInterface(esc_interface)
+        self.nodes = [dCAN.NodeID.RF_DRIVE, dCAN.NodeID.RB_DRIVE, dCAN.NodeID.LB_DRIVE, dCAN.NodeID.LF_DRIVE] #Steering motors should be appended
+        self.motor_info = {"RF": {"Voltage": 0, "Current": 0, "Speed": 0, "State": 0, "Temperature": 0},
+                           "RB": {"Voltage": 0, "Current": 0, "Speed": 0, "State": 0, "Temperature": 0},
+                           "LB": {"Voltage": 0, "Current": 0, "Speed": 0, "State": 0, "Temperature": 0},
+                           "LF": {"Voltage": 0, "Current": 0, "Speed": 0, "State": 0, "Temperature": 0}}
+        #Steering motors should be appended to this dict.
+        self.motors = list(self.motor_info.keys())
 
-            speed = [direction*self.turning_speed for direction in rotation_sp] # TODO Change 500 to acutal value
-            # TODO: Send speed to wheels -> Publish speed
+        for motor in self.nodes:
+            self.drive_interface.acknowledge_motor_fault(motor)
 
-            msg.data = speed
-            #speed[1] = -speed[1]
-            #speed[2] = -speed[2]
-            self.speedInputPublisher.publish(msg)
+        # TODO: Uncomment when custom msg for dict is done
+        # timer_period = 5.0
+        # self.timer = self.create_timer(timer_period, self.publish_motor_info)
 
+    def clear_motor_faults(self, gamepad_input : GamePadInput):
 
-        #Check whether gears change
-        if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
-            self.speed_controller.shifting_gear(self.gamepad_input.r2_button, self.gamepad_input.l2_button)
+        if gamepad_input.square_button:
+            for motor in self.nodes:
+                self.drive_interface.acknowledge_motor_fault(motor)
 
-        #Check whether joystick position changes
-        if self.not_in_deadzone_check(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y):
-            #Orientation for wheels given a joystick positinon
-            self.wheel_angles = wheel_orientation_rot(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y, self.wheel_angles[0])
+    # TODO: Test publish motor_info with UI
+    # def publish_motor_info(self):
+    #     states = self.drive_interface.getAllMotorStatus()
 
-            # TODO: Send new orientation to wheels
+    #     for ind in range(len(self.nodes)):
+    #         if states[ind]:
+    #             self.motor_info[self.motors[ind]]["Voltage"] = self.drive_interface.read_voltage(self.nodes[ind])
+    #             self.drive_interface.esc.station.recv_msg(timeout=0.25)
 
-        # TODO: Use API to send input values for speed, orientation and rotation.
-        msg.data = speed
-        self.speedInputPublisher.publish(msg)
+    #             self.motor_info[self.motors[ind]]["Current"] = self.drive_interface.read_current(self.nodes[ind])
+    #             self.drive_interface.esc.station.recv_msg(timeout=0.25)
 
-        # command = ":".join(map(str, speed))
-        # send_UDP_message(command)
+    #             self.motor_info[self.motors[ind]]["Speed"] = self.drive_interface.read_speed(self.nodes[ind])
+    #             self.drive_interface.esc.station.recv_msg(timeout=0.25)
+
+    #             self.motor_info[self.motors[ind]]["State"] = self.drive_interface.read_state(self.nodes[ind])
+    #             self.drive_interface.esc.station.recv_msg(timeout=0.25)
+
+    #             self.motor_info[self.motors[ind]]["Temperature"] = self.drive_interface.read_temperature(self.nodes[ind])
+    #             self.drive_interface.esc.station.recv_msg(timeout=0.25)
+
+    #         else:
+    #             print("Motor fault detected in " + self.motors[ind])
+    #             exit(1)
+
+    #     self.motorInfoPublisher.publish(self.motor_info)
+
         
-    def controller_callback(self, input: GamePadInput):
-        self.gamepad_input = input
+
+    def publish_speeds(self, speeds: Float32MultiArray):
+        inp = speeds.data
+        self.drive_interface.broadcast_multi_motor_speeds(inp)
+        self.motorSpeedsPublisher.publish(speeds)
+
+    #TODO: Create custom srv
+    # def drive_ping_callback(self):
+    #     states = self.drive_interface.getAllMotorStatus()
+    #     msg = Float32MultiArray()
+    #     msg.data = states
+    #     return msg
+
 
 def main(args=None):
     rclpy.init(args=args)
-    firmware_node = firmware()
-    rclpy.spin(firmware_node)
+    driveCAN_node = driveCan()
+    rclpy.spin(driveCAN_node)
 
 if __name__ == "__main__":
     main()
-        
