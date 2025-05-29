@@ -30,6 +30,8 @@ setup(
             "drive_control_node = scripts.drive_control_node:main",
             "odrive_node = scripts.node_odrive_drive:main",
             "gui_node = scripts.node_control_gui:main",
+            "drive_firmware_node = scripts.drive_firmware_node:main",
+            "pantilt_control_node = scripts.pantilt_control_node:main"
         ],
     },
 )

@@ -1,0 +1,184 @@
+.camera-view {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grid layout for the camera cards */
+.camera-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 0.1rem;
+  margin: 0;
+}
+
+/* Styling for each camera card */
+.camera-card {
+  flex: 11;
+  background-color: #2d2d38;
+  position: relative;
+  border-radius: 0.25rem; 
+  transition: border 0.3s ease;
+  cursor: pointer;
+  border: 2px solid rgba(78, 77, 77, 0.3);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.5), 0 4px 6px rgba(255, 255, 255, 0.25);
+}
+
+/* Styling for the camera title */
+.camera-title {
+  top: 0.25rem;
+  left: 0.25rem;
+  position: absolute;
+  font-size: 1rem;
+  font-weight: 300;
+  margin: 0;
+}
+
+/* Styling for the camera placeholder */
+.camera-placeholder {
+  position:relative;
+  background-color: #e5e7eb;
+  color: black;
+  height: 100%;
+  border-radius: 0.25rem;
+}
+
+/* Camera switch buttons container */
+.camera-switch-buttons {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  border: none;
+}
+
+/* Full width buttons container */
+.camera-button-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Camera button styling */
+.camera-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  background-color: #24252A;
+  color: #888;
+  padding: 8px 16px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  border: none;
+  text-align: center;
+  box-sizing: border-box;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4), -2px -2px 8px rgba(255, 255, 255, 0.1);
+}
+
+/* Circle (status indicator) */
+.camera-connection {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 10px;
+  background: radial-gradient(circle, #d9d9d9 10%, #aaa 90%); 
+  box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.2), 
+              2px 2px 4px rgba(0, 0, 0, 0.3); 
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Green (Connected) - Glowing effect */
+.camera-connection.connected {
+  background: radial-gradient(circle, #5ffb5f 10%, #2e8b57 90%);
+  box-shadow: 0 0 6px #5ffb5f,
+              inset 2px 2px 3px rgba(0, 0, 0, 0.2); 
+}
+
+/* Red (Disconnected) - Glowing effect */
+.camera-connection.disconnected {
+  background: radial-gradient(circle, #ff6666 10%, #b30000 90%);
+  box-shadow: 0 0 6px #ff6666,
+              inset 2px 2px 3px rgba(0, 0, 0, 0.2); 
+}
+
+/* Active camera button styling */
+.active-button {
+  color: white;
+  border: none;
+  transform: scale(1.02);
+}
+
+/* Hover effect */
+.camera-button:hover {
+  color: white;
+  transform: scale(1.02);
+}
+
+/* Back to grid button styling */
+.back-to-grid {
+  border: none;
+  padding: 8px 16px;
+  color: #888;
+  text-align: center;
+  width: 100%;
+  gap: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.back-to-grid:hover {
+  transform: scale(1.02);
+}
+
+.back-arrow {
+  width: 16px;
+  height: 16px;
+  stroke: #888;
+}
+
+.back-arrow:hover {
+  stroke: white;
+}
+
+/* Add a red border when hovering over the corresponding button */
+.hover-highlight {
+  border: 2px solid red;
+  transition: border 0.1s ease-in-out;
+  z-index: 2;
+}
+
+.dpad {
+  position: absolute;
+  bottom: 2%;
+  right: 2%;
+  width: 17.5%;
+  height: 17.5%;
+}
+
+
+/* Responsive design - Ensure buttons take full width on mobile */
+@media (max-width: 768px) {
+  .camera-switch-buttons {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .camera-button {
+    width: 100%;
+  }
+
+  .back-to-grid {
+    width: 100%;
+  }
+}
+
+/* Responsive grid for large screens (2 columns) */
+@media (min-width: 1024px) {
+  .camera-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
