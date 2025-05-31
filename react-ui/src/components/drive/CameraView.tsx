@@ -1,12 +1,12 @@
-// CameraView.tsx (Accurate FPS via currentTime)
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import WebRTCPlayer from "./ui/WebRTCPlayer";
 import DPad from "./ui/DPad";
 import PowerButton from "../arm/ui/PowerButton";
 import axios from "axios";
 import "./styles/CameraView.css";
+import { useWebRTCStream } from "../../hooks/useWebRTCStreams";
 
 const targetCameraNames = [
   "USB 2.0 Camera",
@@ -23,13 +23,20 @@ interface CameraInfo {
 const CameraView: React.FC = () => {
   const [cameras, setCameras] = useState<CameraInfo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [frameTimestamps, setFrameTimestamps] = useState<number[]>([]);
-  const [lastFrameTime, setLastFrameTime] = useState<number | null>(null);
-  const [resolution, setResolution] = useState<string>("N/A");
-  const [rtt, setRtt] = useState<number | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const lastSeenTimeRef = useRef<number>(0);
+  const [rtt, setRtt] = useState<number| null>(null)
+  const [bitrate_kbps, setBitrate] = useState<string>("N/A");
+  const [ping_ms, setPing] = useState<number | null>(null);
+
+  const currentCamera = cameras[currentIndex];
+  const {
+    isStreaming,
+    startStream,
+    stopStream,
+    videoKey,
+    videoRef,
+    fps,
+    isLive,
+  } = useWebRTCStream({ devicePath: currentCamera?.path || "" });
 
   useEffect(() => {
     const fetchCameraPaths = async () => {
@@ -55,101 +62,43 @@ const CameraView: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    let animationId: number;
-
-    const monitor = () => {
-      if (videoRef.current && videoRef.current.readyState >= 2) {
-        const currentTime = Date.now();
-        const videoTime = videoRef.current.currentTime;
-
-        if (videoTime !== lastSeenTimeRef.current) {
-          lastSeenTimeRef.current = videoTime;
-          setFrameTimestamps((prev) => {
-            const updated = [...prev, currentTime].filter((t) => currentTime - t <= 2000);
-            return updated;
-          });
-          setLastFrameTime(currentTime);
-          setResolution(`${videoRef.current.videoWidth}x${videoRef.current.videoHeight}`);
-        }
-      }
-
-      if (lastFrameTime && Date.now() - lastFrameTime > 3000) {
-        console.warn("Stream stalled. Restarting...");
-        setIsStreaming(false);
-        setTimeout(() => setIsStreaming(true), 500);
-      }
-
-      animationId = requestAnimationFrame(monitor);
-    };
-
-    if (isStreaming) {
-      monitor();
-    }
-
-    return () => cancelAnimationFrame(animationId);
-  }, [isStreaming, lastFrameTime]);
-
-  useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
     const fetchStats = async () => {
       try {
         const res = await axios.get("http://localhost:8081/bandwidth-stats");
         const stats = res.data.bandwidth_stats?.[0];
-        if (stats?.rtt_ms != null) {
-          setRtt(stats.rtt_ms);
-        }
+        if (stats?.rtt_ms != null) setRtt(stats.rtt_ms);
+        if (stats?.bitrate_kbps != null) setBitrate(stats.bitrate_kbps);
+        if (res.data?.ping_ms != null) setPing(res.data.ping_ms);
       } catch (err) {
         console.error("Failed to fetch bandwidth stats:", err);
       }
     };
 
+
     if (isStreaming) {
-      fetchStats(); // initial fetch
-      intervalId = setInterval(fetchStats, 2000); // poll every 2s
+      fetchStats();
+      intervalId = setInterval(fetchStats, 2000);
     }
 
     return () => clearInterval(intervalId);
   }, [isStreaming]);
 
-
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % cameras.length);
-    resetStats();
   };
 
   const handlePrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + cameras.length) % cameras.length);
-    resetStats();
   };
 
-  const handleStart = () => {
-    setIsStreaming(true);
-    resetStats();
-  };
-
-  const handleStop = () => setIsStreaming(false);
-
-  const resetStats = () => {
-    setFrameTimestamps([]);
-    setLastFrameTime(null);
-    setResolution("N/A");
-    lastSeenTimeRef.current = 0;
-  };
-
-  const currentCamera = cameras[currentIndex];
-  const fps = frameTimestamps.length > 1
-    ? ((frameTimestamps.length - 1) / ((frameTimestamps.at(-1)! - frameTimestamps[0]) / 1000)).toFixed(1)
-    : "0.0";
-  const isLive = lastFrameTime && Date.now() - lastFrameTime < 2000;
   return (
     <div className="camera-view" style={{ height: "100vh", position: "relative", backgroundColor: "#000" }}>
       {currentCamera && isStreaming ? (
         <div style={{ height: "100%", width: "100%", position: "relative", overflow: "hidden" }}>
-          {/* WebRTC Video Feed */}
-          <WebRTCPlayer devicePath={currentCamera.path} forwardedRef={videoRef} />
+          <WebRTCPlayer key={videoKey} devicePath={currentCamera.path} forwardedRef={videoRef} />
 
-          {/* Top Left - Camera Name + Live Status */}
           <div style={{
             position: "absolute",
             top: "1rem",
@@ -172,7 +121,6 @@ const CameraView: React.FC = () => {
             Live
           </div>
 
-          {/* Top Right - Diagnostic Info */}
           <div style={{
             position: "absolute",
             top: "1rem",
@@ -185,12 +133,10 @@ const CameraView: React.FC = () => {
             borderRadius: "8px"
           }}>
             FPS: {fps}<br />
-            Res: {resolution}<br />
-            Ping: {rtt ? `${rtt.toFixed(0)} ms` : "N/A"}
+            Res: {bitrate_kbps}<br />
+            Ping: {ping_ms ? `${ping_ms.toFixed(0)} ms` : "N/A"}
           </div>
 
-
-          {/* Prev Button - Left */}
           <button onClick={handlePrevious} style={{
             position: "absolute",
             left: "1rem",
@@ -206,7 +152,6 @@ const CameraView: React.FC = () => {
             cursor: "pointer"
           }}>⟵</button>
 
-          {/* Next Button - Right */}
           <button onClick={handleNext} style={{
             position: "absolute",
             right: "1rem",
@@ -222,13 +167,11 @@ const CameraView: React.FC = () => {
             cursor: "pointer"
           }}>⟶</button>
 
-          {/* D-Pad */}
           {currentCamera.name.includes("USB 2.0 Camera") && (
             <div style={{ position: "absolute", height: "100px", width: "100px", bottom: "2rem", right: "2rem", transform: "translateX(-50%)" }}>
               <DPad inputStream="up" />
             </div>
           )}
-          
         </div>
       ) : (
         <div style={{
@@ -256,7 +199,6 @@ const CameraView: React.FC = () => {
         </div>
       )}
 
-      {/* Power Toggle Button */}
       <div style={{
         position: "absolute",
         bottom: "-75px",
@@ -268,14 +210,15 @@ const CameraView: React.FC = () => {
           isActive={isStreaming}
           onClick={() => {
             if (isStreaming) {
-              handleStop();
+              stopStream();
             } else {
-              handleStart();
+              startStream();
             }
           }}
         />
       </div>
     </div>
   );
-}
+};
+
 export default CameraView;

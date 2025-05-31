@@ -54,7 +54,7 @@ async def offer(request):
             player = MediaPlayer(
                 device_path,
                 format="v4l2",
-                options={"framerate": "30", "video_size": "640x480", "input_format": "mjpeg"}
+                options={"framerate": "30", "video_size": "640x480"} #, "input_format": "mjpeg"}
             )
             print(f"[MediaPlayer] Started on {device_path}")
             break
