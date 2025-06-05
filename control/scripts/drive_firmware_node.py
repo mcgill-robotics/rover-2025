@@ -7,7 +7,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
 from msg_srv_interface.msg import GamePadInput
-from msg_interface.msg import DriveMotorDiagnostic
+from msg_interface.msg import DriveMotorDiagnostic, DriveMotorStatus
 import can
 
 class driveCan(Node):
@@ -22,8 +22,7 @@ class driveCan(Node):
 
         self.driveMotorsSpeedsPublisher = self.create_publisher(Float32MultiArray, "drive_speeds_info", 10)
         
-        # TODO: Create custom .srv
-        # self.drivePingService = self.create_service(Float32MultiArray, "drive_motors_status", self.drive_ping_callback)
+        self.drivePingService = self.create_service(DriveMotorStatus, "drive_motors_status", self.drive_ping_callback)
 
         station = dCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
         esc_interface = dCAN.ESCInterface(station)
@@ -138,6 +137,15 @@ class driveCan(Node):
         self.drive_interface.broadcast_multi_motor_speeds(inp)
 
 
+    '''request: contains the request data
+       response: empty response object that is filled with the response data'''
+    def drive_ping_callback(self, request, response):
+        status_motors = self.drive_interface.getAllMotorStatus()
+        response.RF_OK = status_motors[0]
+        response.RB_OK = status_motors[1]
+        response.LB_OK = status_motors[2]
+        response.LF_OK = status_motors[3]
+        return response
 
 
 def main(args=None):
