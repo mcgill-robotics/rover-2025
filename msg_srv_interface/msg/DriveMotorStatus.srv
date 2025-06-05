@@ -1,4 +1,5 @@
-bool RF_OK
-bool RB_OK
-bool LB_OK
-bool LF_OK
+---
+bool rf_ok
+bool rb_ok
+bool lb_ok
+bool lf_ok

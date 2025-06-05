@@ -8,7 +8,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
 from msg_srv_interface.msg import GamePadInput
 from msg_interface.msg import DriveMotorDiagnostic, DriveMotorStatus
-import can
+#import can
 
 class driveCan(Node):
 
