@@ -3,6 +3,7 @@ import json
 import re
 import time
 import traceback
+import subprocess
 
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -16,6 +17,8 @@ STATS_INTERVAL = 2  # seconds
 MAX_RETRIES = 3
 RETRY_BACKOFF = [1, 2, 4]  # seconds
 
+# ------------------------- Middleware -------------------------
+
 @web.middleware
 async def cors_middleware(request, handler):
     response = await handler(request)
@@ -23,6 +26,32 @@ async def cors_middleware(request, handler):
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     return response
+
+# ------------------------- Camera Force-Kill -------------------------
+
+async def force_kill_device_users(device_path):
+    try:
+        result = subprocess.run(["fuser", "-v", device_path], capture_output=True, text=True)
+        output = result.stdout
+        pids = []
+
+        for line in output.splitlines():
+            parts = line.strip().split()
+            if parts and parts[0] == device_path:
+                pids = [int(p) for p in parts[1:] if p.isdigit()]
+
+        if not pids:
+            print(f"[FORCE-KILL] No processes found using {device_path}")
+            return
+
+        for pid in pids:
+            print(f"[FORCE-KILL] Killing PID {pid} using {device_path}")
+            subprocess.run(["kill", "-9", str(pid)])
+
+    except Exception as e:
+        print(f"[FORCE-KILL] Failed to kill process using {device_path}: {e}")
+
+# ------------------------- /offer -------------------------
 
 async def offer(request):
     device_path = request.rel_url.query.get("id")
@@ -54,12 +83,16 @@ async def offer(request):
             player = MediaPlayer(
                 device_path,
                 format="v4l2",
-                options={"framerate": "30", "video_size": "640x480"} #, "input_format": "mjpeg"}
+                options={"framerate": "30", "video_size": "640x480"}
             )
             print(f"[MediaPlayer] Started on {device_path}")
             break
         except Exception as e:
             print(f"[ERROR] MediaPlayer attempt {attempt+1} failed: {e}")
+            if "Device or resource busy" in str(e) and attempt == 0:
+                print(f"[BUSY] Attempting to force-kill blocker on {device_path}")
+                await force_kill_device_users(device_path)
+
             if attempt < MAX_RETRIES - 1:
                 await asyncio.sleep(RETRY_BACKOFF[attempt])
             else:
@@ -92,16 +125,14 @@ async def offer(request):
             await player.stop()
         return web.json_response({"error": f"WebRTC setup failed: {str(e)}"}, status=500)
 
-    # finally:
-    #     if player:
-    #         await player.stop()
+# ------------------------- /bandwidth-stats -------------------------
 
 async def get_bandwidth_stats(request):
     global previous_stats, last_stats_time
     now = time.time()
 
     if now - last_stats_time < STATS_INTERVAL:
-        return web.json_response({"bandwidth_stats": [], "ping_ms": None})  # Throttle
+        return web.json_response({"bandwidth_stats": [], "ping_ms": None})
 
     start_time = time.perf_counter()
     stats_list = []
@@ -145,6 +176,8 @@ async def get_bandwidth_stats(request):
         "ping_ms": ping_ms
     })
 
+# ------------------------- /video-devices -------------------------
+
 async def list_video_devices(request):
     try:
         result = await asyncio.create_subprocess_shell(
@@ -181,6 +214,8 @@ async def list_video_devices(request):
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
+# ------------------------- OPTIONS -------------------------
+
 async def handle_options(request):
     requested_headers = request.headers.get('Access-Control-Request-Headers', '')
     return web.Response(
@@ -192,10 +227,14 @@ async def handle_options(request):
         },
     )
 
+# ------------------------- Shutdown -------------------------
+
 async def on_shutdown(app):
     print("[SHUTDOWN] Closing all peer connections...")
     await asyncio.gather(*[pc.close() for pc in pcs])
     pcs.clear()
+
+# ------------------------- Main -------------------------
 
 if __name__ == "__main__":
     app = web.Application(middlewares=[cors_middleware])

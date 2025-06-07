@@ -11,11 +11,12 @@ const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({ devicePath, forwardedRef })
 
   useEffect(() => {
     const pc = new RTCPeerConnection();
+    let isCancelled = false;
 
     pc.addTransceiver("video", { direction: "recvonly" });
 
     pc.ontrack = (event) => {
-      if (videoRef.current) {
+      if (!isCancelled && videoRef.current) {
         videoRef.current.srcObject = event.streams[0];
       }
     };
@@ -44,8 +45,8 @@ const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({ devicePath, forwardedRef })
             headers: { "Content-Type": "application/json" },
           }
         );
-        const latency = performance.now() - start;
 
+        const latency = performance.now() - start;
         const data = await response.json();
 
         if (!data?.sdp || !data?.type) {
@@ -55,7 +56,7 @@ const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({ devicePath, forwardedRef })
         await pc.setRemoteDescription(new RTCSessionDescription(data));
         console.log(`[PING] Offer/answer exchange latency: ${latency.toFixed(1)} ms`);
       } catch (err) {
-        console.error("[WebRTC] Negotiation failed:", err);
+        if (!isCancelled) console.error("[WebRTC] Negotiation failed:", err);
         pc.close();
       }
     };
@@ -63,6 +64,9 @@ const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({ devicePath, forwardedRef })
     negotiate();
 
     return () => {
+      isCancelled = true;
+      pc.getSenders().forEach((sender) => sender.track?.stop());
+      pc.getReceivers().forEach((receiver) => receiver.track?.stop());
       pc.close();
     };
   }, [devicePath]);

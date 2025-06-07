@@ -1,13 +1,16 @@
-// hooks/useWebRTCStream.ts
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface WebRTCStreamOptions {
   devicePath: string;
-  stallTimeout?: number; // in ms
-  restartDelay?: number; // in ms
+  stallTimeout?: number;
+  restartDelay?: number;
 }
 
-export function useWebRTCStream({ devicePath, stallTimeout = 3000, restartDelay = 500 }: WebRTCStreamOptions) {
+export function useWebRTCStream({
+  devicePath,
+  stallTimeout = 3000,
+  restartDelay = 500,
+}: WebRTCStreamOptions) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [videoKey, setVideoKey] = useState(0);
   const [frameTimestamps, setFrameTimestamps] = useState<number[]>([]);
@@ -31,6 +34,14 @@ export function useWebRTCStream({ devicePath, stallTimeout = 3000, restartDelay 
   const stopStream = useCallback(() => {
     setIsStreaming(false);
   }, []);
+
+  // Optional: restart stream when devicePath changes while active
+  useEffect(() => {
+    if (isStreaming) {
+      resetStats();
+      setVideoKey((prev) => prev + 1);
+    }
+  }, [devicePath]);
 
   useEffect(() => {
     let animationId: number;

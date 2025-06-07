@@ -11,7 +11,7 @@ import { useWebRTCStream } from "../../hooks/useWebRTCStreams";
 const targetCameraNames = [
   "USB 2.0 Camera",
   "Logitech HD Webcam",
-  "Integrated Camera",
+  "VGA USB Camera",
   "CC HD webcam            "
 ];
 
@@ -23,7 +23,6 @@ interface CameraInfo {
 const CameraView: React.FC = () => {
   const [cameras, setCameras] = useState<CameraInfo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [rtt, setRtt] = useState<number| null>(null)
   const [bitrate_kbps, setBitrate] = useState<string>("N/A");
   const [ping_ms, setPing] = useState<number | null>(null);
 
@@ -61,6 +60,18 @@ const CameraView: React.FC = () => {
     fetchCameraPaths();
   }, []);
 
+  // Automatically reconnect stream when camera changes
+  useEffect(() => {
+    if (!currentCamera?.path) return;
+
+    if (isStreaming) {
+      stopStream();
+      setTimeout(() => {
+        startStream();
+      }, 100);
+    }
+  }, [currentCamera?.path]);
+
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
@@ -68,14 +79,12 @@ const CameraView: React.FC = () => {
       try {
         const res = await axios.get("http://localhost:8081/bandwidth-stats");
         const stats = res.data.bandwidth_stats?.[0];
-        if (stats?.rtt_ms != null) setRtt(stats.rtt_ms);
-        if (stats?.bitrate_kbps != null) setBitrate(stats.bitrate_kbps);
+        if (stats?.rtt_ms != null) setBitrate(stats.bitrate_kbps);
         if (res.data?.ping_ms != null) setPing(res.data.ping_ms);
       } catch (err) {
         console.error("Failed to fetch bandwidth stats:", err);
       }
     };
-
 
     if (isStreaming) {
       fetchStats();
@@ -133,8 +142,8 @@ const CameraView: React.FC = () => {
             borderRadius: "8px"
           }}>
             FPS: {fps}<br />
-            Res: {bitrate_kbps}<br />
-            Ping: {ping_ms ? `${ping_ms.toFixed(0)} ms` : "N/A"}
+            Bitrate: {bitrate_kbps ? `${bitrate_kbps} kbps` : "N/A"}<br />
+            Ping: {ping_ms ? `${ping_ms} ms` : "N/A"}
           </div>
 
           <button onClick={handlePrevious} style={{
