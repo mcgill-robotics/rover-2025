@@ -1,0 +1,30 @@
+.arm-info-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.arm-info-container h1 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin: 0.25rem;
+    margin-left: 0rem; 
+}
+
+.joint-speed-container {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    gap: 7.5%;
+    margin-right: 2.5%;
+    margin-bottom: 2.5%;
+}
+
+.joint-container {
+    flex: 2;
+}
+
+.speed-container {
+    flex: 3;
+}

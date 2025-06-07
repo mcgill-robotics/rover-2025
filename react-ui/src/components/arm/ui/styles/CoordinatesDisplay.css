@@ -1,0 +1,32 @@
+.coordinate-display-container {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    gap: 7.5%;
+    margin-right: 2.5%;
+}
+
+.coordinate-display-container h2 {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin: 0.25rem;
+    margin-left: 0rem;
+}
+
+.position-display {
+    display: flex;
+    flex-direction: column;
+}
+
+.position-item {
+    margin-left: 1rem;
+}
+
+.orientation-display {
+    display: flex;
+    flex-direction: column;
+}
+
+.orientation-item {
+    margin-left: 1rem;
+}
