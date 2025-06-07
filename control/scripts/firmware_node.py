@@ -45,7 +45,7 @@ class firmware(Node):
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
        
-        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.controller_callback, 10)
+        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input", self.controller_callback, 10)
 
         # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
         timer_period = 0.25
