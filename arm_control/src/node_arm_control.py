@@ -10,6 +10,8 @@ from msg_srv_interface.msg import GamePadInput
 from arm_control.src.human_arm_control import *
 import math
 import numpy as np
+from std_msgs.msg import Float32MultiArray
+
 
 
 # ### TEMP for Drive Test ###
@@ -44,71 +46,76 @@ class arm_contol_node(Node):
 
         self.current_schema = IK_CONTROL  # Start with Inverse Kinematics control
        
-        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input", self.controller_callback, 10)
+        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input", self.run, 10)
+        self.feedbackSubscriber = self.create_subscription(Float32MultiArray, "arm_position_feedback", self.updateArmPosition, 10)
 
-        # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
-        timer_period = 0.25
-        self.timer = self.create_timer(timer_period, self.run)
+        self.position_publisher = self.create_publisher(Float32MultiArray, 'arm_position_cmd', 10)
+
+        # # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
+        # timer_period = 0.25
+        # self.timer = self.create_timer(timer_period, self.run)
 
     def not_in_deadzone_check(self, x_axis, y_axis):
         return not ((-self.deadzone <= x_axis <= self.deadzone) and (-self.deadzone <= y_axis <= self.deadzone))
     
-    def run(self):
-        
+    def run(self, gamepad_input: GamePadInput):
+        """
+        Main control loop that processes gamepad input and updates arm angles accordingly
+        """
+        new_angles = self.cur_angles.copy()  # Create a copy of the current angles to modify
         #Check if there is input value for changing the speed
-        if self.gamepad_input.square_button:
+        if gamepad_input.square_button:
             speed_up()
-        if self.gamepad_input.o_button:
+        if gamepad_input.o_button:
             speed_down()
         
         #Check if there is input value for cycling between joints
-        if self.gamepad_input.triangle_button:
+        if gamepad_input.triangle_button:
             cycle_up()
-        if self.gamepad_input.x_button:
+        if gamepad_input.x_button:
             cycle_down()
         
         if self.current_schema == IK_CONTROL:
             #Check if there is input value for vertical plannar motion:
-            if self.not_in_deadzone_check(self.gamepad_input.d_pad_y, 0):
-                self.cur_angles = vertical_motion(self.gamepad_input.d_pad_y, self.cur_angles)
-                #TODO: Send angles to arm
+            if self.not_in_deadzone_check(gamepad_input.d_pad_y, 0):
+                new_angles = vertical_motion(gamepad_input.d_pad_y, self.cur_angles)
             
             #Check if there is input value for horizontal plannar motion:
-            elif self.not_in_deadzone_check(self.gamepad_input.d_pad_x, 0):
-                self.cur_angles = horizontal_motion(self.gamepad_input.d_pad_x, self.cur_angles)
-                #TODO: Send angles to arm
+            elif self.not_in_deadzone_check(gamepad_input.d_pad_x, 0):
+                new_angles = horizontal_motion(gamepad_input.d_pad_x, self.cur_angles)
             
             #Check if there is joystick value for depth plannar motion:
-            elif self.not_in_deadzone_check(self.gamepad_input.l_stick_y, 0):
-                self.cur_angles = depth_motion(self.gamepad_input.l_stick_y, self.cur_angles)
-                #TODO: Send angles to arm
+            elif self.not_in_deadzone_check(gamepad_input.l_stick_y, 0):
+                new_angles = depth_motion(gamepad_input.l_stick_y, self.cur_angles)
 
             #Check if there is input for up and down tilt
-            elif self.gamepad_input.r2_button:
-                self.cur_angles = upDownTilt(1, self.cur_angles)
+            elif gamepad_input.r2_button:
+                new_angles = upDownTilt(1, self.cur_angles)
 
-            elif self.gamepad_input.l2_button:
-                self.cur_angles = upDownTilt(-1, self.cur_angles)
+            elif gamepad_input.l2_button:
+                new_angles = upDownTilt(-1, self.cur_angles)
         
         elif self.current_schema == JOINT_CONTROL:
             #Check if there is joystick value for specific angle adjustment and if individual joint moment allowed
-            if self.not_in_deadzone_check(self.gamepad_input.r_stick_y, 0):
-                self.cur_angles = move_joint(self.gamepad_input.r_stick_y, self.cur_angles)
-                #TODO: Send angles to arm
+            if self.not_in_deadzone_check(gamepad_input.r_stick_y, 0):
+                new_angles = move_joint(gamepad_input.r_stick_y, self.cur_angles)
             
         
         #Check if there is input for enabling/disabling joint control
-        if self.gamepad_input.start_button:
+        if gamepad_input.start_button:
             if self.current_schema == IK_CONTROL:
                 self.current_schema = JOINT_CONTROL
             else:
                 self.current_schema = IK_CONTROL
 
-        #command = ":".join(map(str, speed))
-        #send_UDP_message(command)
         
-    def controller_callback(self, input: GamePadInput):
-        self.gamepad_input = input
+        self.position_publisher.publish(new_angles)
+
+    def updateArmPosition(self, position: Float32MultiArray):
+        """
+        Callback to update the current arm angles based on feedback from the arm firmware
+        """
+        self.cur_angles = position
 
 def main(args=None):
     rclpy.init(args=args)
