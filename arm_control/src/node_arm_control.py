@@ -26,6 +26,9 @@ import numpy as np
 #     sock.sendto(msg.encode(), (JETSON_IP, UDP_PORT))
 # ### TEMP for Drive Test ###
 
+IK_CONTROL = 0
+JOINT_CONTROL = 1
+
 class arm_contol_node(Node):
     def __init__(self):
 
@@ -36,11 +39,10 @@ class arm_contol_node(Node):
 
         # TODO: Tune values
         self.deadzone = 0.1 
-        self.turning_speed = 500.0
 
         self.cur_angles = [0,0,0,0,0] #Dummy  value, update with API call
 
-        self.joint_control_active = False
+        self.current_schema = IK_CONTROL  # Start with Inverse Kinematics control
        
         self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input", self.controller_callback, 10)
 
@@ -65,34 +67,42 @@ class arm_contol_node(Node):
         if self.gamepad_input.x_button:
             cycle_down()
         
-        #Check if there is input value for vertical plannar motion:
-        if self.not_in_deadzone_check(self.gamepad_input.d_pad_y, 0):
-            self.cur_angles = vertical_motion(self.gamepad_input.d_pad_y, self.cur_angles)
-            #TODO: Send angles to arm
-        
-        #Check if there is input value for horizontal plannar motion:
-        if self.not_in_deadzone_check(self.gamepad_input.d_pad_x, 0):
-            self.cur_angles = horizontal_motion(self.gamepad_input.d_pad_x, self.cur_angles)
-            #TODO: Send angles to arm
-        
-        #Check if there is joystick value for depth plannar motion:
-        if self.not_in_deadzone_check(self.gamepad_input.l_stick_y, 0):
-            self.cur_angles = depth_motion(self.gamepad_input.l_stick_y, self.cur_angles)
-            #TODO: Send angles to arm
+        if self.current_schema == IK_CONTROL:
+            #Check if there is input value for vertical plannar motion:
+            if self.not_in_deadzone_check(self.gamepad_input.d_pad_y, 0):
+                self.cur_angles = vertical_motion(self.gamepad_input.d_pad_y, self.cur_angles)
+                #TODO: Send angles to arm
+            
+            #Check if there is input value for horizontal plannar motion:
+            elif self.not_in_deadzone_check(self.gamepad_input.d_pad_x, 0):
+                self.cur_angles = horizontal_motion(self.gamepad_input.d_pad_x, self.cur_angles)
+                #TODO: Send angles to arm
+            
+            #Check if there is joystick value for depth plannar motion:
+            elif self.not_in_deadzone_check(self.gamepad_input.l_stick_y, 0):
+                self.cur_angles = depth_motion(self.gamepad_input.l_stick_y, self.cur_angles)
+                #TODO: Send angles to arm
 
-        #Check if there is joystick value for specific angle adjustment and if individual joint moment allowed
-        if self.not_in_deadzone_check(self.gamepad_input.r_stick_y, 0) and self.joint_control_active:
-            self.cur_angles = move_joint(self.gamepad_input.r_stick_y, self.cur_angles)
-            #TODO: Send angles to arm
+            #Check if there is input for up and down tilt
+            elif self.gamepad_input.r2_button:
+                self.cur_angles = upDownTilt(1, self.cur_angles)
 
-        #Check if there is input for up and down tilt
-        #if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
-            #TODO: call the up/down tilt function(s)
+            elif self.gamepad_input.l2_button:
+                self.cur_angles = upDownTilt(-1, self.cur_angles)
+        
+        elif self.current_schema == JOINT_CONTROL:
+            #Check if there is joystick value for specific angle adjustment and if individual joint moment allowed
+            if self.not_in_deadzone_check(self.gamepad_input.r_stick_y, 0):
+                self.cur_angles = move_joint(self.gamepad_input.r_stick_y, self.cur_angles)
+                #TODO: Send angles to arm
             
         
         #Check if there is input for enabling/disabling joint control
         if self.gamepad_input.start_button:
-            self.joint_control_active = not self.joint_control_active
+            if self.current_schema == IK_CONTROL:
+                self.current_schema = JOINT_CONTROL
+            else:
+                self.current_schema = IK_CONTROL
 
         #command = ":".join(map(str, speed))
         #send_UDP_message(command)
