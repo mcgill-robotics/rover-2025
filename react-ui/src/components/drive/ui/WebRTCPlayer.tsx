@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { CAMERAIP } from "../../../config/config";
 
 interface WebRTCPlayerProps {
   devicePath: string;
@@ -35,7 +36,7 @@ const WebRTCPlayer: React.FC<WebRTCPlayerProps> = ({ devicePath, forwardedRef })
 
         const start = performance.now();
         const response = await fetch(
-          `http://localhost:8081/offer?id=${encodeURIComponent(devicePath)}`,
+          `http://${CAMERAIP}:8081/offer?id=${encodeURIComponent(devicePath)}`,
           {
             method: "POST",
             body: JSON.stringify({

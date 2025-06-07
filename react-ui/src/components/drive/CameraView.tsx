@@ -7,6 +7,7 @@ import PowerButton from "../arm/ui/PowerButton";
 import axios from "axios";
 import "./styles/CameraView.css";
 import { useWebRTCStream } from "../../hooks/useWebRTCStreams";
+import { CAMERAIP } from "../../config/config"
 
 const targetCameraNames = [
   "USB 2.0 Camera",
@@ -40,7 +41,7 @@ const CameraView: React.FC = () => {
   useEffect(() => {
     const fetchCameraPaths = async () => {
       try {
-        const res = await axios.get("http://localhost:8081/video-devices");
+        const res = await axios.get(`http://${CAMERAIP}:8081/video-devices`);
         const deviceMap: CameraInfo[] = [];
 
         res.data.devices.forEach((entry: { name: string; devices: string[] }) => {
@@ -77,7 +78,7 @@ const CameraView: React.FC = () => {
 
     const fetchStats = async () => {
       try {
-        const res = await axios.get("http://localhost:8081/bandwidth-stats");
+        const res = await axios.get(`http://${CAMERAIP}:8081/bandwidth-stats`);
         const stats = res.data.bandwidth_stats?.[0];
         if (stats?.rtt_ms != null) setBitrate(stats.bitrate_kbps);
         if (res.data?.ping_ms != null) setPing(res.data.ping_ms);
