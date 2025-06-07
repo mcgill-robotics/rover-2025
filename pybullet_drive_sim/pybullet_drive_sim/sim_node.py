@@ -3,14 +3,11 @@ import rclpy
 from rclpy.node import Node
 import pybullet as p
 import pybullet_data
-import time
+import time, math
 
-from ament_index_python.packages import get_package_share_directory
-
-
-class SimulationNode(Node):
+class drive_simulation_node(Node):
     def __init__(self):
-        super().__init__('simulation_node')
+        super().__init__('drive_simulation_node')
 
         # Start PyBullet GUI
         p.connect(p.GUI)
@@ -18,26 +15,36 @@ class SimulationNode(Node):
         # Add default PyBullet search path
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-        # Load plane
-        p.loadURDF("plane.urdf")
-
-        # Find path to your URDF inside your ROS 2 package
-        package_path = get_package_share_directory('pybullet_drive_sim')
-        urdf_path = os.path.join(package_path, 'urdf', 'rover.urdf')
+        # Load world
+        p.loadURDF("plane.urdf", [0, 0, -0.1])
+        p.setGravity(0, 0, -9.81)
 
         # Load your actual rover URDF
-        p.loadURDF(urdf_path, [0, 0, 1])
-
+        urdf_path = os.path.dirname(os.path.abspath(__file__)) + "/../urdf/ROVER_DRIVE.urdf"
+        self.roverID = p.loadURDF(urdf_path, [0, 0, 1], useFixedBase=False)
         self.get_logger().info(f"Loaded URDF: {urdf_path}")
+
+        self.t = 0.0
+        p.setRealTimeSimulation(0)
+
+        timer_period = 0.01
+        self.timer = self.create_timer(timer_period, self.run)
+
+    def run(self):
+        self.t = self.t + 0.01
+        p.stepSimulation()
 
 def main(args=None):
     rclpy.init(args=args)
-    node = SimulationNode()
+    drive_sim_node = drive_simulation_node()
     try:
-        while rclpy.ok():
-            p.stepSimulation()
-            time.sleep(1. / 240.)
+        rclpy.spin(drive_sim_node)
     except KeyboardInterrupt:
         pass
-    node.destroy_node()
-    rclpy.shutdown()
+    finally:
+        drive_sim_node.destroy_node()
+        rclpy.shutdown()
+        p.disconnect()
+
+if __name__ == "__main__":
+    main()

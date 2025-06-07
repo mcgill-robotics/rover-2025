@@ -731,7 +731,7 @@
     <child
       link="Right Link Rocker" />
     <axis
-      xyz="0 0 0" />
+      xyz="0 0 1" />
   </joint>
   <link
     name="Left Link">
@@ -837,6 +837,6 @@
     <child
       link="Left Link Rocker" />
     <axis
-      xyz="0 0 0" />
+      xyz="0 0 1" />
   </joint>
 </robot>
