@@ -1,0 +1,842 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="ROVER_DRIVE">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="7.8473E-07 4.9645E-08 -0.082117"
+        rpy="0 0 0" />
+      <mass
+        value="24.299" />
+      <inertia
+        ixx="0.56346"
+        ixy="1.9173E-16"
+        ixz="-1.6888E-09"
+        iyy="0.6254"
+        iyz="1.0148E-07"
+        izz="1.0856" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="Right Rocker">
+    <inertial>
+      <origin
+        xyz="-5.9164E-05 -0.02934 -0.076338"
+        rpy="0 0 0" />
+      <mass
+        value="1.3505" />
+      <inertia
+        ixx="0.0011156"
+        ixy="-5.6612E-06"
+        ixz="1.3119E-07"
+        iyy="0.0037086"
+        iyz="8.9909E-07"
+        izz="0.0028749" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Right Rocker.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Right Rocker.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Right Rocker"
+    type="continuous">
+    <origin
+      xyz="0 -0.32685 -0.08905"
+      rpy="0 -0.0060654 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="Right Rocker" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="FR Steering">
+    <inertial>
+      <origin
+        xyz="0.00121 0.05604 -0.12493"
+        rpy="0 0 0" />
+      <mass
+        value="0.27792" />
+      <inertia
+        ixx="0.00064495"
+        ixy="-3.879E-06"
+        ixz="-3.5444E-07"
+        iyy="0.00046517"
+        iyz="-1.6613E-05"
+        izz="0.00024911" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/FR Steering.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/FR Steering.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="FR Steering"
+    type="continuous">
+    <origin
+      xyz="0.43884 -0.034402 -0.19458"
+      rpy="-2.3109E-05 0.0085521 -0.0027022" />
+    <parent
+      link="Right Rocker" />
+    <child
+      link="FR Steering" />
+    <axis
+      xyz="1.2144E-05 0 1" />
+  </joint>
+  <link
+    name="FR drive">
+    <inertial>
+      <origin
+        xyz="6.1755E-05 0.0025635 -1.3639E-06"
+        rpy="0 0 0" />
+      <mass
+        value="0.72594" />
+      <inertia
+        ixx="0.0065729"
+        ixy="0.00010721"
+        ixz="-7.6325E-08"
+        iyy="0.010988"
+        iyz="-1.3968E-06"
+        izz="0.0065702" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/FR drive.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/FR drive.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="FR drive"
+    type="continuous">
+    <origin
+      xyz="-5.3503E-05 -0.0025688 -0.18441"
+      rpy="0 -0.0024867 0.0027021" />
+    <parent
+      link="FR Steering" />
+    <child
+      link="FR drive" />
+    <axis
+      xyz="0.024263 0.99971 -0.00031142" />
+  </joint>
+  <link
+    name="BR Steering">
+    <inertial>
+      <origin
+        xyz="0.0039416 0.055949 -0.12512"
+        rpy="0 0 0" />
+      <mass
+        value="0.27792" />
+      <inertia
+        ixx="0.00064415"
+        ixy="-1.2614E-05"
+        ixz="-1.164E-06"
+        iyy="0.00046598"
+        iyz="-1.6522E-05"
+        izz="0.0002491" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/BR Steering.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/BR Steering.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="BR Steering"
+    type="continuous">
+    <origin
+      xyz="-0.43884 -0.034402 -0.19458"
+      rpy="2.3109E-05 -0.0085521 -0.0027022" />
+    <parent
+      link="Right Rocker" />
+    <child
+      link="BR Steering" />
+    <axis
+      xyz="1.2144E-05 0 1" />
+  </joint>
+  <link
+    name="BR drive">
+    <inertial>
+      <origin
+        xyz="0.00018681 0.0025574 1.7898E-06"
+        rpy="0 0 0" />
+      <mass
+        value="0.72594" />
+      <inertia
+        ixx="0.0065938"
+        ixy="0.00032168"
+        ixz="3.7402E-07"
+        iyy="0.010967"
+        iyz="4.6781E-06"
+        izz="0.0065702" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/BR drive.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/BR drive.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="BR drive"
+    type="continuous">
+    <origin
+      xyz="-0.00017714 -0.0025144 -0.18461"
+      rpy="0 0.014618 0.0027021" />
+    <parent
+      link="BR Steering" />
+    <child
+      link="BR drive" />
+    <axis
+      xyz="0.072964 0.99733 0.0010666" />
+  </joint>
+  <link
+    name="Left Rocker">
+    <inertial>
+      <origin
+        xyz="5.9163E-05 0.02934 -0.076338"
+        rpy="0 0 0" />
+      <mass
+        value="1.3505" />
+      <inertia
+        ixx="0.0011156"
+        ixy="-5.6612E-06"
+        ixz="-1.3119E-07"
+        iyy="0.0037086"
+        iyz="-8.9909E-07"
+        izz="0.0028749" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Left Rocker.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Left Rocker.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Left Rocker"
+    type="continuous">
+    <origin
+      xyz="0 0.32685 -0.08905"
+      rpy="0 -0.008442 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="Left Rocker" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="FL Steering">
+    <inertial>
+      <origin
+        xyz="0.0004206 -0.056086 -0.12512"
+        rpy="0 0 0" />
+      <mass
+        value="0.27792" />
+      <inertia
+        ixx="0.00064503"
+        ixy="1.3493E-06"
+        ixz="-1.242E-07"
+        iyy="0.00046511"
+        iyz="1.6562E-05"
+        izz="0.0002491" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/FL Steering.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/FL Steering.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="FL Steering"
+    type="continuous">
+    <origin
+      xyz="0.43884 0.034402 -0.19458"
+      rpy="-2.3109E-05 0.0085521 -0.0027022" />
+    <parent
+      link="Left Rocker" />
+    <child
+      link="FL Steering" />
+    <axis
+      xyz="-1.2144E-05 0 1" />
+  </joint>
+  <link
+    name="FL drive">
+    <inertial>
+      <origin
+        xyz="1.2631E-05 -0.0025642 -1.0157E-06"
+        rpy="0 0 0" />
+      <mass
+        value="0.72594" />
+      <inertia
+        ixx="0.0065704"
+        ixy="-2.1196E-05"
+        ixz="-3.0911E-08"
+        iyy="0.010991"
+        iyz="2.3963E-08"
+        izz="0.0065702" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/FL drive.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/FL drive.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="FL drive"
+    type="continuous">
+    <origin
+      xyz="-1.8902E-05 0.0025206 -0.18461"
+      rpy="0 -0.00011006 0.0027021" />
+    <parent
+      link="FL Steering" />
+    <child
+      link="FL drive" />
+    <axis
+      xyz="0.004797 0.99999 0" />
+  </joint>
+  <link
+    name="BL Steering">
+    <inertial>
+      <origin
+        xyz="0.00019522 -0.056053 -0.12493"
+        rpy="0 0 0" />
+      <mass
+        value="0.27792" />
+      <inertia
+        ixx="0.00064503"
+        ixy="6.2829E-07"
+        ixz="-5.9388E-08"
+        iyy="0.00046509"
+        iyz="1.6617E-05"
+        izz="0.00024911" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/BL Steering.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/BL Steering.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="BL Steering"
+    type="continuous">
+    <origin
+      xyz="-0.43884 0.034402 -0.19458"
+      rpy="2.3109E-05 -0.0085521 -0.0027022" />
+    <parent
+      link="Left Rocker" />
+    <child
+      link="BL Steering" />
+    <axis
+      xyz="-1.2144E-05 0 1" />
+  </joint>
+  <link
+    name="BL drive">
+    <inertial>
+      <origin
+        xyz="2.3645E-06 -0.0025642 -1.6204E-06"
+        rpy="0 0 0" />
+      <mass
+        value="0.72594" />
+      <inertia
+        ixx="0.0065703"
+        ixy="-3.4977E-06"
+        ixz="-3.2314E-08"
+        iyy="0.010991"
+        iyz="1.0731E-06"
+        izz="0.0065702" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/BL drive.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/BL drive.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="BL drive"
+    type="continuous">
+    <origin
+      xyz="0 0.0025693 -0.18441"
+      rpy="0 0.016994 0.0027021" />
+    <parent
+      link="BL Steering" />
+    <child
+      link="BL drive" />
+    <axis
+      xyz="0.00079325 1 -0.00023781" />
+  </joint>
+  <link
+    name="Differential Pivot">
+    <inertial>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <mass
+        value="0" />
+      <inertia
+        ixx="0"
+        ixy="0"
+        ixz="0"
+        iyy="0"
+        iyz="0"
+        izz="0" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Differential Pivot.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Differential Pivot.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Differential Pivot"
+    type="continuous">
+    <origin
+      xyz="-0.18 0 -0.19573"
+      rpy="0 0 -0.00040363" />
+    <parent
+      link="base_link" />
+    <child
+      link="Differential Pivot" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="Right Link">
+    <inertial>
+      <origin
+        xyz="0.084809 0.031553 1.4331E-07"
+        rpy="0 0 0" />
+      <mass
+        value="0.014477" />
+      <inertia
+        ixx="2.1754E-06"
+        ixy="-5.2711E-06"
+        ixz="4.0452E-09"
+        iyy="1.4382E-05"
+        iyz="-1.0522E-08"
+        izz="1.6395E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Right Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Right Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Right Link"
+    type="continuous">
+    <origin
+      xyz="0 -0.328 -0.0076125"
+      rpy="0.045805 0 -0.39655" />
+    <parent
+      link="Differential Pivot" />
+    <child
+      link="Right Link" />
+    <axis
+      xyz="0.93723 0.3487 0" />
+  </joint>
+  <link
+    name="Right Link Rocker">
+    <inertial>
+      <origin
+        xyz="-5.9164E-05 -0.021545 0.035062"
+        rpy="0 0 0" />
+      <mass
+        value="1.3505" />
+      <inertia
+        ixx="0.0011156"
+        ixy="-5.6612E-06"
+        ixz="1.3119E-07"
+        iyy="0.0037086"
+        iyz="8.9909E-07"
+        izz="0.0028749" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Right Link Rocker.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Right Link Rocker.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Right Link Rocker"
+    type="continuous">
+    <origin
+      xyz="0.16931 0.063836 -3.3466E-05"
+      rpy="-0.042244 0.011643 0.39684" />
+    <parent
+      link="Right Link" />
+    <child
+      link="Right Link Rocker" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="Left Link">
+    <inertial>
+      <origin
+        xyz="0.090488 1.1828E-07 1.3413E-07"
+        rpy="0 0 0" />
+      <mass
+        value="0.014477" />
+      <inertia
+        ixx="2.1423E-07"
+        ixy="-6.9348E-11"
+        ixz="1.223E-10"
+        iyy="1.6343E-05"
+        iyz="-1.1272E-08"
+        izz="1.6395E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Left Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Left Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Left Link"
+    type="continuous">
+    <origin
+      xyz="0 0.328 -0.0076125"
+      rpy="-0.0026139 -0.015978 0.041518" />
+    <parent
+      link="Differential Pivot" />
+    <child
+      link="Left Link" />
+    <axis
+      xyz="1 0 0" />
+  </joint>
+  <link
+    name="Left Link Rocker">
+    <inertial>
+      <origin
+        xyz="5.9163E-05 0.021545 0.035062"
+        rpy="0 0 0" />
+      <mass
+        value="1.3505" />
+      <inertia
+        ixx="0.0011156"
+        ixy="-5.6612E-06"
+        ixz="-1.3119E-07"
+        iyy="0.0037086"
+        iyz="-8.9909E-07"
+        izz="0.0028749" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Left Link Rocker.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ROVER_DRIVE/meshes/Left Link Rocker.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Left Link Rocker"
+    type="continuous">
+    <origin
+      xyz="0.18094 -0.00079183 0"
+      rpy="0.001955 0.0076297 -0.041094" />
+    <parent
+      link="Left Link" />
+    <child
+      link="Left Link Rocker" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>
