@@ -1,6 +1,11 @@
 import rclpy
 from rclpy.node import Node
-from msg_interface.srv import DriveMotorStatus
+from msg_srv_interface import DriveMotorStatus
+
+"""
+Test for the Motor Status Ping ROS Service on drive_firmware_node.py
+Waits for the ROS Service to get information about the current state of the motors.
+"""
 
 def main():
     rclpy.init()

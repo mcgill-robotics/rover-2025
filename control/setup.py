@@ -32,7 +32,6 @@ setup(
             "gui_node = scripts.node_control_gui:main",
             "drive_firmware_node = scripts.drive_firmware_node:main",
             "pantilt_control_node = scripts.pantilt_control_node:main",
-            "drive_firmware_node.py = scripts.drive_firmware_node.py:main"
         ],
     },
 )

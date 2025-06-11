@@ -6,8 +6,7 @@ import driveCANCommunication as dCAN
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
-from msg_srv_interface.msg import GamePadInput
-from msg_interface.msg import DriveMotorDiagnostic, DriveMotorStatus
+from msg_srv_interface.msg import GamePadInput, DriveMotorDiagnostic, DriveMotorStatus
 #import can
 
 
@@ -85,8 +84,10 @@ class driveCan(Node):
                 self.drive_interface.esc.station.recv_msg(timeout=0.25)
 
             else:
-                print("Motor fault detected in " + self.motors[ind])
-                exit(1)
+                self.motor_info[self.motors[ind]]["Voltage"] = 0.0
+                self.motor_info[self.motors[ind]]["Current"] = 0.0
+                self.motor_info[self.motors[ind]]["State"] = 0.0
+                self.motor_info[self.motors[ind]]["Temperature"] = 0.0
 
     def publish_motor_info(self):
         self.update_motor_info()
@@ -130,8 +131,7 @@ class driveCan(Node):
                 self.drive_interface.esc.station.recv_msg(timeout=0.25)
 
             else:
-                print("Motor fault detected in " + self.motors[ind])
-                exit(1)
+                self.drive_speed_info[ind] = 0.0
 
     
     def broadcast_speeds(self, speeds: Float32MultiArray):
