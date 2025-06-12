@@ -1,0 +1,17 @@
+services:
+  halley:
+    build: .                                      # Build from Dockerfile in the current directory
+    image: ros:humble-ros-core
+    container_name: halley_humble
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    network_mode: host                            # Use host networking mode here, necessary to communicate with ROS topics over ethernet
+    volumes:
+      - .:/app
+      - /dev:/dev                                 # Mounting all /dev devices
+      - $HOME/rover25_ws:/root/rover25_ws         # NOTE: You need rover25_ws in your home directory to mount it in the container
+    privileged: true                              # Add privileged mode here
+    command: /bin/bash                            # Override default command to start a shell
+    environment:
+      - ROS_LOCALHOST_ONLY=0

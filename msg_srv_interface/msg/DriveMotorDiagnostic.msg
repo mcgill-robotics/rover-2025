@@ -1,0 +1,16 @@
+float32 rf_voltage
+float32 rf_current
+float32 rf_state
+float32 rf_temperature
+float32 rb_voltage
+float32 rb_current
+float32 rb_state
+float32 rb_temperature
+float32 lb_voltage
+float32 lb_current
+float32 lb_state
+float32 lb_temperature
+float32 lf_voltage
+float32 lf_current
+float32 lf_state
+float32 lf_temperature

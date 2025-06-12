@@ -37,6 +37,7 @@ class gamepad_input_publisher(Node):
         self.gamepad_publisher = self.create_publisher(GamePadInput, "gamepad_input_drive", 10)
         self.arm_gamepad_publisher = self.create_publisher(GamePadInput, "gamepad_input_arm", 10)
 
+
         # Control frequency of the node
         timer_period = 1e-1
         self.timer = self.create_timer(timer_period, self.run)

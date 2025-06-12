@@ -1,0 +1,5 @@
+---
+bool rf_ok
+bool rb_ok
+bool lb_ok
+bool lf_ok
