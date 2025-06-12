@@ -43,7 +43,7 @@ class arm_contol_node(Node):
 
         self.joint_control_active = False
        
-        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input", self.controller_callback, 10)
+        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_arm", self.controller_callback, 10)
 
         self.brushed_angles = [0.0, 0.0, 0.0]
         self.brushless_angles = [0.0, 0.0, 0.0]

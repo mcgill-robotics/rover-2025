@@ -46,7 +46,7 @@ class arm_contol_node(Node):
 
         self.current_schema = IK_CONTROL  # Start with Inverse Kinematics control
        
-        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input", self.run, 10)
+        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_arm", self.run, 10)
         self.feedbackSubscriber = self.create_subscription(Float32MultiArray, "arm_position_feedback", self.updateArmPosition, 10)
 
         self.position_publisher = self.create_publisher(Float32MultiArray, 'arm_position_cmd', 10)
