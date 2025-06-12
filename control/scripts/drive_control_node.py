@@ -28,7 +28,6 @@ class drive_controller(Node):
         self.deadzone = 0.1 
         self.turning_speed = 3200.0
 
-        #TODO: Update code with API calls.
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
        
@@ -60,11 +59,7 @@ class drive_controller(Node):
             #Array with the desired speed for each wheel during rover rotation
             rotation_sp = rover_rotation(self.wheel_angles, rot_inp)
 
-            speed = [direction*self.turning_speed for direction in rotation_sp] # TODO Change 500 to acutal value
-            # TODO: Send speed to wheels -> Publish speed
-
-            msg.data = speed
-            self.speedInputPublisher.publish(msg)
+            speed = [direction*self.turning_speed for direction in rotation_sp]
 
 
         #Check whether gears change
