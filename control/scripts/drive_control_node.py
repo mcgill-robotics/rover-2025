@@ -26,13 +26,14 @@ class drive_controller(Node):
 
         # TODO: Tune values
         self.deadzone = 0.1 
-        self.turning_speed = 3200.0
+        self.turning_speed = 200.0
 
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
        
         self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.controller_callback, 10)
         self.speedInputPublisher = self.create_publisher(Float32MultiArray, "drive_speed_input", 10)
+        self.steering_input_publisher = self.create_publisher(Float32MultiArray, "drive_steering_input", 10)
 
         # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
         timer_period = 0.2
@@ -46,7 +47,6 @@ class drive_controller(Node):
         #Speed given button input
         speed = self.speed_controller.updateSpeed(self.gamepad_input.x_button, self.gamepad_input.o_button)
         speed = [speed for _ in range(4)]
-        msg = Float32MultiArray()
         
         #Check whether there is an input value for rover rotation
         if self.gamepad_input.r1_button or self.gamepad_input.l1_button:
@@ -72,8 +72,13 @@ class drive_controller(Node):
             self.wheel_angles = wheel_orientation_rot(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y, self.wheel_angles[0])
 
             # TODO: Send new orientation to wheels
+            msg = Float32MultiArray()
+            msg.data = [float(wheel_angle) for wheel_angle in self.wheel_angles]
+            self.steering_input_publisher.publish(msg)
 
         # TODO: Use API to send input values for speed, orientation and rotation.
+
+        msg = Float32MultiArray()
         msg.data = speed
         self.speedInputPublisher.publish(msg)
         
