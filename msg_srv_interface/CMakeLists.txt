@@ -19,7 +19,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ODriveStatus.msg"
   "msg/MotorState.msg"
   "msg/GamePadInput.msg"
-  "msg/DriveMotorStatus.srv"
+  "msg/DriveMotorDiagnostic.msg"
+  "srv/DriveMotorStatus.srv"
   DEPENDENCIES geometry_msgs
 )
 
