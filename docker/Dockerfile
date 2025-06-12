@@ -3,7 +3,7 @@ FROM ros:humble-ros-core
 
 # Set environment variables for ROS Humble and workspace directory
 ENV ROS_DISTRO=humble
-ENV WORKSPACE_DIR=/root/ros2_ws
+ENV WORKSPACE_DIR=/root/rover25_ws
 
 # Update and install ROS core dependencies, including rosdep and pip
 RUN apt-get update && \
@@ -44,12 +44,9 @@ RUN echo "source ~/.bashrc" >> /root/.bash_profile
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
 SHELL ["/bin/bash", "-c"]
 
-# Create workspace and clone rover-2025 repository
+# Create workspace
 WORKDIR $WORKSPACE_DIR
 
-RUN if [ ! -d "/root/ros2_ws/src/" ]; then \
-    git clone https://github.com/mcgill-robotics/rover-2025.git src;\
-    fi
-
+RUN colcon build && source install/setup.bash
 # Set the default command to bash
 CMD ["/bin/bash"]
