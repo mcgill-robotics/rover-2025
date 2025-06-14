@@ -59,7 +59,7 @@ def move_joint(joystick_input, cur_angles, speed):
     cur_angles[current_cycle_mode] = max(joint_lower_limits[current_cycle_mode], min(cur_angles[current_cycle_mode], joint_upper_limits[current_cycle_mode]))
     return cur_angles
 
-def speed_up(speed):
+def speed_up():
     """
     Increases the speed of movement by speed_increment.
 
@@ -70,9 +70,8 @@ def speed_up(speed):
     """
     #assume button check is done before calling this
     speed += speed_increment
-    return speed
 
-def speed_down(speed):
+def speed_down():
     """
     Decreases the speed of movement by speed_increment.
 
@@ -83,7 +82,6 @@ def speed_down(speed):
     """
     #assume button check is done before calling this
     speed -= speed_increment
-    return speed
   
 def cycle_up():
     """
