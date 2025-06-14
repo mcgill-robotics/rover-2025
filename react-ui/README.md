@@ -48,3 +48,8 @@ export default tseslint.config({
   },
 })
 ```
+
+
+
+ros2 run cameras sub.py => subscriber
+ros2 run cameras usb_cam.py --cam index   
