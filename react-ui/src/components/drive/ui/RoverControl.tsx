@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Knob from './Knob';
 import Headlight from './Headlight';
-import StreamControl from './StreamControl';
 import './styles/RoverControl.css';
 
 const waitForIceGatheringComplete = (pc: RTCPeerConnection): Promise<void> => {
@@ -137,16 +136,6 @@ const RoverControl: React.FC<RoverControlProps> = ({ streams, setStreams }) => {
           <Headlight />
         </div>
       </div>
-
-      <div className="connection-container">
-          <div className="camera-control-container">
-            <h2 className="camera-control-title">Available Devices</h2>
-            <StreamControl
-              onStart={startCamera}
-              onStop={() => stop(pc!)}
-            />
-          </div>
-        </div>
       {/* Error handling */}
       {error && <div className="error">{error}</div>}
     </div>

@@ -25,7 +25,7 @@
 
 /* Toggle Switch */
 .hub-toggle {
-  width: 250px;
+  width: 300px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -38,31 +38,6 @@
   transition: box-shadow 0.3s ease;
 }
 
-/* Toggle Slider Effect */
-.hub-toggle::before {
-  content: "";
-  position: absolute;
-  width: calc(50% - 1rem);
-  height: calc(80% - 1rem);
-  background: #181818;
-  border-radius: 30px;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  transition: left 0.3s ease;
-  background: linear-gradient(to top, #1d1d1d, #131313);
-  box-shadow: 0 0.5em 0.5em rgba(0, 0, 0, 0.4);
-  box-sizing: border-box; 
-}
-
-/* Slide Effect */
-.hub-toggle.info-mode::before {
-  left: 0.5rem; 
-}
-
-.hub-toggle.control-mode::before {
-  left: calc(50% + 0.5rem - 5px);
-}
 
 /* Toggle Option */
 .hub-option {

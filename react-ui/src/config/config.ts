@@ -1,0 +1,1 @@
+export const CAMERAIP = "localhost" // IP used for the cameras, should be the jetson for comp

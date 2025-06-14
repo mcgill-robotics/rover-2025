@@ -6,29 +6,25 @@ import driveCANCommunication as dCAN
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
-from msg_srv_interface.msg import GamePadInput
-from msg_interface.msg import DriveMotorDiagnostic, DriveMotorStatus
-#import can
+from msg_srv_interface.msg import GamePadInput, DriveMotorDiagnostic
+from msg_srv_interface.srv import DriveMotorStatus
 
 
-class driveCan(Node):
+class drive_firmware(Node):
 
     def __init__(self):
-        super().__init__("drivecan_node")
+        super().__init__("drive_firmware_node")
 
-        self.driveSpeedInputSubscriber = self.create_subscription(Float32MultiArray, "drive_speed_input", self.broadcast_speeds, 10)
-        self.gampepad_subscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.clear_motor_faults, 10)
+        self.driveSpeedInputSubscriber     = self.create_subscription(Float32MultiArray, "drive_speed_input",   self.broadcast_speeds,   10)
+        self.gampepad_subscriber           = self.create_subscription(GamePadInput,      "gamepad_input_drive", self.clear_motor_faults, 10)
+        self.drive_motors_info_publisher   = self.create_publisher(DriveMotorDiagnostic, "drive_motors_info", 10) 
+        self.drive_motors_speeds_publisher = self.create_publisher(Float32MultiArray,    "drive_speeds_info", 10)
+        self.drive_ping_service            = self.create_service(DriveMotorStatus,       "drive_motors_status", self.drive_ping_callback)
 
-        self.driveMotorsInfoPublisher = self.create_publisher(DriveMotorDiagnostic, "drive_motors_info", 10) 
-
-        self.driveMotorsSpeedsPublisher = self.create_publisher(Float32MultiArray, "drive_speeds_info", 10)
-        
-        self.drivePingService = self.create_service(DriveMotorStatus, "drive_motors_status", self.drive_ping_callback)
-
-        station = dCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
-        esc_interface = dCAN.ESCInterface(station)
+        station              = dCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
+        esc_interface        = dCAN.ESCInterface(station)
         self.drive_interface = dCAN.DriveInterface(esc_interface)
-        self.nodes = [dCAN.NodeID.RF_DRIVE, dCAN.NodeID.RB_DRIVE, dCAN.NodeID.LB_DRIVE, dCAN.NodeID.LF_DRIVE] #Steering motors should be appended
+        self.nodes           = [dCAN.NodeID.RF_DRIVE, dCAN.NodeID.RB_DRIVE, dCAN.NodeID.LB_DRIVE, dCAN.NodeID.LF_DRIVE] #Steering motors should be appended
 
         self.motor_info = {"RF": {"Voltage": 0, "Current": 0, "State": 0, "Temperature": 0},
                            "RB": {"Voltage": 0, "Current": 0, "State": 0, "Temperature": 0},
@@ -51,7 +47,7 @@ class driveCan(Node):
         self.update_speed_info()
         speeds_msg = Float32MultiArray()
         speeds_msg.data = self.drive_speed_info
-        self.driveMotorsSpeedsPublisher.publish(speeds_msg)
+        self.drive_motors_speeds_publisher.publish(speeds_msg)
 
         if (self.pub_count % 5) == 0:
             self.publish_motor_info()
@@ -61,7 +57,6 @@ class driveCan(Node):
 
 
     def clear_motor_faults(self, gamepad_input : GamePadInput):
-
         if gamepad_input.square_button:
             for motor in self.nodes:
                 self.drive_interface.acknowledge_motor_fault(motor)
@@ -83,10 +78,11 @@ class driveCan(Node):
 
                 self.motor_info[self.motors[ind]]["Temperature"] = self.drive_interface.read_temperature(self.nodes[ind])
                 self.drive_interface.esc.station.recv_msg(timeout=0.25)
-
             else:
-                print("Motor fault detected in " + self.motors[ind])
-                exit(1)
+                self.motor_info[self.motors[ind]]["Voltage"] = 0.0
+                self.motor_info[self.motors[ind]]["Current"] = 0.0
+                self.motor_info[self.motors[ind]]["State"] = 0.0
+                self.motor_info[self.motors[ind]]["Temperature"] = 0.0
 
     def publish_motor_info(self):
         self.update_motor_info()
@@ -94,44 +90,39 @@ class driveCan(Node):
 
         #Fill msg values with diagnostic info from the dictionary
         #RF
-        msg.RF_Voltage = self.motor_info["RF"]["Voltage"]
-        msg.RF_Current = self.motor_info["RF"]["Current"]
-        msg.RF_State = self.motor_info["RF"]["State"]
-        msg.RF_Temperature = self.motor_info["RF"]["Temperature"]
+        msg.rf_voltage = self.motor_info["RF"]["Voltage"]
+        msg.rf_current = self.motor_info["RF"]["Current"]
+        msg.rf_state = self.motor_info["RF"]["State"]
+        msg.rf_temperature = self.motor_info["RF"]["Temperature"]
 
         #RB
-        msg.RB_Voltage = self.motor_info["RB"]["Voltage"]
-        msg.RB_Current = self.motor_info["RB"]["Current"]
-        msg.RB_State = self.motor_info["RB"]["State"]
-        msg.RB_Temperature = self.motor_info["RB"]["Temperature"]
+        msg.rb_voltage = self.motor_info["RB"]["Voltage"]
+        msg.rb_current = self.motor_info["RB"]["Current"]
+        msg.rb_state = self.motor_info["RB"]["State"]
+        msg.rb_temperature = self.motor_info["RB"]["Temperature"]
 
         #LB
-        msg.LB_Voltage = self.motor_info["LB"]["Voltage"]
-        msg.LB_Current = self.motor_info["LB"]["Current"]
-        msg.LB_State = self.motor_info["LB"]["State"]
-        msg.LB_Temperature = self.motor_info["LB"]["Temperature"]
+        msg.lb_voltage = self.motor_info["LB"]["Voltage"]
+        msg.lb_current = self.motor_info["LB"]["Current"]
+        msg.lb_state = self.motor_info["LB"]["State"]
+        msg.lb_temperature = self.motor_info["LB"]["Temperature"]
 
         #LF
-        msg.LF_Voltage = self.motor_info["LF"]["Voltage"]
-        msg.LF_Current = self.motor_info["LF"]["Current"]
-        msg.LF_State = self.motor_info["LF"]["State"]
-        msg.LF_Temperature = self.motor_info["LF"]["Temperature"]
+        msg.lf_voltage = self.motor_info["LF"]["Voltage"]
+        msg.lf_current = self.motor_info["LF"]["Current"]
+        msg.lf_state = self.motor_info["LF"]["State"]
+        msg.lf_temperature = self.motor_info["LF"]["Temperature"]
 
-        self.driveMotorsInfoPublisher.publish(msg)
-
-              
+        self.drive_motors_info_publisher.publish(msg)
 
     def update_speed_info(self):
         states = self.drive_interface.getAllMotorStatus()
-
         for ind in range(len(self.nodes)):
             if states[ind]:
                 self.drive_speed_info[ind] = self.drive_interface.read_speed(self.nodes[ind])
                 self.drive_interface.esc.station.recv_msg(timeout=0.25)
-
             else:
-                print("Motor fault detected in " + self.motors[ind])
-                exit(1)
+                self.drive_speed_info[ind] = 0.0
 
     
     def broadcast_speeds(self, speeds: Float32MultiArray):
@@ -143,17 +134,16 @@ class driveCan(Node):
        response: empty response object that is filled with the response data'''
     def drive_ping_callback(self, request, response):
         status_motors = self.drive_interface.getAllMotorStatus()
-        response.RF_OK = status_motors[0]
-        response.RB_OK = status_motors[1]
-        response.LB_OK = status_motors[2]
-        response.LF_OK = status_motors[3]
+        response.rf_ok = status_motors[0]
+        response.rb_ok = status_motors[1]
+        response.lb_ok = status_motors[2]
+        response.lf_ok = status_motors[3]
         return response
-
 
 def main(args=None):
     rclpy.init(args=args)
-    driveCAN_node = driveCan()
-    rclpy.spin(driveCAN_node)
+    drive_firmware_node = drive_firmware()
+    rclpy.spin(drive_firmware_node)
 
 if __name__ == "__main__":
     main()
