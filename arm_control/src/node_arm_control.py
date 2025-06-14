@@ -7,7 +7,7 @@ import rclpy
 from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
 #from steering import rover_rotation , wheel_orientation_rot
-from arm_control.src.human_arm_control import *
+from human_arm_control import *
 import math
 import numpy as np
 from std_msgs.msg import Float32MultiArray
@@ -42,7 +42,7 @@ class arm_contol_node(Node):
         # TODO: Tune values
         self.deadzone = 0.1 
 
-        self.cur_angles = [0,0,0,0,0] #Dummy  value, update with API call
+        self.cur_angles = [0.0,0.0,0.0,0.0,0.0] #Dummy  value, update with API call
 
         self.current_schema = IK_CONTROL  # Start with Inverse Kinematics control
        
@@ -62,7 +62,7 @@ class arm_contol_node(Node):
         """
         Main control loop that processes gamepad input and updates arm angles accordingly
         """
-        new_angles = self.cur_angles.copy()  # Create a copy of the current angles to modify
+        new_angles = self.cur_angles # Create a copy of the current angles to modify
         #Check if there is input value for changing the speed
         if gamepad_input.square_button:
             speed_up()
@@ -108,14 +108,20 @@ class arm_contol_node(Node):
             else:
                 self.current_schema = IK_CONTROL
 
-        
-        self.position_publisher.publish(new_angles)
+        new_angles = new_angles.tolist()
+
+                
+                
+
+        msg = Float32MultiArray()
+        msg.data = new_angles
+        self.position_publisher.publish(msg)
 
     def updateArmPosition(self, position: Float32MultiArray):
         """
         Callback to update the current arm angles based on feedback from the arm firmware
         """
-        self.cur_angles = position
+        self.cur_angles = position.data.tolist()
 
 def main(args=None):
     rclpy.init(args=args)

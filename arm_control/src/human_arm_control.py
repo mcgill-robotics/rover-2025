@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from ..src import arm_kinematics
+import arm_kinematics
 
 joint_upper_limits = [ 
     118.76 * np.pi / 180, # Waist

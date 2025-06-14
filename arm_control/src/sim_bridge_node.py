@@ -8,9 +8,8 @@ from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
 from std_msgs.msg import Float32MultiArray
 #from steering import rover_rotation , wheel_orientation_rot
-from arm_control.src.human_arm_control import *
-import math
-import numpy as np
+
+
 
 # ### TEMP for Drive Test ###
 # import socket
@@ -62,29 +61,38 @@ class sim_bridge_node(Node):
 
     def updateArmBrushedSim(self, cmds):
         self.brushed_angles = cmds.data
-        self.feedback_publisher.publish([self.brushless_angles[2], 
-                                         self.brushless_angles[1], 
-                                         self.brushless_angles[0],
-                                         self.brushed_angles[2],
-                                         self.brushed_angles[1]])
+        msg = Float32MultiArray()
+        msg.data = [self.brushless_angles[2], 
+                    self.brushless_angles[1], 
+                    self.brushless_angles[0],
+                    self.brushed_angles[2],
+                    self.brushed_angles[1]]
+        self.feedback_publisher.publish(msg)
     
     def updateArmBrushlessSim(self, cmds):
         self.brushless_angles = cmds.data
-        self.feedback_publisher.publish([self.brushless_angles[2], 
-                                         self.brushless_angles[1], 
-                                         self.brushless_angles[0],
-                                         self.brushed_angles[2],
-                                         self.brushed_angles[1]])
+        msg = Float32MultiArray()
+        msg.data = [self.brushless_angles[2], 
+                    self.brushless_angles[1], 
+                    self.brushless_angles[0],
+                    self.brushed_angles[2],
+                    self.brushed_angles[1]]
+        self.feedback_publisher.publish(msg)
         
 
     def updateArmPosition(self, cmds):
         data = cmds.data
-        self.brushless_publisher.publish([data[2], data[1], data[0]])
-        self.brushed_publisher.publish([0.0, data[4], data[3]])
+        brushless_msg = Float32MultiArray()
+        brushless_msg.data = [data[2], data[1], data[0]]
+        brushed_msg = Float32MultiArray()
+        brushed_msg.data = [0.0, data[4], data[3]]
+
+        self.brushless_publisher.publish(brushless_msg)
+        self.brushed_publisher.publish(brushed_msg)
 
 def main(args=None):
     rclpy.init(args=args)
-    firmware_node = arm_contol_node()
+    firmware_node = sim_bridge_node()
     rclpy.spin(firmware_node)
 
 if __name__ == "__main__":
