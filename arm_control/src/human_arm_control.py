@@ -137,7 +137,8 @@ def depth_motion(joystick_input, cur_angles):
         #call inverseKinematics
         new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
         try:
-            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
+            angles = arm_kinematics.inverseKinematics(new_pos, cur_angles)
+            return angles.tolist()
         except:
             print("Failed")
             continue
@@ -156,7 +157,8 @@ def vertical_motion(joystick_input, cur_angles):
         new_pos = cur_ee_pos.copy()
         new_pos[2] = new_z
         try:
-            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
+            angles = arm_kinematics.inverseKinematics(new_pos, cur_angles)
+            return angles.tolist()
         except:
             print("Failed")
             continue
@@ -191,7 +193,8 @@ def horizontal_motion(joystick_input, cur_angles, old_horiz_pos):
         #call inverseKinematics
         new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
         try:
-            return arm_kinematics.inverseKinematics(new_pos, cur_angles)
+            angles = arm_kinematics.inverseKinematics(new_pos, cur_angles)
+            return angles.tolist()
         except:
             print("Failed")
             continue
@@ -223,7 +226,7 @@ def upDownTilt(joystick_input, cur_angles):
         cur_pos[4] = copy[4] + speed*angle_increment[i]*joystick_input  # modify Y euler angle (pitch)
         try:
             #use inverse kinematics to get positions of each joint needed for change of tilt
-            new_angles = list(arm_kinematics.inverseKinematics(cur_pos, cur_angles))
+            new_angles = arm_kinematics.inverseKinematics(cur_pos, cur_angles).tolist()
 
             #if no exception raised, return
             return new_angles
@@ -232,6 +235,7 @@ def upDownTilt(joystick_input, cur_angles):
             pass
 
     return cur_angles
+
 
     #z is up (blue)
     #y is side (green)

@@ -43,6 +43,7 @@ class arm_contol_node(Node):
         self.deadzone = 0.1 
 
         self.cur_angles = [0.0,0.0,0.0,0.0,0.0] #Dummy  value, update with API call
+        self.horizontal_snap = [1.0, 0.0]
 
         self.current_schema = IK_CONTROL  # Start with Inverse Kinematics control
        
@@ -82,7 +83,9 @@ class arm_contol_node(Node):
             
             #Check if there is input value for horizontal plannar motion:
             elif self.not_in_deadzone_check(gamepad_input.d_pad_x, 0):
-                new_angles = horizontal_motion(gamepad_input.d_pad_x, self.cur_angles)
+                print(type(new_angles))
+                new_angles = horizontal_motion(gamepad_input.d_pad_x, self.cur_angles, self.horizontal_snap)
+                print(type(new_angles))
             
             #Check if there is joystick value for depth plannar motion:
             elif self.not_in_deadzone_check(gamepad_input.l_stick_y, 0):
@@ -107,8 +110,10 @@ class arm_contol_node(Node):
                 self.current_schema = JOINT_CONTROL
             else:
                 self.current_schema = IK_CONTROL
+        if gamepad_input.select_button:
+            self.horizontal_snap = get_old_horiz_pos(self.cur_angles)
 
-        new_angles = new_angles.tolist()
+        #new_angles = new_angles.tolist()
 
                 
                 
