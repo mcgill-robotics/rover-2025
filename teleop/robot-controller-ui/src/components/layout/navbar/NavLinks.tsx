@@ -1,6 +1,6 @@
 import NavLink from './NavLink';
 
-const navItems = ['Status', 'Control', 'Dashboard'];
+const navItems = ['Arm', 'Drive', 'Status'];
 
 const NavLinks = () => (
   <ul className="list-none m-0 p-0 flex absolute left-1/2 -translate-x-1/2 flex-col md:flex-row static:md:static md:transform-none">

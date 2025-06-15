@@ -60,3 +60,12 @@ header {
   overflow: hidden;
 }
 
+.camera-connection.connected {
+  background: radial-gradient(circle, #5ffb5f 10%, #2e8b57 90%);
+  box-shadow: 0 0 6px #5ffb5f, inset 2px 2px 3px rgba(0, 0, 0, 0.2);
+}
+
+.camera-connection.disconnected {
+  background: radial-gradient(circle, #ff6666 10%, #b30000 90%);
+  box-shadow: 0 0 6px #ff6666, inset 2px 2px 3px rgba(0, 0, 0, 0.2);
+}

@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Rover UI',
   description: 'Rover Control Interface',
+  icons: {
+    icon: '/mcgillRobotics.svg',
+  },
 };
 
 export default function RootLayout({
