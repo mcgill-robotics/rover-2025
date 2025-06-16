@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import WebRTCPlayer from "./WebRTCPlayer";
-import DPad from "./DPad";
-// import PowerButton from "../arm/ui/PowerButton";
 import axios from "axios";
-import { useWebRTCStream } from "@/hooks/useWebRTCStreams";
+import React, { useEffect, useState } from "react";
+
 import { CAMERAIP } from "@/config/config"
+import { useWebRTCStream } from "@/hooks/useWebRTCStreams";
+
+import DPad from "./DPad";
+import WebRTCPlayer from "./WebRTCPlayer";
+import { PowerButton } from "@/components/sections/arm/control";
 
 const targetCameraNames = [
   "USB 2.0 Camera",
@@ -149,10 +151,10 @@ const CameraView: React.FC = () => {
 
       {/* Power Button */}
       <div className="absolute bottom-[-75px] left-1/2 -translate-x-1/2 z-20">
-        {/* <PowerButton
+        <PowerButton
           isActive={isStreaming}
           onClick={() => (isStreaming ? stopStream() : startStream())}
-        /> */}
+        />
       </div>
     </div>
   );
