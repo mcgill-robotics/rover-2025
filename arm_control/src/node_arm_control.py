@@ -45,8 +45,6 @@ class arm_contol_node(Node):
         self.deadzone = 0.1 
 
         self.cur_angles = [0.0,0.0,0.0,0.0,0.0] #Dummy  value, update with API call
-        self.horizontal_snap = [1.0, 0.0]
-
         self.current_schema = IK_CONTROL  # Start with Inverse Kinematics control
        
         self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_arm", self.run, 10)
@@ -113,13 +111,6 @@ class arm_contol_node(Node):
                 self.current_schema = JOINT_CONTROL
             else:
                 self.current_schema = IK_CONTROL
-        if gamepad_input.select_button:
-            self.horizontal_snap = get_old_horiz_pos(self.cur_angles)
-
-        #new_angles = new_angles.tolist()
-
-                
-                
 
         msg = Float32MultiArray()
         msg.data = new_angles

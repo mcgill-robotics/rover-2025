@@ -139,20 +139,11 @@ class HumanArmControl:
             #call inverseKinematics
             new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
             try:
-                return arm_kinematics.inverseKinematics(new_pos, cur_angles)
+                return arm_kinematics.inverseKinematics(new_pos, cur_angles).tolist()
             except:
                 print("Failed")
                 continue
         return cur_angles
-        #call inverseKinematics
-        new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
-        try:
-            angles = arm_kinematics.inverseKinematics(new_pos, cur_angles)
-            return angles.tolist()
-        except:
-            print("Failed")
-            continue
-    return cur_angles
 
     def vertical_motion(self, joystick_input, cur_angles):
         #get current x,y,z,X,Y,Z of arms
@@ -163,15 +154,15 @@ class HumanArmControl:
             #calculate new arm distance
             new_z = cur_ee_pos[2] + joystick_input * self.distance_increment[i]
 
-        #call inverseKinematics
-        new_pos = cur_ee_pos.copy()
-        new_pos[2] = new_z
-        try:
-            angles = arm_kinematics.inverseKinematics(new_pos, cur_angles)
-            return angles.tolist()
-        except:
-            print("Failed")
-            continue
+            #call inverseKinematics
+            new_pos = cur_ee_pos.copy()
+            new_pos[2] = new_z
+            try:
+                angles = arm_kinematics.inverseKinematics(new_pos, cur_angles)
+                return angles.tolist()
+            except:
+                print("Failed")
+                continue
 
         return cur_angles
 
@@ -200,19 +191,23 @@ class HumanArmControl:
             new_x = self.horizontal_lock[0] + total_horiz_dst/ee_proj_length * self.horizontal_lock[1]
             new_y = self.horizontal_lock[1] + total_horiz_dst/ee_proj_length * -self.horizontal_lock[0]
 
-        #call inverseKinematics
-        new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
-        try:
-            angles = arm_kinematics.inverseKinematics(new_pos, cur_angles)
-            return angles.tolist()
-        except:
-            print("Failed")
-            continue
-    return cur_angles
-
-def get_old_horiz_pos(cur_angles):
-    cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
-    cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
+            #call inverseKinematics
+            new_pos = [new_x, new_y, cur_ee_pos[2], cur_ee_pos[3], cur_ee_pos[4], cur_ee_pos[5]]
+            try:
+                angles = arm_kinematics.inverseKinematics(new_pos, cur_angles)
+                return angles.tolist()
+            except:
+                print("Failed")
+                continue
+        return cur_angles
+    
+    def set_horizontal_lock(self, cur_angles):
+        """Sets the horizontal lock to the current end effector position in the x,y plane.
+        This is used to calculate horizontal motion relative to the current end effector position."""
+        
+        #get current x,y,z,X,Y,Z of arms
+        cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
+        cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
 
         self.horizontal_lock = [
             cur_ee_pos[0],
