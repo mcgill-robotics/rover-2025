@@ -6,7 +6,7 @@ currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
 import rclpy
 from rclpy.node import Node
-from msg_srv_interface.msg import GamePadInput
+#from msg_srv_interface.msg import GamePadInput
 from std_msgs.msg import Float32MultiArray
 #from steering import rover_rotation , wheel_orientation_rot
 
