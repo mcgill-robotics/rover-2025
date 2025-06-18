@@ -54,10 +54,10 @@ class HumanArmControl:
         """
         #assumes joystick_input is normalized to be between -1.0 and 1.0
         #assumes speed to act as a scale factor (between 0.0 and 1.0)
-        cur_angles[current_cycle_mode] = cur_angles[current_cycle_mode] + speed * joystick_input * joint_max_speed[current_cycle_mode]
+        cur_angles[self.current_cycle_mode] = cur_angles[self.current_cycle_mode] + self.speed * joystick_input * joint_max_speed[self.current_cycle_mode]
 
         #sets the waists angle to be at the limit if it exeeds the limit
-        cur_angles[current_cycle_mode] = max(joint_lower_limits[current_cycle_mode], min(cur_angles[current_cycle_mode], joint_upper_limits[current_cycle_mode]))
+        cur_angles[self.current_cycle_mode] = max(joint_lower_limits[self.current_cycle_mode], min(cur_angles[self.current_cycle_mode], joint_upper_limits[self.current_cycle_mode]))
         return cur_angles
 
     def speed_up(self):
