@@ -23,7 +23,7 @@ class MinimalPublisher(Node):
 
     def __init__(self):
         super().__init__('gamepad_publisher')
-        self.publisher_ = self.create_publisher(GamePadInput, 'gamepad_input', 10)
+        self.publisher_ = self.create_publisher(GamePadInput, 'gamepad_input_arm', 10)
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.gamepad_callback)
 

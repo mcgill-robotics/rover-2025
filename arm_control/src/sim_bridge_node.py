@@ -8,9 +8,6 @@ from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
 from std_msgs.msg import Float32MultiArray
 #from steering import rover_rotation , wheel_orientation_rot
-from arm_control.src.human_arm_control import *
-import math
-import numpy as np
 
 # ### TEMP for Drive Test ###
 # import socket
@@ -84,7 +81,7 @@ class sim_bridge_node(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    firmware_node = arm_contol_node()
+    firmware_node = sim_bridge_node()
     rclpy.spin(firmware_node)
 
 if __name__ == "__main__":

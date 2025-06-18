@@ -39,6 +39,8 @@ class arm_contol_node(Node):
         #Declare fields corresponging to controller input
         self.gamepad_input = GamePadInput()
 
+        self.controller = HumanArmControl() 
+
         # TODO: Tune values
         self.deadzone = 0.1 
 
@@ -65,40 +67,43 @@ class arm_contol_node(Node):
         new_angles = self.cur_angles.copy()  # Create a copy of the current angles to modify
         #Check if there is input value for changing the speed
         if gamepad_input.square_button:
-            speed_up()
+            self.controller.speed_up()
         if gamepad_input.o_button:
-            speed_down()
+            self.controller.speed_down()
         
         #Check if there is input value for cycling between joints
         if gamepad_input.triangle_button:
-            cycle_up()
+            self.controller.cycle_up()
         if gamepad_input.x_button:
-            cycle_down()
+            self.controller.cycle_down()
+        
+        if gamepad_input.select_button:
+            self.controller.set_horizontal_lock(self.cur_angles)
         
         if self.current_schema == IK_CONTROL:
             #Check if there is input value for vertical plannar motion:
             if self.not_in_deadzone_check(gamepad_input.d_pad_y, 0):
-                new_angles = vertical_motion(gamepad_input.d_pad_y, self.cur_angles)
+                new_angles = self.controller.vertical_motion(gamepad_input.d_pad_y, self.cur_angles)
             
             #Check if there is input value for horizontal plannar motion:
             elif self.not_in_deadzone_check(gamepad_input.d_pad_x, 0):
-                new_angles = horizontal_motion(gamepad_input.d_pad_x, self.cur_angles)
+                new_angles = self.controller.horizontal_motion(gamepad_input.d_pad_x, self.cur_angles)
             
             #Check if there is joystick value for depth plannar motion:
             elif self.not_in_deadzone_check(gamepad_input.l_stick_y, 0):
-                new_angles = depth_motion(gamepad_input.l_stick_y, self.cur_angles)
+                new_angles = self.controller.depth_motion(gamepad_input.l_stick_y, self.cur_angles)
 
             #Check if there is input for up and down tilt
             elif gamepad_input.r2_button:
-                new_angles = upDownTilt(1, self.cur_angles)
+                new_angles = self.controller.upDownTilt(1, self.cur_angles)
 
             elif gamepad_input.l2_button:
-                new_angles = upDownTilt(-1, self.cur_angles)
+                new_angles = self.controller.upDownTilt(-1, self.cur_angles)
         
         elif self.current_schema == JOINT_CONTROL:
             #Check if there is joystick value for specific angle adjustment and if individual joint moment allowed
             if self.not_in_deadzone_check(gamepad_input.r_stick_y, 0):
-                new_angles = move_joint(gamepad_input.r_stick_y, self.cur_angles)
+                new_angles = self.controller.move_joint(gamepad_input.r_stick_y, self.cur_angles)
             
         
         #Check if there is input for enabling/disabling joint control
@@ -115,7 +120,7 @@ class arm_contol_node(Node):
         """
         Callback to update the current arm angles based on feedback from the arm firmware
         """
-        self.cur_angles = position
+        self.cur_angles = position.data
 
 def main(args=None):
     rclpy.init(args=args)
