@@ -30,8 +30,9 @@ class HumanArmControl:
     def __init__(self):
         self.current_cycle_mode = 0  # Start with waist joint. 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
         self.speed = 1.0  # TO BE SET LATER
+        self.speed_increment = 0.1  # TO BE SET LATER
         self.distance = 0.05 # TO BE SET LATER
-        self.distance_increment = [distance, distance/2, distance/4] # TO BE SET LATER
+        self.distance_increment = [self.distance, self.distance/2, self.distance/4] # TO BE SET LATER
         self.angle_increment = [np.pi/4, np.pi/8, np.pi/16] # TO BE SET LATER
         self.horizontal_lock = [0.0, 1.0] # DEFAULT
         
@@ -101,7 +102,7 @@ class HumanArmControl:
         self.current_cycle_mode %= 6
         return self.current_cycle_mode
 
-    def cycle_down(self.):
+    def cycle_down(self):
         """
         Changes the single joint being affected to the previous joint in the cycle.
 
@@ -172,20 +173,11 @@ class HumanArmControl:
         cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
 
         ee_proj_length = math.sqrt(self.horizontal_lock[0]**2+self.horizontal_lock[1]**2)  #length of the arm on the x,y plane
-        # print("ee_proj_length:", ee_proj_length)
-        # print("old x:",old_horiz_pos[0])
-        # print("old y:",old_horiz_pos[1])
 
         for i in range(len(self.distance_increment)):
             #calculate new length
             delta_horizontal = joystick_input * self.distance_increment[i]
-            total_horiz_dst = delta_horizontal + math.sqrt(abs(cur_ee_pos[0]**2+cur_ee_pos[1]**2 - self.old_horiz_pos[0]**2+self.old_horiz_pos[1]**2))
-            # print("total horiz:",total_horiz_dst)
-
-            # new_length = math.sqrt(ee_proj_length ** 2 + delta_horizontal ** 2)
-
-            # #calculate new waist angle
-            # new_waist_angle = math.asin(delta_horizontal/new_length) + cur_angles[0]
+            total_horiz_dst = delta_horizontal + math.sqrt(abs(cur_ee_pos[0]**2+cur_ee_pos[1]**2 - self.horizontal_lock[0]**2+self.horizontal_lock[1]**2))
 
             #use trig to get new x and y
             new_x = self.horizontal_lock[0] + total_horiz_dst/ee_proj_length * self.horizontal_lock[1]
@@ -216,19 +208,6 @@ class HumanArmControl:
 
         return self.horizontal_lock
 
-    # def get_old_horiz_pos(cur_angles):
-    #     cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
-    #     cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
-
-    #     #get current arm distance
-    #     #arm as 2D line for x,y plane
-    #     projection_line = [
-    #         cur_ee_pos[0],
-    #         cur_ee_pos[1],
-    #     ]
-
-    #     return projection_line
-
     def upDownTilt(self, joystick_input, cur_angles):
         """Returns new angles in radians needed to change tilt. Tries amount, then half, then half again. 
         Assumes joystick_input is normalized between -1 and 1"""
@@ -252,7 +231,3 @@ class HumanArmControl:
                 pass
 
         return cur_angles
-
-        #z is up (blue)
-        #y is side (green)
-        #x is in front (red)

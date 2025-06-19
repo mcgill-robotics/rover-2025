@@ -38,9 +38,9 @@ class MinimalPublisher(Node):
             gamepad_input.triangle_button = 1
         elif type_of_input == "o":                              #speed down
             gamepad_input.o_button = 1
-        elif type_of_input == "select":                         #enable disable joint ctrl
+        elif type_of_input == "select":                         #set plane for horiz motion
             gamepad_input.select_button = 1
-        elif type_of_input == "start":                          #set plane for horiz motion
+        elif type_of_input == "start":                          #enable disable joint ctrl
             gamepad_input.start_button = 1
         elif type_of_input == "dy":                             #vert motion
             gamepad_input.d_pad_y = float(input("-1 or 1"))

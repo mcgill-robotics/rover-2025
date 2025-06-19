@@ -95,7 +95,6 @@ class sim_bridge_node(Node):
 def main(args=None):
     rclpy.init(args=args)
     firmware_node = sim_bridge_node()
-    firmware_node = sim_bridge_node()
     rclpy.spin(firmware_node)
 
 if __name__ == "__main__":
