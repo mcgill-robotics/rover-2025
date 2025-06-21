@@ -1,10 +1,13 @@
 import math
 import numpy as np
+from speed_control import speed_controller
 
 class Steering:
     def __init__(self, rWheel, base_length):
         self.rWheel=rWheel  # radius of wheel
         self.base_length=base_length # wheel base length
+
+        self.speed_controller = speed_controller()
         
     # See link for more information: http://wiki.ros.org/diff_drive_controller
     def steering_control(self, vR, wR, maxLin=3.0, maxAng=3.0): # R = rover
@@ -29,6 +32,24 @@ def wheel_orientation_rot(x_input: float, y_input: float, curr_angle_rad: float)
     if curr_angle_rad < 0:
         curr_angle_rad += 2* math.pi
     return np.full(4,round(curr_angle_rad,2))
+
+
+def update_left_wheel_speeds(self, l_stick_y):
+    if abs(l_stick_y) < self.deadzone:
+        return [0, 0]
+    
+    base_speed = self.speed_controller.max_speed 
+    left_speed = l_stick_y * base_speed
+    return [left_speed, left_speed] # because same speed for both left wheels
+
+def update_right_wheel_speeds(self, r_stick_y):
+    if (r_stick_y) < self.deadzone:
+        return [0, 0]
+    
+    base_speed = self.speed_controller.max_speed
+    right_speed = r_stick_y * base_speed
+    return [right_speed, right_speed]
+
 
 def rover_rotation(wheel_angles: list[float], rotation_dir: float) -> list[float]:
     """

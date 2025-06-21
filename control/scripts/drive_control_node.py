@@ -5,6 +5,7 @@ currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
 import rclpy
 from speed_control import speed_controller
+import steering as steering
 from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
 from steering import rover_rotation , wheel_orientation_rot
@@ -25,6 +26,8 @@ class drive_controller(Node):
 
         #Declare field corresponding to speed control node and current state of wheels
         self.speed_controller = speed_controller()
+
+        self.steering = steering.Steering()
 
         # TODO: Tune values
         self.deadzone = 0.1 
@@ -78,8 +81,8 @@ class drive_controller(Node):
             self.get_logger().info("TANK DRIVE MODE DEACTIVATED - left stick controls rover rotation")
             
         if self.tank_drive_mode:    
-            left_speed_wheels = self.update_left_wheel_speeds(self.gamepad_input.l_stick_y)
-            right_speed_wheels = self.update_right_wheel_speeds(self.gamepad_input.r_stick_y)
+            left_speed_wheels = steering.update_left_wheel_speeds(self.gamepad_input.l_stick_y)
+            right_speed_wheels = steering.update_right_wheel_speeds(self.gamepad_input.r_stick_y)
             speed = [left_speed_wheels[0], right_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
             msg.Float32MultiArray()
             msg.data = [float(s) for s in speed]
