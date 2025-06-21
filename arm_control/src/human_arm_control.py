@@ -146,10 +146,10 @@ class HumanArmControl:
                 continue
         return cur_angles
 
-def vertical_motion(joystick_input, cur_angles):
-    #get current x,y,z,X,Y,Z of arms
-    cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
-    cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
+    def vertical_motion(self, joystick_input, cur_angles):
+        #get current x,y,z,X,Y,Z of arms
+        cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
+        cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
 
         for i in range(len(self.distance_increment)):
             #calculate new arm distance
@@ -157,16 +157,19 @@ def vertical_motion(joystick_input, cur_angles):
 
         #call inverseKinematics
         new_pos = cur_ee_pos.copy()
-        new_pos[2] = new_z
-        try:
-            out = arm_kinematics.inverseKinematics(new_pos, cur_angles)
-            if enforceStopgaps:
-                if not(math.pi - math.pi/12 <= abs(cur_angles[0] - out[0]) <= math.pi + math.pi/12):
-                    return out
-            else:
-                return out
-        except:
-            continue
+        for i in range(len(self.distance_increment)):
+            #calculate new arm distance
+            new_z = cur_ee_pos[2] + joystick_input * self.distance_increment[i]
+
+            #call inverseKinematics
+            new_pos = cur_ee_pos.copy()
+            new_pos[2] = new_z
+            try:
+                angles = arm_kinematics.inverseKinematics(new_pos, cur_angles)
+                return angles.tolist()
+            except:
+                print("Failed")
+                continue
 
         return cur_angles
 
