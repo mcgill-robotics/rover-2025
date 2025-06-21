@@ -81,7 +81,7 @@ class drive_controller(Node):
             # TODO: Send new orientation to wheels
 
         # TODO: Use API to send input values for speed, orientation and rotation.
-        msg.data = speed
+        msg.data = [float(s) for s in speed]
         self.speedInputPublisher.publish(msg)
         
     def controller_callback(self, input: GamePadInput):
