@@ -1,8 +1,8 @@
 # Author: mn297
 import scipy.stats as st
 from scipy.ndimage import gaussian_filter1d
-from drive_control.msg import WheelSpeed
-from odrive_interface.msg import MotorState, MotorError, ODriveStatus
+from msg_srv_interface.msg import WheelSpeed
+from msg_srv_interface.msg import MotorState, MotorError, ODriveStatus
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32MultiArray
 from enum import Enum
@@ -13,7 +13,8 @@ import threading
 from threading import Lock
 from queue import Queue
 
-import rospy
+import rclpy
+from rclpy.node import Node
 import os
 import sys
 
@@ -21,8 +22,9 @@ currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
 
 
-class NodeODriveInterfaceComb:
+class NodeODriveInterfaceComb(Node):
     def __init__(self):
+        super().__init__("odrive_interface_comb")
         self.is_homed = False
         self.is_calibrated = False
         self.threads = []
@@ -79,50 +81,52 @@ class NodeODriveInterfaceComb:
 
         self.locks = {joint_name: Lock() for joint_name in self.joint_dict.keys()}
 
-        rospy.init_node("odrive_interface_comb")
+        # rospy.init_node("odrive_interface_comb")
 
         # Subscriptions
         # Cmd comes from the external control node, we convert it to setpoint and apply it to the ODrive
         # Drive
-        self.drive_cmd_subscriber = rospy.Subscriber(
-            "/wheel_velocity_cmd", WheelSpeed, self.handle_drive_cmd
+        self.drive_cmd_subscriber = self.create_subscription(
+            WheelSpeed, "/wheel_velocity_cmd", self.handle_drive_cmd, 10
         )
 
         # Arm
-        self.outshaft_pos_fb_subscriber = rospy.Subscriber(
-            "/armBrushlessFb",
+        self.outshaft_pos_fb_subscriber = self.create_subscription(
             Float32MultiArray,
+            "/armBrushlessFb",
             self.handle_outshaft_fb,
+            10
         )
 
-        self.arm_joint_cmd_subscriber = rospy.Subscriber(
-            "/armBrushlessCmd", Float32MultiArray, self.handle_arm_cmd
+        self.arm_joint_cmd_subscriber = self.create_subscription(
+            Float32MultiArray, "/armBrushlessCmd", self.handle_arm_cmd, 10
         )
 
         # Publishers
         # drive
-        self.drive_fb_publisher = rospy.Publisher(
-            "/wheel_velocity_feedback", WheelSpeed, queue_size=1
+        self.drive_fb_publisher = self.create_publisher(
+            WheelSpeed, "/wheel_velocity_feedback", 1
         )
 
-        self.odrive_publisher = rospy.Publisher(
-            "/odrive_state", ODriveStatus, queue_size=1
+        self.odrive_publisher = self.create_publisher(
+            ODriveStatus, "/odrive_state", 1
         )
 
         # Arm
-        self.odrive_state_publisher = rospy.Publisher(
-            "/odrive_status", MotorState, queue_size=1
+        self.odrive_state_publisher = self.create_publisher(
+            MotorState, "/odrive_status", 1
         )
-        self.odrive_pos_fb_publisher = rospy.Publisher(
-            "/odrive_armBrushlessFb", Float32MultiArray, queue_size=1
+        self.odrive_pos_fb_publisher = self.create_publisher(
+            Float32MultiArray, "/odrive_armBrushlessFb", 1
         )
 
-        rospy.on_shutdown(self.shutdown_hook)
+        #rospy.on_shutdown(self.shutdown_hook)
 
         # Frequency of the ODrive I/O
-        self.rate = rospy.Rate(100)
+        timer_period = 0.01  # seconds
+        self.timer = self.create_timer(timer_period, self.run)
 
-        self.run()
+        #self.run()
 
     # Receive setpoint from external control node
     def handle_drive_cmd(self, msg):
@@ -472,7 +476,7 @@ class NodeODriveInterfaceComb:
 
     def loop_odrive(self):
         # MAIN LOOP -----------------------------------------------------
-        while not rospy.is_shutdown() and not self.shutdown_flag:
+        while rclpy.ok() and not self.shutdown_flag:
             # PRINT TIMESTAMP
             # print(f"""Time: {rospy.get_time()}""")
 
@@ -491,7 +495,7 @@ class NodeODriveInterfaceComb:
         thread.start()
         print_thread = threading.Thread(target=self.print_loop)
         print_thread.start()
-        rospy.spin()
+        #rospy.spin()
         self.shutdown_hook()
 
     def shutdown_hook(self):
@@ -506,6 +510,14 @@ class NodeODriveInterfaceComb:
         print("All threads joined. Shutdown complete.")
 
 
+def main():
+    rclpy.init()
+    odrive_node = NodeODriveInterfaceComb()
+    odrive_node.run()  # Start the threads after the node is created
+    rclpy.spin(odrive_node)
+    odrive_node.shutdown_hook()
+    odrive_node.destroy_node()
+    rclpy.shutdown()
+
 if __name__ == "__main__":
-    driver = NodeODriveInterfaceComb()
-    rospy.spin()
+    main()

@@ -1,0 +1,19 @@
+sudo: false
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++
+
+language: node_js
+
+node_js:
+  - "14"
+  - "15"
+  - "16"
+
+after_success:
+  - npm install coveralls
+  - nyc report --reporter=text-lcov | ./node_modules/.bin/coveralls
