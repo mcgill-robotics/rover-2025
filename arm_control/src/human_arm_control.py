@@ -37,7 +37,7 @@ class HumanArmControl:
         self.horizontal_lock = [0.0, 1.0] # DEFAULT
         
 
-    def move_joint(self, joystick_input, cur_angles):
+    def move_joint(self, joystick_input: float, cur_angles: list[float]) -> list[float]:
         """ Moves a singular joint in proportion to the joystick input
         
         Params
@@ -116,7 +116,7 @@ class HumanArmControl:
         self.current_cycle_mode %= 6
         return self.current_cycle_mode
 
-    def depth_motion(self, joystick_input, cur_angles):
+    def depth_motion(self, joystick_input: float, cur_angles: list[float]) -> list[float]:
         #get current x,y,z,X,Y,Z of arms
         cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
         cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
@@ -146,7 +146,7 @@ class HumanArmControl:
                 continue
         return cur_angles
 
-    def vertical_motion(self, joystick_input, cur_angles):
+    def vertical_motion(self, joystick_input: float, cur_angles: list[float]) -> list[float]:
         #get current x,y,z,X,Y,Z of arms
         cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
         cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
@@ -173,7 +173,7 @@ class HumanArmControl:
 
         return cur_angles
 
-    def horizontal_motion(self, joystick_input, cur_angles):
+    def horizontal_motion(self, joystick_input: float, cur_angles: list[float]) -> list[float]:
         #get current x,y,z,X,Y,Z of arms
         cur_matrix = arm_kinematics.forwardKinematics(cur_angles)
         cur_ee_pos = arm_kinematics.Mat2Pose(cur_matrix)
@@ -199,7 +199,7 @@ class HumanArmControl:
                 continue
         return cur_angles
     
-    def set_horizontal_lock(self, cur_angles):
+    def set_horizontal_lock(self, cur_angles: list[float]) -> list[float]:
         """Sets the horizontal lock to the current end effector position in the x,y plane.
         This is used to calculate horizontal motion relative to the current end effector position."""
         
@@ -214,7 +214,7 @@ class HumanArmControl:
 
         return self.horizontal_lock
 
-    def upDownTilt(self, joystick_input, cur_angles):
+    def upDownTilt(self, joystick_input: float, cur_angles: list[float]) -> list[float]:
         """Returns new angles in radians needed to change tilt. Tries amount, then half, then half again. 
         Assumes joystick_input is normalized between -1 and 1"""
 

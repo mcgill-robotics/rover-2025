@@ -56,7 +56,7 @@ class arm_contol_node(Node):
         # timer_period = 0.25
         # self.timer = self.create_timer(timer_period, self.run)
 
-    def not_in_deadzone_check(self, x_axis, y_axis):
+    def not_in_deadzone_check(self, x_axis: float, y_axis: float) -> bool:
         return not ((-self.deadzone <= x_axis <= self.deadzone) and (-self.deadzone <= y_axis <= self.deadzone))
     
     def run(self, gamepad_input: GamePadInput):
@@ -116,7 +116,7 @@ class arm_contol_node(Node):
         msg.data = new_angles
         self.position_publisher.publish(msg)
 
-    def updateArmPosition(self, position: Float32MultiArray):
+    def updateArmPosition(self, position: Float32MultiArray) -> None:
         """
         Callback to update the current arm angles based on feedback from the arm firmware
         """

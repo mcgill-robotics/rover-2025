@@ -81,7 +81,7 @@ class sim_bridge_node(Node):
         self.feedback_publisher.publish(msg)
         
 
-    def updateArmPosition(self, cmds):
+    def updateArmPosition(self, cmds: Float32MultiArray):
         data = [x * 180 / math.pi for x in cmds.data]    #sim takes degrees, convert rads to degrees
         brushless_msg = Float32MultiArray()
         brushless_msg.data = [data[2], data[1], data[0]]
