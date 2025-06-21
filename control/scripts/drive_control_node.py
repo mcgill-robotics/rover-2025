@@ -61,6 +61,13 @@ class drive_controller(Node):
 
             speed = [direction*self.turning_speed for direction in rotation_sp]
 
+        # Check whether Schema for analog stick control for L&R side of rover
+        if self.gamepad_input.triangle_button:
+            self.get_logger().info("TANK DRIVE MODE ACTIVATED - left stick controls left wheel & right stick controls right wheel")
+            left_speed_wheels = self.update_left_wheel_speeds(self.gamepad_input.l_stick_y)
+            right_speed_wheels = self.update_right_wheel_speeds(self.gamepad_input.r_stick_y)
+            
+            speed = [left_speed_wheels[0], right_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
 
         #Check whether gears change
         if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
@@ -79,6 +86,23 @@ class drive_controller(Node):
         
     def controller_callback(self, input: GamePadInput):
         self.gamepad_input = input
+
+    def update_left_wheel_speeds(self, l_stick_y):
+        if abs(l_stick_y) < self.deadzone:
+            return [0, 0]
+        
+        base_speed = self.speed_controller.max_speed 
+        left_speed = l_stick_y * base_speed
+        return [left_speed, left_speed] # because same speed for both left wheels
+
+    def update_right_wheel_speeds(self, r_stick_y):
+        if (r_stick_y) < self.deadzone:
+            return [0, 0]
+        
+        base_speed = self.speed_controller.max_speed
+        right_speed = r_stick_y * base_speed
+        return [right_speed, right_speed]
+
 
 def main(args=None):
     rclpy.init(args=args)
