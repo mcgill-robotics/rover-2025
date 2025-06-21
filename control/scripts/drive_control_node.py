@@ -11,7 +11,7 @@ from steering import rover_rotation , wheel_orientation_rot
 import math
 import numpy as np
 from std_msgs.msg import Float32MultiArray
-
+import drive_firmware_node as drive_firmware
 
 class drive_controller(Node):
     def __init__(self):
@@ -21,12 +21,16 @@ class drive_controller(Node):
         #Declare fields corresponging to controller input
         self.gamepad_input = GamePadInput()
 
+        self.drive_firmware_node = drive_firmware.drive_firmware()
+
         #Declare field corresponding to speed control node and current state of wheels
         self.speed_controller = speed_controller()
 
         # TODO: Tune values
         self.deadzone = 0.1 
         self.turning_speed = 3200.0
+
+        self.tank_drive_mode = False
 
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
@@ -42,6 +46,10 @@ class drive_controller(Node):
         return not ((-self.deadzone <= x_axis <= self.deadzone) and (-self.deadzone <= y_axis <= self.deadzone))
     
     def run(self):
+        #square -> acknowledged the faults, wheels will stop taking command until it is acknolewdged
+        if self.gamepad_input.square_button:
+            self.drive_firmware_node.clear_motor_faults(self.gamepad_input)
+            self.get_logger().info("Motor faults cleared")
 
         #Speed given button input
         speed = self.speed_controller.updateSpeed(self.gamepad_input.x_button, self.gamepad_input.o_button)
@@ -61,13 +69,22 @@ class drive_controller(Node):
 
             speed = [direction*self.turning_speed for direction in rotation_sp]
 
-        # Check whether Schema for analog stick control for L&R side of rover
+        # Checking for tank drive mode
         if self.gamepad_input.triangle_button:
+            self.tank_drive_mode = not self.tank_drive_mode
+        if self.tank_drive_mode:
             self.get_logger().info("TANK DRIVE MODE ACTIVATED - left stick controls left wheel & right stick controls right wheel")
+        else:
+            self.get_logger().info("TANK DRIVE MODE DEACTIVATED - left stick controls rover rotation")
+            
+        if self.tank_drive_mode:    
             left_speed_wheels = self.update_left_wheel_speeds(self.gamepad_input.l_stick_y)
             right_speed_wheels = self.update_right_wheel_speeds(self.gamepad_input.r_stick_y)
-            
             speed = [left_speed_wheels[0], right_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
+            msg.Float32MultiArray()
+            msg.data = [float(s) for s in speed]
+            self.speedInputPublisher.publish(msg)
+            return
 
         #Check whether gears change
         if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
