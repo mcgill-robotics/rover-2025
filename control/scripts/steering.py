@@ -17,7 +17,7 @@ class Steering:
         return val
       
 # rotates the wheels with joystick inputs. returns the angle of the joysticks
-def wheel_orientation_rot(x_input, y_input, curr_angle_rad):
+def wheel_orientation_rot(x_input: float, y_input: float, curr_angle_rad: float) -> np.ndarray:
     '''
     This function returns the angle at which each wheels should be oriented.
     It returns the angle of the joystick
@@ -30,7 +30,7 @@ def wheel_orientation_rot(x_input, y_input, curr_angle_rad):
         curr_angle_rad += 2* math.pi
     return np.full(4,round(curr_angle_rad,2))
 
-def rover_rotation(wheel_angles, rotation_dir):
+def rover_rotation(wheel_angles: list[float], rotation_dir: float) -> list[float]:
     """
     Returns the wheel speeds in array [TR, TL, BL, BR] needed for rover rotation left or right
     Assumes rotation_dir normalized between [-1, 1] for x-axis (L/R)

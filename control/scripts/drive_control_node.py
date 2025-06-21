@@ -42,7 +42,7 @@ class drive_controller(Node):
         timer_period = 0.2
         self.timer = self.create_timer(timer_period, self.run)
 
-    def not_in_deadzone_check(self, x_axis, y_axis):
+    def not_in_deadzone_check(self, x_axis: float, y_axis: float) -> bool:
         return not ((-self.deadzone <= x_axis <= self.deadzone) and (-self.deadzone <= y_axis <= self.deadzone))
     
     def run(self):
@@ -103,22 +103,6 @@ class drive_controller(Node):
         
     def controller_callback(self, input: GamePadInput):
         self.gamepad_input = input
-
-    def update_left_wheel_speeds(self, l_stick_y):
-        if abs(l_stick_y) < self.deadzone:
-            return [0, 0]
-        
-        base_speed = self.speed_controller.max_speed 
-        left_speed = l_stick_y * base_speed
-        return [left_speed, left_speed] # because same speed for both left wheels
-
-    def update_right_wheel_speeds(self, r_stick_y):
-        if (r_stick_y) < self.deadzone:
-            return [0, 0]
-        
-        base_speed = self.speed_controller.max_speed
-        right_speed = r_stick_y * base_speed
-        return [right_speed, right_speed]
 
 
 def main(args=None):
