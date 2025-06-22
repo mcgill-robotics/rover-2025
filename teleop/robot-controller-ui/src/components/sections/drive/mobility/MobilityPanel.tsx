@@ -51,7 +51,7 @@ const MobilityPanel: React.FC = () => {
       </div>
 
       {/* Mode Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1">
         {renderContent()}
       </div>
     </div>

@@ -1,9 +1,11 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import MotorPanel from './MotorPanel';
+import { BarChart3, PanelLeft } from 'lucide-react'; // or any icon set
+import ChartPanel from '../ChartPanel/ChartPanel';
 
 interface Props {
-  activeTab: 'overview' | 'details' | 'charts';
-  setActiveTab: (tab: 'overview' | 'details' | 'charts') => void;
   motorStats: {
     name: string;
     speed: number;
@@ -15,45 +17,37 @@ interface Props {
   }[];
 }
 
-const MotorDiagnosticsTabs: React.FC<Props> = ({ activeTab, setActiveTab, motorStats }) => {
-  const tabs: ('overview' | 'details' | 'charts')[] = ['overview', 'details', 'charts'];
+const MotorDiagnosticsTabs: React.FC<Props> = ({ motorStats }) => {
+  const [view, setView] = useState<'overview' | 'charts'>('overview');
+  const MOTOR_PANEL_HEIGHT = 'h-[360px]'; 
 
   return (
-    <div className="w-full max-w-[600px] bg-[#18181b] rounded-xl shadow-md">
-      <div className="flex flex-col items-center">
+    <div className="w-full rounded-xl shadow-md bg-[#18181b] text-white p-2">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-2 px-1">
+        <h2 className="text-sm font-semibold">Motor Diagnostics</h2>
+        <button
+          onClick={() => setView(view === 'charts' ? 'overview' : 'charts')}
+          className="p-1 hover:text-white text-white/60 transition"
+          title={view === 'charts' ? 'Show Overview' : 'Show Charts'}
+        >
+          {view === 'charts' ? <PanelLeft className="w-5 h-5" /> : <BarChart3 className="w-5 h-5" />}
+        </button>
+      </div>
 
-        {/* Tab switcher (compact full-width style) */}
-        <div className="w-full flex">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              className={`flex-1 py-2 text-sm font-medium border-b-2 transition-all
-                ${activeTab === tab
-                  ? 'bg-[#2a2a33] text-white border-white'
-                  : 'bg-[#18181b] text-white/60 border-transparent hover:text-white'}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
-        <div className="w-full p-4">
-          {activeTab === 'overview' && (
-            <div className="grid grid-cols-2 gap-4 w-full">
-              {motorStats.map((motor) => (
-                <MotorPanel key={motor.name} {...motor} />
-              ))}
-            </div>
-          )}
-          {activeTab === 'details' && (
-            <div className="text-center text-white/60 text-sm py-10">[Details View Placeholder]</div>
-          )}
-          {activeTab === 'charts' && (
-            <div className="text-center text-white/60 text-sm py-10">[Charts View Placeholder]</div>
-          )}
-        </div>
+      {/* View Container (same height) */}
+      <div className={`${MOTOR_PANEL_HEIGHT} w-full`}>
+        {view === 'overview' ? (
+          <div className="grid grid-cols-2 gap-3 h-full">
+            {motorStats.map((motor) => (
+              <MotorPanel key={motor.name} {...motor} />
+            ))}
+          </div>
+        ) : (
+          <div className="h-full">
+            <ChartPanel />
+          </div>
+        )}
       </div>
     </div>
   );

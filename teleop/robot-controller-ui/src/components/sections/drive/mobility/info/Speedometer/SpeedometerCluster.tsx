@@ -5,8 +5,7 @@ import Speedometer from './Speedometer';
 
 const SpeedometerCluster: React.FC = () => {
   return (
-    <div className="w-full max-w-[600px] flex flex-col items-center mb-6">
-      <h2 className="text-xl font-bold text-center mb-2">Rover Speed</h2>
+    <div className="w-full max-w-[600px] flex flex-col items-center mb-2">
 
       <div className="w-[220px] h-[167px] flex justify-center items-center relative mb-[-50px]">
         <Speedometer initialSpeed={80} />

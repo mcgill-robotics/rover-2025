@@ -1,23 +1,22 @@
 'use client';
 
-import { useState } from 'react';
 import { motorStats } from './MotorPanel/motorData';
 import SpeedometerCluster from './Speedometer/SpeedometerCluster';
 import MotorDiagnosticsTabs from './MotorPanel/MotorDiagnosticTabs';
 
 const DriveInfo: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'charts'>('overview');
 
   return (
-    <div className="flex flex-col items-center w-full h-full p-2 overflow-hidden text-white">
+    <div className="flex flex-col w-full h-full p-2 items-centertext-white gap-2 overflow-hidden">
       {/* Speedometer section */}
       <SpeedometerCluster />
 
-      {/* Combined Motor Diagnostics section with tab switcher */}
-      <MotorDiagnosticsTabs
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        motorStats={motorStats}/>
+      {/* MotorDiagnostics fills */}
+      <div className="flex-1 min-h-0">
+        <MotorDiagnosticsTabs
+          motorStats={motorStats}
+        />
+      </div>
     </div>
   );
 };
