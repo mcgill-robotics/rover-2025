@@ -1,34 +1,20 @@
 "use client";
 
-import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
-import { CAMERAIP } from "@/config/config"
 import { useWebRTCStream } from "@/hooks/useWebRTCStreams";
+import { useCameraList } from "@/hooks/useCameraList";
+import { useBandwidthStats } from "@/hooks/useBandwidthStats";
 
-import DPad from "./DPad";
-import WebRTCPlayer from "./WebRTCPlayer";
-import { PowerButton } from "@/components/sections/arm/control";
-
-const targetCameraNames = [
-  "USB 2.0 Camera",
-  "Logitech HD Webcam",
-  "VGA USB Camera",
-  "CC HD webcam            "
-];
-
-interface CameraInfo {
-  name: string;
-  path: string;
-}
+import DPad from "./DPadController";
+import PowerButton from "@/components/ui/PowerButton";
+import ArrowButton from "@/components/ui/ArrowButton";
 
 const CameraView: React.FC = () => {
-  const [cameras, setCameras] = useState<CameraInfo[]>([]);
+  const cameras = useCameraList();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [bitrate_kbps, setBitrate] = useState<string>("N/A");
-  const [ping_ms, setPing] = useState<number | null>(null);
-
   const currentCamera = cameras[currentIndex];
+
   const {
     isStreaming,
     startStream,
@@ -39,62 +25,7 @@ const CameraView: React.FC = () => {
     isLive,
   } = useWebRTCStream({ devicePath: currentCamera?.path || "" });
 
-  useEffect(() => {
-    const fetchCameraPaths = async () => {
-      try {
-        const res = await axios.get(`http://${CAMERAIP}:8081/video-devices`);
-        const deviceMap: CameraInfo[] = [];
-
-        res.data.devices.forEach((entry: { name: string; devices: string[] }) => {
-          for (const targetName of targetCameraNames) {
-            if (entry.name.includes(targetName)) {
-              deviceMap.push({ name: targetName, path: entry.devices[0] });
-            }
-          }
-        });
-
-        setCameras(deviceMap);
-      } catch (error) {
-        console.error("Failed to fetch camera devices:", error);
-      }
-    };
-
-    fetchCameraPaths();
-  }, []);
-
-  // Automatically reconnect stream when camera changes
-  useEffect(() => {
-    if (!currentCamera?.path) return;
-
-    if (isStreaming) {
-      stopStream();
-      setTimeout(() => {
-        startStream();
-      }, 100);
-    }
-  }, [currentCamera?.path, isStreaming, startStream, stopStream]);
-
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-
-    const fetchStats = async () => {
-      try {
-        const res = await axios.get(`http://${CAMERAIP}:8081/bandwidth-stats`);
-        const stats = res.data.bandwidth_stats?.[0];
-        if (stats?.rtt_ms != null) setBitrate(stats.bitrate_kbps);
-        if (res.data?.ping_ms != null) setPing(res.data.ping_ms);
-      } catch (err) {
-        console.error("Failed to fetch bandwidth stats:", err);
-      }
-    };
-
-    if (isStreaming) {
-      fetchStats();
-      intervalId = setInterval(fetchStats, 2000);
-    }
-
-    return () => clearInterval(intervalId);
-  }, [isStreaming]);
+  const { bitrateKbps, pingMs } = useBandwidthStats(isStreaming);
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % cameras.length);
@@ -108,7 +39,15 @@ const CameraView: React.FC = () => {
     <div className="relative w-full h-screen bg-black flex flex-col">
       {currentCamera && isStreaming ? (
         <div className="relative w-full h-full overflow-hidden">
-          <WebRTCPlayer key={videoKey} devicePath={currentCamera.path} forwardedRef={videoRef} />
+          {/* Embedded video element directly */}
+          <video
+            key={videoKey}
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
 
           {/* Camera Info Top Left */}
           <div className="absolute top-4 left-4 text-white text-base bg-black/50 px-4 py-2 rounded-lg">
@@ -120,23 +59,17 @@ const CameraView: React.FC = () => {
           {/* Stream Stats Top Right */}
           <div className="absolute top-4 right-4 text-white text-sm bg-black/50 px-4 py-2 rounded-lg text-right">
             FPS: {fps}<br />
-            Bitrate: {bitrate_kbps ? `${bitrate_kbps} kbps` : "N/A"}<br />
-            Ping: {ping_ms ? `${ping_ms} ms` : "N/A"}
+            Bitrate: {bitrateKbps !== "0" ? `${bitrateKbps} kbps` : "N/A"}<br />
+            Ping: {pingMs !== null ? `${pingMs} ms` : "N/A"}
           </div>
 
-          {/* Previous Button */}
-          <button onClick={handlePrevious} className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 text-2xl rounded-full bg-black/50 text-white hover:bg-black/70">
-            ⟵
-          </button>
-
-          {/* Next Button */}
-          <button onClick={handleNext} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 text-2xl rounded-full bg-black/50 text-white hover:bg-black/70">
-            ⟶
-          </button>
+          {/* Navigation Buttons */}
+          <ArrowButton direction="left" onClick={handlePrevious} />
+          <ArrowButton direction="right" onClick={handleNext} />
 
           {/* DPad Overlay */}
           {currentCamera.name.includes("USB 2.0 Camera") && (
-            <div className="absolute bottom-8 right-8 w-[100px] h-[100px]">
+            <div className="absolute bottom-4 right-8 w-[100px] h-[100px]">
               <DPad inputStream="up" />
             </div>
           )}
@@ -150,10 +83,12 @@ const CameraView: React.FC = () => {
       )}
 
       {/* Power Button */}
-      <div className="absolute bottom-[-75px] left-1/2 -translate-x-1/2 z-20">
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20">
         <PowerButton
-          isActive={isStreaming}
           onClick={() => (isStreaming ? stopStream() : startStream())}
+          size="small"
+          isActive={isStreaming}
+          label="Start"
         />
       </div>
     </div>

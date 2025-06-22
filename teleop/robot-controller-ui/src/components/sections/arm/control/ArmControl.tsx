@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import PowerButton from './PowerButton';
+import PowerButton from '@/components/ui/PowerButton';
 import CommandLog from './CommandLog';
 import PS4Controller from './PS4Controller/PS4Controller';
 
