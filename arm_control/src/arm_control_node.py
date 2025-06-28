@@ -6,32 +6,15 @@ sys.path.append(currentdir)
 import rclpy
 from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
-#from steering import rover_rotation , wheel_orientation_rot
 from human_arm_control import *
-import math
 import numpy as np
 from std_msgs.msg import Float32MultiArray
 
-
-
-# ### TEMP for Drive Test ###
-# import socket
-# import pygame
-# import time
-
-
-# JETSON_IP = "192.168.0.101"  # IP of the motor computer
-# UDP_PORT = 5005           # Port to send data
-# sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP socket
-
-# def send_UDP_message(msg):
-#     sock.sendto(msg.encode(), (JETSON_IP, UDP_PORT))
-# ### TEMP for Drive Test ###
-
+# Enum for control schema
 IK_CONTROL = 0
 JOINT_CONTROL = 1
 
-class arm_contol_node(Node):
+class arm_control_node(Node):
     def __init__(self):
 
         super().__init__("arm_control_node")
@@ -124,9 +107,8 @@ class arm_contol_node(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    firmware_node = arm_contol_node()
-    rclpy.spin(firmware_node)
+    arm_control_node = arm_control_node()
+    rclpy.spin(arm_control_node)
 
 if __name__ == "__main__":
     main()
-        

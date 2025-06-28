@@ -7,7 +7,12 @@ from std_msgs.msg import Float32MultiArray
 
 
 class MinimalPublisher(Node):
-
+    """
+    An interface for direct testing of the planar motions of the arm.
+    This is for getting a general sense of how the arm behaves in different motions,
+    it is NOT meant for determining precision accuracy. Passing tests
+    are determined by eye feeling and not by any numerical accuracy or test oracle.
+    """
     def __init__(self):
         super().__init__('minimal_publisher')
         self.brushed_angles = [0.0, 0.0, 0.0]
@@ -106,9 +111,7 @@ class MinimalPublisher(Node):
             )
             #print(brushed_msg.data)
             self.brushless_publisher_.publish(brushless_msg)
-            print("hi")
             self.brushed_publisher_.publish(brushed_msg)
-            print("hi2")
 
         elif motion == "u":
             self.old_horiz_pos = human_arm_control.get_old_horiz_pos(cur_angles)

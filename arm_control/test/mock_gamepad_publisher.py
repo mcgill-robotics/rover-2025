@@ -14,8 +14,6 @@
 
 import rclpy
 from rclpy.node import Node
-
-from std_msgs.msg import String
 from msg_srv_interface.msg import GamePadInput
 
 

@@ -6,25 +6,7 @@ currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
 import rclpy
 from rclpy.node import Node
-#from msg_srv_interface.msg import GamePadInput
 from std_msgs.msg import Float32MultiArray
-#from steering import rover_rotation , wheel_orientation_rot
-
-
-
-# ### TEMP for Drive Test ###
-# import socket
-# import pygame
-# import time
-
-
-# JETSON_IP = "192.168.0.101"  # IP of the motor computer
-# UDP_PORT = 5005           # Port to send data
-# sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP socket
-
-# def send_UDP_message(msg):
-#     sock.sendto(msg.encode(), (JETSON_IP, UDP_PORT))
-# ### TEMP for Drive Test ###
 
 class sim_bridge_node(Node):
     def __init__(self):
@@ -87,7 +69,6 @@ class sim_bridge_node(Node):
         brushless_msg.data = [data[2], data[1], data[0]]
         brushed_msg = Float32MultiArray()
         brushed_msg.data = [0.0, data[4], data[3]]
-        print("pub")
 
         self.brushless_publisher.publish(brushless_msg)
         self.brushed_publisher.publish(brushed_msg)

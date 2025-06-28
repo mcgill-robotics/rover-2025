@@ -148,6 +148,9 @@ def test_inverseKinematics(num_samples=1000, verbose=False):
     return failed
 
 def test_depthMotionDistance(num_samples=1000, verbose=False):
+    """
+    Tests that the depth motion function moves the arm an appropriate distance.
+    """
     print("------------------------------------------------------------------")
     print("-------------test_depthMotionDistance-----------------------------")
     print("------------------------------------------------------------------")
@@ -182,6 +185,8 @@ def test_depthMotionDistance(num_samples=1000, verbose=False):
     return failed
 
 def test_depthMotionUndo(num_samples=1000, verbose=False):
+    """
+    Tests that applying depth motion forward and then backward returns to the original position."""
     print("------------------------------------------------------------------")
     print("-------------test_depthMotionUndo---------------------------------")
     print("------------------------------------------------------------------")
@@ -207,6 +212,8 @@ def test_depthMotionUndo(num_samples=1000, verbose=False):
     return failed
 
 def test_verticalMotionDistance(num_samples=1000, verbose=False):
+    """
+    Tests that the vertical motion function moves the arm an appropriate distance."""
     print("------------------------------------------------------------------")
     print("-------------test_verticalMotionDistance--------------------------")
     print("------------------------------------------------------------------")
@@ -244,6 +251,7 @@ def test_verticalMotionDistance(num_samples=1000, verbose=False):
     return failed
 
 def test_verticalMotionUndo(num_samples=1000, verbose=False):
+    """ Tests that applying vertical motion forward and then backward returns to the original position."""
     print("------------------------------------------------------------------")
     print("-------------test_verticalMotionUndo------------------------------")
     print("------------------------------------------------------------------")
@@ -269,6 +277,7 @@ def test_verticalMotionUndo(num_samples=1000, verbose=False):
     return failed
 
 def test_horizontalMotionDistance(num_samples=1000, verbose=False):
+    """ Tests that the horizontal motion function moves the arm an appropriate distance."""
     print("------------------------------------------------------------------")
     print("-------------test_horizontalMotionDistance------------------------")
     print("------------------------------------------------------------------")
@@ -302,6 +311,7 @@ def test_horizontalMotionDistance(num_samples=1000, verbose=False):
     return failed
 
 def test_horizontalMotionUndo(num_samples=1000, verbose=False):
+    """ Tests that applying horizontal motion forward and then backward returns to the original position."""
     print("------------------------------------------------------------------")
     print("-------------test_horizontalMotionUndo----------------------------")
     print("------------------------------------------------------------------")
