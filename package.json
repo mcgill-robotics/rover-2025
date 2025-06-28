@@ -5,5 +5,9 @@
     "axios": "^1.7.9",
     "postcss": "^8.5.1",
     "tailwindcss": "^4.0.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6"
   }
 }
