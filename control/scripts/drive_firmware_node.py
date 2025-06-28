@@ -6,8 +6,9 @@ import driveCANCommunication as dCAN
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
-from msg_srv_interface.msg import GamePadInput, DriveMotorDiagnostic
+from msg_srv_interface.msg import DriveMotorDiagnostic
 from msg_srv_interface.srv import DriveMotorStatus
+from std_msgs.msg import Bool
 
 
 class drive_firmware(Node):
@@ -15,8 +16,8 @@ class drive_firmware(Node):
     def __init__(self):
         super().__init__("drive_firmware_node")
 
-        self.driveSpeedInputSubscriber     = self.create_subscription(Float32MultiArray, "drive_speed_input",   self.broadcast_speeds,   10)
-        self.gampepad_subscriber           = self.create_subscription(GamePadInput,      "gamepad_input_drive", self.clear_motor_faults, 10)
+        self.drive_speed_input_subscriber     = self.create_subscription(Float32MultiArray, "drive_speed_input",   self.broadcast_speeds,   10)
+        self.fault_acknowledgement_subscriber = self.create_subscription(Bool, "acknowledge_faults", self.clear_motor_faults, 10)
         self.drive_motors_info_publisher   = self.create_publisher(DriveMotorDiagnostic, "drive_motors_info", 10) 
         self.drive_motors_speeds_publisher = self.create_publisher(Float32MultiArray,    "drive_speeds_info", 10)
         self.drive_ping_service            = self.create_service(DriveMotorStatus,       "drive_motors_status", self.drive_ping_callback)
@@ -56,8 +57,8 @@ class drive_firmware(Node):
         self.pub_count += 1
 
 
-    def clear_motor_faults(self, gamepad_input : GamePadInput):
-        if gamepad_input.square_button:
+    def clear_motor_faults(self, acknowledge_faults: Bool):
+        if acknowledge_faults.data:
             for motor in self.nodes:
                 self.drive_interface.acknowledge_motor_fault(motor)
 

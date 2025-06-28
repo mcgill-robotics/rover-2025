@@ -12,6 +12,7 @@ from steering import rover_rotation , wheel_orientation_rot
 import math
 import numpy as np
 from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Bool
 import drive_firmware_node as drive_firmware
 
 class drive_controller(Node):
@@ -21,8 +22,6 @@ class drive_controller(Node):
 
         #Declare fields corresponging to controller input
         self.gamepad_input = GamePadInput()
-
-        self.drive_firmware_node = drive_firmware.drive_firmware()
 
         #Declare field corresponding to speed control node and current state of wheels
         self.speed_controller = speed_controller()
@@ -38,8 +37,9 @@ class drive_controller(Node):
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
        
-        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.controller_callback, 10)
-        self.speedInputPublisher = self.create_publisher(Float32MultiArray, "drive_speed_input", 10)
+        self.gamepad_subscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.controller_callback, 10)
+        self.speed_input_publisher = self.create_publisher(Float32MultiArray, "drive_speed_input", 10)
+        self.acknowledgement_publisher = self.create_publisher(Bool, "acknowledge_faults", 10)
 
         # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
         timer_period = 0.2
@@ -50,9 +50,13 @@ class drive_controller(Node):
     
     def run(self):
         #square -> acknowledged the faults, wheels will stop taking command until it is acknolewdged
+        acknowledge_msg = Bool()
         if self.gamepad_input.square_button:
-            self.drive_firmware_node.clear_motor_faults(self.gamepad_input)
-            self.get_logger().info("Motor faults cleared")
+            acknowledge_msg.data = True
+        else:
+            acknowledge_msg.data = False
+        self.acknowledgement_publisher.publish(acknowledge_msg)
+
 
         #Speed given button input
         speed = self.speed_controller.updateSpeed(self.gamepad_input.x_button, self.gamepad_input.o_button)
@@ -86,7 +90,7 @@ class drive_controller(Node):
             speed = [left_speed_wheels[0], right_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
             msg.Float32MultiArray()
             msg.data = [float(s) for s in speed]
-            self.speedInputPublisher.publish(msg)
+            self.speed_input_publisher.publish(msg)
             return
 
         #Check whether gears change
@@ -102,7 +106,7 @@ class drive_controller(Node):
 
         # TODO: Use API to send input values for speed, orientation and rotation.
         msg.data = [float(s) for s in speed]
-        self.speedInputPublisher.publish(msg)
+        self.speed_input_publisher.publish(msg)
         
     def controller_callback(self, input: GamePadInput):
         self.gamepad_input = input
