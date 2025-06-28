@@ -35,17 +35,11 @@ def wheel_orientation_rot(x_input: float, y_input: float, curr_angle_rad: float)
 
 
 def update_left_wheel_speeds(self, l_stick_y: float) -> list[float]:
-    if abs(l_stick_y) < self.deadzone:
-        return [0, 0]
-    
     base_speed = self.speed_controller.max_speed 
     left_speed = l_stick_y * base_speed
     return [left_speed, left_speed] # because same speed for both left wheels
 
 def update_right_wheel_speeds(self, r_stick_y: float) -> list[float]:
-    if (r_stick_y) < self.deadzone:
-        return [0, 0]
-    
     base_speed = self.speed_controller.max_speed
     right_speed = r_stick_y * base_speed
     return [right_speed, right_speed]

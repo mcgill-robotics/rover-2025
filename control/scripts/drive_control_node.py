@@ -79,14 +79,21 @@ class drive_controller(Node):
         # Checking for tank drive mode
         if self.gamepad_input.triangle_button:
             self.tank_drive_mode = not self.tank_drive_mode
-        if self.tank_drive_mode:
-            self.get_logger().info("TANK DRIVE MODE ACTIVATED - left stick controls left wheel & right stick controls right wheel")
-        else:
-            self.get_logger().info("TANK DRIVE MODE DEACTIVATED - left stick controls rover rotation")
+            if self.tank_drive_mode:
+                self.get_logger().info("TANK DRIVE MODE ACTIVATED - left stick controls left wheel & right stick controls right wheel")
+            else:
+                self.get_logger().info("TANK DRIVE MODE DEACTIVATED - left stick controls rover rotation")
             
         if self.tank_drive_mode:    
-            left_speed_wheels = steering.update_left_wheel_speeds(self.gamepad_input.l_stick_y)
-            right_speed_wheels = steering.update_right_wheel_speeds(self.gamepad_input.r_stick_y)
+            if self.not_in_deadzone_check(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y):
+                left_speed_wheels = steering.update_left_wheel_speeds(self.gamepad_input.l_stick_y)
+            else:
+                left_speed_wheels = [0, 0]
+            if self.not_in_deadzone_check(self.gamepad_input.r_stick_x, self.gamepad_input.r_stick_y):
+                right_speed_wheels = steering.update_right_wheel_speeds(self.gamepad_input.r_stick_y)
+            else:
+                right_speed_wheels = [0, 0]
+                
             speed = [left_speed_wheels[0], right_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
             msg.Float32MultiArray()
             msg.data = [float(s) for s in speed]
