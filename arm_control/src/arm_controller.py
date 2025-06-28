@@ -66,6 +66,9 @@ class Node_ArmControl(Node):
 
         self.arm_error_publisher = self.create_publisher(String, "armError", 10)
 
+        # Publisher for the arm state for arm visualization
+        self.q_publisher = self.create_publisher(Float32MultiArray, "arm_joint_states_2d", 10)
+
         # Control Frequency of the arm controller
         #self.rate = self.create_rate(10)
         timer_period = 0.1
@@ -74,13 +77,16 @@ class Node_ArmControl(Node):
     def run(self):
         cmd_brushed = Float32MultiArray()
         cmd_brushless = Float32MultiArray()
+        msg_q = Float32MultiArray()
 
         q_dDeg = tuple(q_d_i * (180 / np.pi) for q_d_i in self.q_d)
         cmd_brushed.data = [self.claw_state, q_dDeg[4], q_dDeg[3]]
         cmd_brushless.data = [q_dDeg[2], q_dDeg[1], q_dDeg[0]]
+        msg_q.data = self.q
 
         self.armBrushedPublisher.publish(cmd_brushed)
         self.armBrushlessPublisher.publish(cmd_brushless)
+        self.q_publisher.publish(msg_q)
 
     def controlLoop(self, ctrlInput: ArmControllerInput):
 
