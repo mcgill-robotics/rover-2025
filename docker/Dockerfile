@@ -47,6 +47,5 @@ SHELL ["/bin/bash", "-c"]
 # Create workspace
 WORKDIR $WORKSPACE_DIR
 
-RUN colcon build && source install/setup.bash
 # Set the default command to bash
 CMD ["/bin/bash"]
