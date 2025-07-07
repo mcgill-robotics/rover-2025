@@ -26,11 +26,11 @@ const MotorPanel: React.FC<MotorPanelProps> = ({
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-2">
-        <span>Speed: {speed}</span>
-        <span>Pos: {pos}°</span>
-        <span>Volt: {volt}V</span>
-        <span>Curr: {curr}A</span>
-        <span>Temp: {temp}°C</span>
+        <span>Speed: {speed.toFixed(2)}</span>
+        <span>Pos: {pos.toFixed(2)}°</span>
+        <span>Volt: {volt.toFixed(2)}V</span>
+        <span>Curr: {curr.toFixed(2)}A</span>
+        <span>Temp: {temp.toFixed(2)}°C</span>
       </div>
 
       {/* Ping + Alert */}

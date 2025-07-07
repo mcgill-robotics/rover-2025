@@ -288,14 +288,27 @@ class ROSManager:
             'timestamp': time.time()
         })
         
+        # Schedule the async broadcast in a thread-safe way
+        try:
+            loop = asyncio.get_running_loop()
+            loop.call_soon_threadsafe(lambda: asyncio.create_task(self._async_broadcast(message)))
+        except RuntimeError:
+            # No event loop running, skip broadcast
+            logger.debug("No event loop available for WebSocket broadcast")
+    
+    async def _async_broadcast(self, message):
+        """Async helper for broadcasting to WebSocket clients."""
+        if not self.websocket_connections:
+            return
+        
         # Remove closed connections and send to active ones
         closed_connections = set()
-        for ws in self.websocket_connections:
+        for ws in self.websocket_connections.copy():
             try:
                 if ws.closed:
                     closed_connections.add(ws)
                 else:
-                    asyncio.create_task(ws.send_str(message))
+                    await ws.send_str(message)
             except Exception as e:
                 logger.error(f"Error broadcasting to WebSocket: {e}")
                 closed_connections.add(ws)

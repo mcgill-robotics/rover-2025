@@ -1,324 +1,454 @@
 # Robot Controller UI
 
-A Next.js-based web interface for controlling and monitoring the Mars Rover's teleoperation systems. This application provides real-time data visualization and control interfaces for the rover's drive system, arm control, and camera feeds.
+A modern Next.js-based web interface for controlling and monitoring the Mars Rover's teleoperation systems. This UI provides real-time data visualization, motor diagnostics, and system control capabilities.
 
 ## 🏗️ Project Structure
 
 ```
-teleop/robot-controller-ui/
-├── src/
+robot-controller-ui/
+├── README.md                    # This file
+├── package.json                 # Dependencies and scripts
+├── next.config.js              # Next.js configuration
+├── tailwind.config.js          # Tailwind CSS configuration
+├── tsconfig.json               # TypeScript configuration
+├── public/                     # Static assets
+│   ├── favicon.ico
+│   └── images/
+├── src/                        # Source code
 │   ├── app/                    # Next.js App Router pages
-│   │   ├── drive/             # Drive system control page
-│   │   ├── arm/               # Arm control page
-│   │   ├── cameras/           # Camera feeds page
-│   │   └── layout.tsx         # Root layout component
-│   ├── components/            # Reusable UI components
-│   │   ├── sections/          # Page-specific component sections
-│   │   │   ├── drive/         # Drive system components
-│   │   │   │   ├── mobility/  # Drive mobility controls
-│   │   │   │   │   ├── info/  # Drive information displays
-│   │   │   │   │   │   ├── MotorPanel/      # Motor diagnostic panels
-│   │   │   │   │   │   ├── Speedometer/    # Speed visualization
-│   │   │   │   │   │   └── ChartPanel/     # Data charts
-│   │   │   │   │   └── control/            # Drive control interfaces
-│   │   │   ├── arm/           # Arm control components
-│   │   │   └── cameras/       # Camera display components
-│   │   ├── ui/                # Generic UI components
-│   │   └── layout/            # Layout components (navbar, sidebar)
-│   ├── hooks/                 # Custom React hooks
-│   │   └── useDriveData.ts    # Legacy drive data hook (replaced by Zustand)
-│   ├── store/                 # Global state management (Zustand)
-│   │   ├── types.ts           # TypeScript type definitions
-│   │   ├── rosStore.ts        # Main ROS data store
-│   │   └── index.ts           # Store exports
-│   ├── services/              # External service integrations
-│   └── styles/                # Global styles and Tailwind config
-├── public/                    # Static assets
-├── package.json              # Dependencies and scripts
-└── README.md                 # This file
+│   │   ├── layout.tsx          # Root layout component
+│   │   ├── page.tsx            # Home page
+│   │   └── globals.css         # Global styles
+│   ├── components/             # React components
+│   │   ├── ui/                 # Reusable UI components
+│   │   │   ├── Button.tsx
+│   │   │   ├── Card.tsx
+│   │   │   ├── Badge.tsx
+│   │   │   └── ...
+│   │   ├── sections/           # Main UI sections
+│   │   │   ├── drive/          # Drive system components
+│   │   │   │   ├── mobility/   # Mobility controls
+│   │   │   │   │   ├── controls/
+│   │   │   │   │   │   ├── DriveControls.tsx
+│   │   │   │   │   │   └── SpeedControl.tsx
+│   │   │   │   │   └── info/
+│   │   │   │   │       ├── DriveInfo.tsx
+│   │   │   │   │       ├── MotorStatus.tsx
+│   │   │   │   │       └── DiagnosticsPanel.tsx
+│   │   │   │   └── DriveSection.tsx
+│   │   │   ├── arm/            # Arm control components
+│   │   │   ├── camera/         # Camera feed components
+│   │   │   └── system/         # System status components
+│   │   ├── layout/             # Layout components
+│   │   │   ├── Header.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   └── Footer.tsx
+│   │   └── common/             # Common components
+│   │       ├── LoadingSpinner.tsx
+│   │       ├── ErrorBoundary.tsx
+│   │       └── ConnectionStatus.tsx
+│   ├── hooks/                  # Custom React hooks
+│   │   ├── useWebSocket.ts     # WebSocket connection hook
+│   │   ├── useRoverData.ts     # Rover data management hook
+│   │   └── useLocalStorage.ts  # Local storage utilities
+│   ├── services/               # API and service layers
+│   │   ├── api.ts              # REST API client
+│   │   ├── websocket.ts        # WebSocket client
+│   │   └── types.ts            # TypeScript type definitions
+│   ├── utils/                  # Utility functions
+│   │   ├── formatters.ts       # Data formatting utilities
+│   │   ├── validators.ts       # Input validation
+│   │   └── constants.ts        # Application constants
+│   └── styles/                 # Additional styles
+│       └── components.css      # Component-specific styles
 ```
+
+## 🎯 Key Features
+
+### Drive System Monitoring
+- **Real-time Motor Diagnostics**: Live voltage, current, temperature, and status monitoring for all 4 drive motors (RF, RB, LB, LF)
+- **Speed Visualization**: Real-time speed data with graphical indicators
+- **Connection Status**: Visual indicators for motor connectivity and health
+- **Historical Data**: Trend graphs for motor performance over time
+
+### User Interface Components
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Dark/Light Theme**: Toggle between themes for different lighting conditions
+- **Real-time Updates**: WebSocket-based live data streaming
+- **Error Handling**: Graceful error handling with user-friendly messages
+- **Loading States**: Smooth loading indicators for better UX
+
+### System Integration
+- **ROS2 Integration**: Direct connection to ROS2 backend services
+- **WebSocket Communication**: Real-time bidirectional communication
+- **REST API Support**: HTTP endpoints for configuration and control
+- **Mock Data Support**: Testing mode with simulated data
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- ROS2 environment (for backend services)
-- Python 3.8+ (for ROS services)
+- **Node.js** (v18 or higher)
+- **npm** or **yarn** package manager
+- **ROS2 Humble** (for backend integration)
+- **Python 3.8+** (for ROS services)
 
 ### Installation
 
-1. **Install frontend dependencies:**
+1. **Navigate to the UI directory:**
    ```bash
    cd teleop/robot-controller-ui
-   npm install
    ```
 
-2. **Install ROS service dependencies:**
+2. **Install dependencies:**
    ```bash
-   cd teleop/services
-   pip install -r requirements.txt
+   npm install
+   # or
+   yarn install
    ```
 
-### Running the Application
+3. **Set up environment variables:**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Edit `.env.local` with your configuration:
+   ```env
+   NEXT_PUBLIC_API_BASE_URL=http://localhost:8082
+   NEXT_PUBLIC_WS_URL=ws://localhost:8082/ws
+   NEXT_PUBLIC_ENVIRONMENT=development
+   ```
 
-#### 1. Start ROS Services
+### Development Mode
 
-First, ensure your ROS2 environment is sourced and start the required ROS nodes:
+1. **Start the development server:**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
 
+2. **Open your browser:**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+### Production Build
+
+1. **Build the application:**
+   ```bash
+   npm run build
+   # or
+   yarn build
+   ```
+
+2. **Start the production server:**
+   ```bash
+   npm start
+   # or
+   yarn start
+   ```
+
+## 🔧 Running with Services
+
+The UI requires backend services to function properly. Here are the different ways to run the complete system:
+
+### Option 1: Full System with Hardware
 ```bash
-# Source ROS2 environment
-source /opt/ros/humble/setup.bash  # or your ROS2 installation
-source ~/ros2_ws/install/setup.bash
+# Terminal 1: Start ROS services
+cd /path/to/ros2_ws
+source install/setup.bash
+ros2 launch control drive_launch.py
 
-# Start drive firmware node (publishes motor data)
-ros2 run control drive_firmware_node
+# Terminal 2: Start ROS Manager
+cd teleop/services
+python3 ros/ros_manager.py
 
-# In another terminal, start the ROS Manager (bridges ROS to web)
-cd teleop/services/ros
-python ros_manager.py
-```
-
-The ROS Manager will start a web server on port 8082 that provides:
-- REST API endpoints for drive data
-- WebSocket connection for real-time updates
-- Bridge between ROS2 topics/services and web interface
-
-#### 2. Start Frontend Development Server
-
-```bash
+# Terminal 3: Start UI
 cd teleop/robot-controller-ui
 npm run dev
 ```
 
-The web interface will be available at `http://localhost:3000`
-
-#### 3. Production Build
-
+### Option 2: Testing with Mock Data
 ```bash
-npm run build
-npm start
+# Use the automated testing script
+cd teleop
+./test_demo.sh
+
+# Choose option 3: Full System Demo
+# This will start:
+# - Mock firmware node
+# - ROS Manager
+# - Frontend UI
 ```
 
-## 🏛️ Architecture Overview
+### Option 3: Quick Start Script
+```bash
+# Use the teleop startup script
+cd teleop
+./start_teleop.sh
 
-### Frontend Architecture
+# This handles all service startup automatically
+```
 
-The application uses a modern React architecture with:
+## 🌐 API Integration
 
-- **Next.js 15** - React framework with App Router
-- **TypeScript** - Type safety and better developer experience
-- **Tailwind CSS** - Utility-first CSS framework
-- **Zustand** - Lightweight state management for ROS data
-- **Recharts** - Data visualization library
+### REST Endpoints
 
-### State Management (Zustand Store)
+The UI communicates with these backend endpoints:
 
-The application uses Zustand for global state management, specifically for ROS data:
+- **Health Check**: `GET /api/health`
+- **Drive Diagnostics**: `GET /api/drive/diagnostics`
+- **Drive Speeds**: `GET /api/drive/speeds`
+- **Drive Status**: `GET /api/drive/status`
+- **Drive Summary**: `GET /api/drive/summary`
+
+### WebSocket Communication
+
+Real-time data is received via WebSocket at `/ws`:
 
 ```typescript
-// Access drive diagnostics
-const diagnostics = useDriveDiagnostics();
-
-// Access connection status
-const isConnected = useIsROSConnected();
-
-// Manual connection control
-const { connect, disconnect, reconnect } = useAutoConnect();
+// Example WebSocket message structure
+{
+  "type": "data_update",
+  "data": {
+    "motors": {
+      "RF": {
+        "voltage": 12.1,
+        "current": 2.3,
+        "temperature": 45.2,
+        "state": 1
+      },
+      // ... other motors
+    }
+  },
+  "timestamp": 1625097600000
+}
 ```
 
-**Store Structure:**
-- `drive`: Motor diagnostics, speeds, status, and connection info
-- `arm`: Arm joint data and end-effector position (future)
-- `connection`: WebSocket connection state and error handling
+## 🎨 UI Design System
 
-### ROS Integration
+### Component Architecture
 
-The system bridges ROS2 and web technologies through:
+The UI follows a modular component architecture:
 
-1. **ROS Manager** (`teleop/services/ros/ros_manager.py`)
-   - Manages ROS2 node lifecycle
-   - Provides REST API and WebSocket endpoints
-   - Handles data serialization and real-time streaming
+1. **Layout Components**: Handle overall page structure
+2. **Section Components**: Major functional areas (drive, arm, camera)
+3. **UI Components**: Reusable interface elements
+4. **Hook Components**: Custom React hooks for state management
 
-2. **Drive Data Subscriber** (`teleop/services/ros/drive/subscriber/drive_data_subscriber.py`)
-   - Subscribes to drive system topics
-   - Collects motor diagnostics, speeds, and status
-   - Provides service client for motor status requests
+### Styling
 
-3. **Frontend Store** (`src/store/rosStore.ts`)
-   - Manages WebSocket connection to ROS Manager
-   - Provides reactive state updates
-   - Handles connection recovery and error states
-
-## 📊 Data Flow
-
-```
-ROS2 Nodes → ROS Manager → WebSocket → Frontend Store → React Components
-     ↓              ↓           ↓            ↓              ↓
-Drive Firmware → Subscriber → REST API → HTTP Requests → UI Updates
-```
-
-### Real-time Data Updates
-
-1. **ROS Topics**: Drive firmware publishes to ROS topics
-2. **ROS Subscriber**: Collects and processes ROS messages
-3. **WebSocket Streaming**: Real-time data pushed to frontend
-4. **Zustand Store**: Updates global state reactively
-5. **React Components**: Automatically re-render with new data
-
-## 🔧 Key Components
-
-### Drive System
-
-**DriveInfo Component** (`src/components/sections/drive/mobility/info/DriveInfo.tsx`)
-- Main drive system dashboard
-- Real-time motor diagnostics display
-- Connection status indicator
-- Automatic ROS connection management
-
-**Motor Diagnostics** (`src/components/sections/drive/mobility/info/MotorPanel/`)
-- Individual motor status panels
-- Voltage, current, temperature monitoring
-- Alert system for motor issues
-- Tabbed interface with chart view
-
-**Speedometer Cluster** (`src/components/sections/drive/mobility/info/Speedometer/`)
-- Visual speed representation
-- Individual wheel speed displays
-- Main rover speed indicator
+- **Tailwind CSS**: Utility-first CSS framework
+- **CSS Modules**: Component-scoped styling
+- **Responsive Design**: Mobile-first approach
+- **Theme Support**: Dark/light mode toggle
 
 ### State Management
 
-**ROS Store** (`src/store/rosStore.ts`)
-- Centralized ROS data management
-- WebSocket connection handling
-- Automatic reconnection logic
-- Type-safe data access
+- **React Hooks**: Built-in state management
+- **Custom Hooks**: Specialized state logic
+- **Context API**: Global state sharing
+- **Local Storage**: Persistent user preferences
 
-## 🌐 API Endpoints
+## 🔍 Component Details
 
-The ROS Manager provides the following endpoints:
+### Drive Section (`src/components/sections/drive/`)
 
-### REST API (Port 8082)
+The drive section is the main interface for motor control and monitoring:
 
-- `GET /api/drive/diagnostics` - Current motor diagnostics
-- `GET /api/drive/speeds` - Current motor speeds
-- `GET /api/drive/status` - Motor connection status
-- `GET /api/drive/summary` - Complete drive system summary
-- `GET /api/health` - Service health check
+#### DriveInfo Component
+- Displays real-time motor diagnostics
+- Shows voltage, current, temperature for each motor
+- Provides connection status indicators
+- Includes error state handling
 
-### WebSocket (Port 8082)
+#### MotorStatus Component
+- Visual status indicators for each motor
+- Color-coded health status
+- Connection state visualization
+- Quick diagnostic overview
 
-- `ws://localhost:8082/ws` - Real-time data streaming
-- Automatic subscription to drive topics
-- Ping/pong for connection health
-- Error handling and recovery
+#### DiagnosticsPanel Component
+- Detailed diagnostic information
+- Historical data trends
+- Performance metrics
+- Alert notifications
 
-## 🔌 ROS Topics & Services
+### WebSocket Hook (`src/hooks/useWebSocket.ts`)
 
-### Subscribed Topics
+Manages real-time communication:
+- Automatic reconnection
+- Message queuing
+- Connection state management
+- Error handling
 
-- `drive_motors_info` (DriveMotorDiagnostic) - Motor voltage, current, temperature
-- `drive_speeds_info` (Float32MultiArray) - Motor speeds [RF, RB, LB, LF]
+### API Service (`src/services/api.ts`)
 
-### Service Clients
+Handles HTTP communication:
+- Request/response management
+- Error handling
+- Data transformation
+- Caching strategies
 
-- `drive_motors_status` (DriveMotorStatus) - Motor connection status
+## 🧪 Testing
 
-## 🚨 Troubleshooting
+### Running Tests
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+### Test Structure
+- **Unit Tests**: Component and utility testing
+- **Integration Tests**: API and service testing
+- **E2E Tests**: Full user workflow testing
+
+### Mock Data Testing
+
+The UI includes comprehensive mock data support for testing without hardware:
+
+```bash
+# Start with mock data
+npm run dev:mock
+
+# This enables:
+# - Simulated motor data
+# - Fake WebSocket messages
+# - Test scenarios
+```
+
+## 🚀 Deployment
+
+### Docker Deployment
+```bash
+# Build Docker image
+docker build -t rover-ui .
+
+# Run container
+docker run -p 3000:3000 rover-ui
+```
+
+### Environment Configuration
+
+Different environments require different configurations:
+
+#### Development
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8082
+NEXT_PUBLIC_WS_URL=ws://localhost:8082/ws
+NEXT_PUBLIC_ENVIRONMENT=development
+```
+
+#### Production
+```env
+NEXT_PUBLIC_API_BASE_URL=https://rover-api.example.com
+NEXT_PUBLIC_WS_URL=wss://rover-api.example.com/ws
+NEXT_PUBLIC_ENVIRONMENT=production
+```
+
+## 🔧 Configuration
+
+### Next.js Configuration (`next.config.js`)
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    appDir: true,
+  },
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+}
+
+module.exports = nextConfig
+```
+
+### Tailwind Configuration (`tailwind.config.js`)
+```javascript
+module.exports = {
+  content: [
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        rover: {
+          primary: '#1e40af',
+          secondary: '#64748b',
+        }
+      }
+    },
+  },
+  plugins: [],
+}
+```
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **"ROS Disconnected" Status**
-   - Ensure ROS2 environment is sourced
-   - Check if drive_firmware_node is running
-   - Verify ROS Manager is started on port 8082
+1. **WebSocket Connection Failed**
+   - Check if ROS Manager is running on port 8082
+   - Verify firewall settings
+   - Check network connectivity
 
-2. **No Data Updates**
-   - Check WebSocket connection in browser dev tools
-   - Verify ROS topics are publishing: `ros2 topic list`
-   - Check ROS Manager logs for errors
+2. **No Data Displayed**
+   - Ensure mock firmware or real hardware is running
+   - Check ROS2 topic publications
+   - Verify API endpoints are accessible
 
 3. **Build Errors**
-   - Clear Next.js cache: `rm -rf .next`
-   - Reinstall dependencies: `rm -rf node_modules && npm install`
-   - Check TypeScript errors: `npm run build`
+   - Clear node_modules and reinstall: `rm -rf node_modules && npm install`
+   - Check Node.js version compatibility
+   - Verify TypeScript configuration
 
-### Development Tips
+4. **Performance Issues**
+   - Check WebSocket message frequency
+   - Monitor browser developer tools
+   - Verify system resources
 
-1. **Enable Zustand DevTools**
-   ```typescript
-   // In rosStore.ts, devtools are already enabled
-   // Use Redux DevTools browser extension to inspect state
-   ```
+### Debug Mode
 
-2. **Debug WebSocket Connection**
-   ```javascript
-   // In browser console
-   const ws = new WebSocket('ws://localhost:8082/ws');
-   ws.onmessage = (event) => console.log(JSON.parse(event.data));
-   ```
+Enable debug logging:
+```bash
+DEBUG=rover:* npm run dev
+```
 
-3. **Monitor ROS Topics**
-   ```bash
-   # Check if topics are publishing
-   ros2 topic echo /drive_motors_info
-   ros2 topic echo /drive_speeds_info
-   
-   # Check service availability
-   ros2 service list | grep drive
-   ```
+### Health Checks
 
-## 🔮 Future Enhancements
+The UI includes built-in health monitoring:
+- API connectivity status
+- WebSocket connection state
+- Data freshness indicators
+- Error rate monitoring
 
-### Planned Features
+## 📚 Additional Resources
 
-1. **Arm Control Integration**
-   - Joint position control
-   - End-effector visualization
-   - Inverse kinematics interface
+- **ROS2 Documentation**: [https://docs.ros.org/en/humble/](https://docs.ros.org/en/humble/)
+- **Next.js Documentation**: [https://nextjs.org/docs](https://nextjs.org/docs)
+- **Tailwind CSS**: [https://tailwindcss.com/docs](https://tailwindcss.com/docs)
+- **TypeScript**: [https://www.typescriptlang.org/docs/](https://www.typescriptlang.org/docs/)
 
-2. **Camera System**
-   - Multiple camera feeds
-   - WebRTC streaming
-   - Pan/tilt control
+## 🤝 Contributing
 
-3. **Enhanced Diagnostics**
-   - Historical data logging
-   - Performance analytics
-   - Predictive maintenance alerts
-
-4. **Mobile Responsiveness**
-   - Touch-friendly controls
-   - Responsive layouts
-   - Progressive Web App features
-
-### Architecture Improvements
-
-1. **Service Discovery**
-   - Automatic ROS node detection
-   - Dynamic topic subscription
-   - Health monitoring dashboard
-
-2. **Data Persistence**
-   - Local storage for settings
-   - Session replay capability
-   - Offline mode support
-
-3. **Security**
-   - Authentication system
-   - Role-based access control
-   - Secure WebSocket connections
-
-## 📝 Contributing
-
-1. Follow TypeScript best practices
-2. Use Tailwind CSS for styling
-3. Maintain component modularity
-4. Add proper error handling
-5. Update documentation for new features
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/new-feature`
+3. Make your changes
+4. Add tests for new functionality
+5. Run the test suite: `npm test`
+6. Commit your changes: `git commit -am 'Add new feature'`
+7. Push to the branch: `git push origin feature/new-feature`
+8. Submit a pull request
 
 ## 📄 License
 
-This project is part of the McGill Robotics Mars Rover team codebase.
+This project is part of the McGill Robotics Mars Rover project. See the main repository for license information.
+
+---
+
+For more information about the complete rover system, see the main project documentation in the repository root.

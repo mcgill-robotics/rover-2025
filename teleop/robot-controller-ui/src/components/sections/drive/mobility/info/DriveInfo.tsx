@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { motorStats } from './MotorPanel/motorData';
 import SpeedometerCluster from './Speedometer/SpeedometerCluster';
 import MotorDiagnosticsTabs from './MotorPanel/MotorDiagnosticTabs';
 import { 
@@ -67,7 +66,15 @@ const DriveInfo: React.FC = () => {
       temp: diagnostics.LF.temperature,
       alert: status?.LF ? undefined : 'Disconnected'
     }
-  ] : motorStats; // Fallback to mock data if no ROS data
+  ] : null;
+
+  if (!liveMotorStats) {
+    return (
+      <div className="flex items-center justify-center w-full h-full text-red-500 text-sm">
+        ⚠️ No diagnostics data available. Please check your ROS connection.
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col w-full h-full p-2 items-center text-white gap-2 overflow-hidden">

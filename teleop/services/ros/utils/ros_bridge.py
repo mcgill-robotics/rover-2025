@@ -10,6 +10,7 @@ import json
 import asyncio
 from typing import Dict, Any, Callable, Optional
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,7 @@ class DataCollector:
         with self.lock:
             self.data_cache[key] = {
                 'data': data,
-                'timestamp': asyncio.get_event_loop().time()
+                'timestamp': time.time()
             }
         
         # Trigger callbacks
@@ -196,7 +197,7 @@ def create_motor_diagnostic_dict(msg) -> Dict[str, Any]:
                 'temperature': float(msg.lf_temperature)
             }
         },
-        'timestamp': asyncio.get_event_loop().time()
+        'timestamp': time.time()
     }
 
 
@@ -211,5 +212,5 @@ def create_motor_status_dict(response) -> Dict[str, Any]:
             'LB': bool(response.lb_ok),
             'LF': bool(response.lf_ok)
         },
-        'timestamp': asyncio.get_event_loop().time()
+        'timestamp': time.time()
     }
