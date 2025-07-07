@@ -21,33 +21,92 @@ Mock Firmware Node → ROS Topics → ROS Manager → WebSocket → Frontend →
 
 ## 🚀 Quick Start
 
-### 1. Basic Mock Testing
+### Prerequisites
 
-Replace the real firmware node with a mock:
+Before running any tests, ensure your ROS2 environment is properly set up:
 
 ```bash
-# Instead of: ros2 run control drive_firmware_node
-# Use this:
-ros2 launch sim mock_drive_test.launch.py scenario:=normal
+# Navigate to ROS2 workspace
+cd ~/ros2_ws
 
-# Then start your services as usual:
-cd teleop/services/ros && python ros_manager.py
-cd teleop/robot-controller-ui && npm run dev
+# Source ROS2 environment
+source /opt/ros/humble/setup.bash
+
+# Build all packages
+colcon build
+
+# Source the workspace
+source install/setup.bash
+
+# Navigate to teleop directory
+cd src/rover-2025/teleop
 ```
 
-### 2. Automated Testing
+### 1. Interactive Testing Demo (Recommended)
 
-Run the complete test suite:
+The easiest way to test the system is using the interactive demo script:
 
 ```bash
-# Run all tests
-./teleop/tests/scripts/run_integration_tests.sh
+# Run the interactive testing demo
+./test_demo.sh
+```
+
+This will present you with testing options:
+
+```
+📋 Available Testing Options:
+
+1. Mock Firmware Demo
+   - Start mock firmware node with different scenarios
+   - See realistic motor data without hardware
+
+2. Integration Test Demo
+   - Test complete ROS → UI pipeline
+   - Automated validation of all components
+
+3. Full System Demo
+   - Start mock firmware + ROS Manager + UI
+   - Complete working system demonstration
+
+4. Performance Test Demo
+   - High-frequency data testing
+   - System performance validation
+
+Choose an option (1-4):
+```
+
+**Recommended for beginners:** Choose option **3 (Full System Demo)** for a complete working demonstration.
+
+### 2. Manual Testing Steps
+
+If you prefer manual control, follow these steps:
+
+```bash
+# Terminal 1: Start mock firmware
+ros2 launch sim mock_drive_test.launch.py scenario:=normal
+
+# Terminal 2: Start ROS Manager
+cd teleop/services/ros && python ros_manager.py
+
+# Terminal 3: Start Frontend UI
+cd teleop/robot-controller-ui && npm run dev
+
+# Open browser: http://localhost:3000
+```
+
+### 3. Automated Testing Suite
+
+Run comprehensive automated tests:
+
+```bash
+# Run all integration tests
+./tests/scripts/run_integration_tests.sh
 
 # Run specific scenarios
-./teleop/tests/scripts/run_integration_tests.sh normal motor_fault
+./tests/scripts/run_integration_tests.sh normal motor_fault
 
-# Run with help
-./teleop/tests/scripts/run_integration_tests.sh --help
+# Get help
+./tests/scripts/run_integration_tests.sh --help
 ```
 
 ## 🎭 Available Test Scenarios

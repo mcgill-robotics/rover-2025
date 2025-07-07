@@ -1,101 +1,92 @@
 # Robot Controller UI
 
-A modern Next.js-based web interface for controlling and monitoring the Mars Rover's teleoperation systems. This UI provides real-time data visualization, motor diagnostics, and system control capabilities.
+A Next.js-based web interface for controlling and monitoring the Mars Rover's teleoperation systems. This UI provides real-time data visualization, motor diagnostics, and system control capabilities.
 
-## 🏗️ Project Structure
+## 📁 Project Structure
 
 ```
 robot-controller-ui/
-├── README.md                    # This file
-├── package.json                 # Dependencies and scripts
-├── next.config.js              # Next.js configuration
-├── tailwind.config.js          # Tailwind CSS configuration
+├── README.md                    # This documentation
+├── package.json                 # Dependencies and npm scripts
+├── next.config.ts              # Next.js configuration
 ├── tsconfig.json               # TypeScript configuration
+├── eslint.config.mjs           # ESLint configuration
+├── postcss.config.mjs          # PostCSS configuration
+├── .gitignore                  # Git ignore rules
+│
 ├── public/                     # Static assets
-│   ├── favicon.ico
-│   └── images/
-├── src/                        # Source code
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── layout.tsx          # Root layout component
-│   │   ├── page.tsx            # Home page
-│   │   └── globals.css         # Global styles
-│   ├── components/             # React components
-│   │   ├── ui/                 # Reusable UI components
-│   │   │   ├── Button.tsx
-│   │   │   ├── Card.tsx
-│   │   │   ├── Badge.tsx
-│   │   │   └── ...
-│   │   ├── sections/           # Main UI sections
-│   │   │   ├── drive/          # Drive system components
-│   │   │   │   ├── mobility/   # Mobility controls
-│   │   │   │   │   ├── controls/
-│   │   │   │   │   │   ├── DriveControls.tsx
-│   │   │   │   │   │   └── SpeedControl.tsx
-│   │   │   │   │   └── info/
-│   │   │   │   │       ├── DriveInfo.tsx
-│   │   │   │   │       ├── MotorStatus.tsx
-│   │   │   │   │       └── DiagnosticsPanel.tsx
-│   │   │   │   └── DriveSection.tsx
-│   │   │   ├── arm/            # Arm control components
-│   │   │   ├── camera/         # Camera feed components
-│   │   │   └── system/         # System status components
-│   │   ├── layout/             # Layout components
-│   │   │   ├── Header.tsx
-│   │   │   ├── Sidebar.tsx
-│   │   │   └── Footer.tsx
-│   │   └── common/             # Common components
-│   │       ├── LoadingSpinner.tsx
-│   │       ├── ErrorBoundary.tsx
-│   │       └── ConnectionStatus.tsx
-│   ├── hooks/                  # Custom React hooks
-│   │   ├── useWebSocket.ts     # WebSocket connection hook
-│   │   ├── useRoverData.ts     # Rover data management hook
-│   │   └── useLocalStorage.ts  # Local storage utilities
-│   ├── services/               # API and service layers
-│   │   ├── api.ts              # REST API client
-│   │   ├── websocket.ts        # WebSocket client
-│   │   └── types.ts            # TypeScript type definitions
-│   ├── utils/                  # Utility functions
-│   │   ├── formatters.ts       # Data formatting utilities
-│   │   ├── validators.ts       # Input validation
-│   │   └── constants.ts        # Application constants
-│   └── styles/                 # Additional styles
-│       └── components.css      # Component-specific styles
+│   ├── mcgillRobotics.svg     # Logo
+│   └── gamepads/              # Gamepad icons
+│       ├── base.svg
+│       ├── bumper.svg
+│       └── ...
+│
+└── src/                        # Source code
+    ├── app/                    # Next.js App Router
+    │   ├── layout.tsx          # Root layout
+    │   ├── page.tsx            # Home page
+    │   ├── globals.css         # Global styles
+    │   ├── arm/                # Arm control page
+    │   ├── drive/              # Drive control page
+    │   └── status/             # System status page
+    │
+    ├── components/             # React components
+    │   ├── icons/              # Icon components
+    │   ├── ui/                 # Reusable UI components
+    │   │   ├── ArrowButton.tsx
+    │   │   ├── DPad.tsx
+    │   │   ├── IconButton.tsx
+    │   │   └── PowerButton.tsx
+    │   ├── layout/             # Layout components
+    │   │   └── navbar/         # Navigation bar
+    │   └── sections/           # Feature sections
+    │       ├── arm/            # Arm control components
+    │       │   ├── control/    # Arm control interface
+    │       │   ├── info/       # Arm information display
+    │       │   └── view/       # Arm visualization
+    │       └── drive/          # Drive system components
+    │           ├── camera/     # Camera controls
+    │           └── mobility/   # Drive controls & info
+    │               ├── control/    # Drive controls
+    │               ├── info/       # Motor diagnostics
+    │               └── navigation/ # GPS & navigation
+    │
+    ├── hooks/                  # Custom React hooks
+    │   ├── useBandwidthStats.ts
+    │   ├── useCameraList.ts
+    │   ├── useDriveData.ts
+    │   └── useWebRTCStreams.ts
+    │
+    ├── store/                  # State management (Zustand)
+    │   ├── index.ts
+    │   ├── rosStore.ts
+    │   └── types.ts
+    │
+    ├── context/                # React contexts
+    │   └── NavbarContext.tsx
+    │
+    ├── config/                 # Configuration files
+    │   ├── camera.ts
+    │   └── network.ts
+    │
+    ├── lib/                    # Utility libraries
+    │   └── utils.ts
+    │
+    └── assets/                 # Asset files
+        └── images/
+            └── logo.png
 ```
 
-## 🎯 Key Features
-
-### Drive System Monitoring
-- **Real-time Motor Diagnostics**: Live voltage, current, temperature, and status monitoring for all 4 drive motors (RF, RB, LB, LF)
-- **Speed Visualization**: Real-time speed data with graphical indicators
-- **Connection Status**: Visual indicators for motor connectivity and health
-- **Historical Data**: Trend graphs for motor performance over time
-
-### User Interface Components
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **Dark/Light Theme**: Toggle between themes for different lighting conditions
-- **Real-time Updates**: WebSocket-based live data streaming
-- **Error Handling**: Graceful error handling with user-friendly messages
-- **Loading States**: Smooth loading indicators for better UX
-
-### System Integration
-- **ROS2 Integration**: Direct connection to ROS2 backend services
-- **WebSocket Communication**: Real-time bidirectional communication
-- **REST API Support**: HTTP endpoints for configuration and control
-- **Mock Data Support**: Testing mode with simulated data
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
 - **Node.js** (v18 or higher)
-- **npm** or **yarn** package manager
-- **ROS2 Humble** (for backend integration)
-- **Python 3.8+** (for ROS services)
+- **npm** (comes with Node.js)
 
 ### Installation
 
-1. **Navigate to the UI directory:**
+1. **Navigate to the project directory:**
    ```bash
    cd teleop/robot-controller-ui
    ```
@@ -103,352 +94,263 @@ robot-controller-ui/
 2. **Install dependencies:**
    ```bash
    npm install
-   # or
-   yarn install
    ```
 
-3. **Set up environment variables:**
-   ```bash
-   cp .env.example .env.local
-   ```
-   
-   Edit `.env.local` with your configuration:
-   ```env
-   NEXT_PUBLIC_API_BASE_URL=http://localhost:8082
-   NEXT_PUBLIC_WS_URL=ws://localhost:8082/ws
-   NEXT_PUBLIC_ENVIRONMENT=development
-   ```
-
-### Development Mode
+### Running the Development Server
 
 1. **Start the development server:**
    ```bash
    npm run dev
-   # or
-   yarn dev
    ```
 
 2. **Open your browser:**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
-### Production Build
+   The page will auto-reload when you make changes to the code.
 
-1. **Build the application:**
+### Building for Production
+
+1. **Create a production build:**
    ```bash
    npm run build
-   # or
-   yarn build
    ```
 
 2. **Start the production server:**
    ```bash
    npm start
-   # or
-   yarn start
    ```
 
-## 🔧 Running with Services
+### Other Commands
 
-The UI requires backend services to function properly. Here are the different ways to run the complete system:
+- **Lint the code:**
+  ```bash
+  npm run lint
+  ```
 
-### Option 1: Full System with Hardware
+## 🛠️ Technology Stack
+
+- **Framework:** Next.js 15.3.3 with App Router
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS v4
+- **State Management:** Zustand
+- **Charts:** Recharts
+- **HTTP Client:** Axios
+- **Icons:** Lucide React
+- **Build Tool:** Turbopack (Next.js built-in)
+
+## 🔧 Configuration Files
+
+### `next.config.ts`
+Next.js configuration for build settings, redirects, and environment variables.
+
+### `tsconfig.json`
+TypeScript compiler configuration with path aliases and strict type checking.
+
+### `tailwind.config.js`
+Tailwind CSS configuration for custom themes, colors, and responsive breakpoints.
+
+### `eslint.config.mjs`
+ESLint configuration for code quality and consistency.
+
+## 📱 Application Pages
+
+### Home Page (`/`)
+- Overview dashboard
+- System status summary
+- Quick navigation to subsystems
+
+### Drive Page (`/drive`)
+- Motor diagnostics and control
+- Speed monitoring
+- Camera feeds
+- GPS navigation
+
+### Arm Page (`/arm`)
+- Arm joint control
+- Position visualization
+- Command logging
+- PS4 controller interface
+
+### Status Page (`/status`)
+- System health monitoring
+- Connection status
+- Performance metrics
+
+## 🎨 Component Architecture
+
+### UI Components (`src/components/ui/`)
+Reusable interface elements:
+- **ArrowButton**: Directional navigation buttons
+- **DPad**: D-pad controller interface
+- **IconButton**: Icon-based action buttons
+- **PowerButton**: System power controls
+
+### Section Components (`src/components/sections/`)
+Feature-specific components organized by system:
+
+#### Drive Section
+- **MobilityPanel**: Main drive interface
+- **DriveControl**: Speed and direction controls
+- **DriveInfo**: Motor diagnostics display
+- **CameraView**: Camera feed integration
+- **GPSPanel**: Navigation information
+
+#### Arm Section
+- **ArmControl**: Joint position controls
+- **ArmInfo**: Joint status and coordinates
+- **ArmView**: 3D visualization
+- **PS4Controller**: Gamepad interface
+
+### Layout Components (`src/components/layout/`)
+- **Navbar**: Main navigation with responsive design
+- **Logo**: Brand identity component
+
+## 🔗 State Management
+
+The application uses **Zustand** for state management:
+
+### ROS Store (`src/store/rosStore.ts`)
+- WebSocket connection management
+- Real-time data from ROS topics
+- Motor diagnostics and status
+- System health monitoring
+
+### Store Types (`src/store/types.ts`)
+TypeScript definitions for all state interfaces and data structures.
+
+## 🪝 Custom Hooks
+
+### `useDriveData`
+Manages drive system data including motor diagnostics, speeds, and connection status.
+
+### `useWebRTCStreams`
+Handles camera stream connections and WebRTC communication.
+
+### `useCameraList`
+Manages available camera sources and switching between feeds.
+
+### `useBandwidthStats`
+Monitors network performance and data usage statistics.
+
+## 🚨 Common Troubleshooting
+
+### Installation Issues
+
+**Problem:** `npm install` fails with permission errors
 ```bash
-# Terminal 1: Start ROS services
-cd /path/to/ros2_ws
-source install/setup.bash
-ros2 launch control drive_launch.py
+# Solution: Use npm with proper permissions
+sudo npm install -g npm@latest
+npm install
+```
 
-# Terminal 2: Start ROS Manager
-cd teleop/services
-python3 ros/ros_manager.py
+**Problem:** Node.js version compatibility
+```bash
+# Check your Node.js version
+node --version
 
-# Terminal 3: Start UI
-cd teleop/robot-controller-ui
+# Install Node.js 18+ if needed
+# Visit: https://nodejs.org/
+```
+
+### Development Server Issues
+
+**Problem:** Port 3000 already in use
+```bash
+# Solution: Use a different port
+npm run dev -- -p 3001
+
+# Or kill the process using port 3000
+lsof -ti:3000 | xargs kill -9
+```
+
+**Problem:** Hot reload not working
+```bash
+# Solution: Clear Next.js cache
+rm -rf .next
 npm run dev
 ```
 
-### Option 2: Testing with Mock Data
+### Build Issues
+
+**Problem:** TypeScript compilation errors
 ```bash
-# Use the automated testing script
-cd teleop
-./test_demo.sh
+# Solution: Check TypeScript configuration
+npx tsc --noEmit
 
-# Choose option 3: Full System Demo
-# This will start:
-# - Mock firmware node
-# - ROS Manager
-# - Frontend UI
+# Fix type errors in your code
+# Check tsconfig.json for strict settings
 ```
 
-### Option 3: Quick Start Script
+**Problem:** Build fails with memory issues
 ```bash
-# Use the teleop startup script
-cd teleop
-./start_teleop.sh
-
-# This handles all service startup automatically
+# Solution: Increase Node.js memory limit
+NODE_OPTIONS="--max-old-space-size=4096" npm run build
 ```
 
-## 🌐 API Integration
+### Runtime Issues
 
-### REST Endpoints
+**Problem:** Components not rendering
+- Check browser console for JavaScript errors
+- Verify all imports are correct
+- Ensure components are properly exported
 
-The UI communicates with these backend endpoints:
-
-- **Health Check**: `GET /api/health`
-- **Drive Diagnostics**: `GET /api/drive/diagnostics`
-- **Drive Speeds**: `GET /api/drive/speeds`
-- **Drive Status**: `GET /api/drive/status`
-- **Drive Summary**: `GET /api/drive/summary`
-
-### WebSocket Communication
-
-Real-time data is received via WebSocket at `/ws`:
-
-```typescript
-// Example WebSocket message structure
-{
-  "type": "data_update",
-  "data": {
-    "motors": {
-      "RF": {
-        "voltage": 12.1,
-        "current": 2.3,
-        "temperature": 45.2,
-        "state": 1
-      },
-      // ... other motors
-    }
-  },
-  "timestamp": 1625097600000
-}
-```
-
-## 🎨 UI Design System
-
-### Component Architecture
-
-The UI follows a modular component architecture:
-
-1. **Layout Components**: Handle overall page structure
-2. **Section Components**: Major functional areas (drive, arm, camera)
-3. **UI Components**: Reusable interface elements
-4. **Hook Components**: Custom React hooks for state management
-
-### Styling
-
-- **Tailwind CSS**: Utility-first CSS framework
-- **CSS Modules**: Component-scoped styling
-- **Responsive Design**: Mobile-first approach
-- **Theme Support**: Dark/light mode toggle
-
-### State Management
-
-- **React Hooks**: Built-in state management
-- **Custom Hooks**: Specialized state logic
-- **Context API**: Global state sharing
-- **Local Storage**: Persistent user preferences
-
-## 🔍 Component Details
-
-### Drive Section (`src/components/sections/drive/`)
-
-The drive section is the main interface for motor control and monitoring:
-
-#### DriveInfo Component
-- Displays real-time motor diagnostics
-- Shows voltage, current, temperature for each motor
-- Provides connection status indicators
-- Includes error state handling
-
-#### MotorStatus Component
-- Visual status indicators for each motor
-- Color-coded health status
-- Connection state visualization
-- Quick diagnostic overview
-
-#### DiagnosticsPanel Component
-- Detailed diagnostic information
-- Historical data trends
-- Performance metrics
-- Alert notifications
-
-### WebSocket Hook (`src/hooks/useWebSocket.ts`)
-
-Manages real-time communication:
-- Automatic reconnection
-- Message queuing
-- Connection state management
-- Error handling
-
-### API Service (`src/services/api.ts`)
-
-Handles HTTP communication:
-- Request/response management
-- Error handling
-- Data transformation
-- Caching strategies
-
-## 🧪 Testing
-
-### Running Tests
+**Problem:** Styles not loading
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
+# Solution: Rebuild Tailwind CSS
+rm -rf .next
+npm run dev
 ```
 
-### Test Structure
-- **Unit Tests**: Component and utility testing
-- **Integration Tests**: API and service testing
-- **E2E Tests**: Full user workflow testing
+**Problem:** API connection issues
+- Verify backend services are running
+- Check network configuration in `src/config/network.ts`
+- Inspect browser Network tab for failed requests
 
-### Mock Data Testing
+### Performance Issues
 
-The UI includes comprehensive mock data support for testing without hardware:
+**Problem:** Slow page loads
+- Check for large bundle sizes: `npm run build`
+- Optimize images in the `public/` directory
+- Review component re-rendering with React DevTools
 
+**Problem:** Memory leaks
+- Check for unsubscribed WebSocket connections
+- Review useEffect cleanup functions
+- Monitor browser memory usage in DevTools
+
+### Environment Issues
+
+**Problem:** Environment variables not loading
 ```bash
-# Start with mock data
-npm run dev:mock
-
-# This enables:
-# - Simulated motor data
-# - Fake WebSocket messages
-# - Test scenarios
-```
-
-## 🚀 Deployment
-
-### Docker Deployment
-```bash
-# Build Docker image
-docker build -t rover-ui .
-
-# Run container
-docker run -p 3000:3000 rover-ui
-```
-
-### Environment Configuration
-
-Different environments require different configurations:
-
-#### Development
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8082
+# Create .env.local file in project root
+NEXT_PUBLIC_API_URL=http://localhost:8082
 NEXT_PUBLIC_WS_URL=ws://localhost:8082/ws
-NEXT_PUBLIC_ENVIRONMENT=development
 ```
 
-#### Production
-```env
-NEXT_PUBLIC_API_BASE_URL=https://rover-api.example.com
-NEXT_PUBLIC_WS_URL=wss://rover-api.example.com/ws
-NEXT_PUBLIC_ENVIRONMENT=production
-```
+**Problem:** CORS errors when connecting to backend
+- Verify backend CORS configuration
+- Check API URLs in network configuration
+- Ensure proper protocol (http/https, ws/wss)
 
-## 🔧 Configuration
+## 🔍 Debugging Tips
 
-### Next.js Configuration (`next.config.js`)
-```javascript
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
-  env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
-  },
-}
+### Browser DevTools
+1. **Console Tab**: Check for JavaScript errors and warnings
+2. **Network Tab**: Monitor API requests and WebSocket connections
+3. **React DevTools**: Inspect component state and props
+4. **Performance Tab**: Profile rendering performance
 
-module.exports = nextConfig
-```
-
-### Tailwind Configuration (`tailwind.config.js`)
-```javascript
-module.exports = {
-  content: [
-    './src/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    extend: {
-      colors: {
-        rover: {
-          primary: '#1e40af',
-          secondary: '#64748b',
-        }
-      }
-    },
-  },
-  plugins: [],
-}
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **WebSocket Connection Failed**
-   - Check if ROS Manager is running on port 8082
-   - Verify firewall settings
-   - Check network connectivity
-
-2. **No Data Displayed**
-   - Ensure mock firmware or real hardware is running
-   - Check ROS2 topic publications
-   - Verify API endpoints are accessible
-
-3. **Build Errors**
-   - Clear node_modules and reinstall: `rm -rf node_modules && npm install`
-   - Check Node.js version compatibility
-   - Verify TypeScript configuration
-
-4. **Performance Issues**
-   - Check WebSocket message frequency
-   - Monitor browser developer tools
-   - Verify system resources
-
-### Debug Mode
-
-Enable debug logging:
+### Next.js Debugging
 ```bash
-DEBUG=rover:* npm run dev
+# Enable debug mode
+DEBUG=* npm run dev
+
+# Check build analysis
+npm run build -- --analyze
 ```
 
-### Health Checks
+### Common Error Messages
 
-The UI includes built-in health monitoring:
-- API connectivity status
-- WebSocket connection state
-- Data freshness indicators
-- Error rate monitoring
-
-## 📚 Additional Resources
-
-- **ROS2 Documentation**: [https://docs.ros.org/en/humble/](https://docs.ros.org/en/humble/)
-- **Next.js Documentation**: [https://nextjs.org/docs](https://nextjs.org/docs)
-- **Tailwind CSS**: [https://tailwindcss.com/docs](https://tailwindcss.com/docs)
-- **TypeScript**: [https://www.typescriptlang.org/docs/](https://www.typescriptlang.org/docs/)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/new-feature`
-3. Make your changes
-4. Add tests for new functionality
-5. Run the test suite: `npm test`
-6. Commit your changes: `git commit -am 'Add new feature'`
-7. Push to the branch: `git push origin feature/new-feature`
-8. Submit a pull request
-
-## 📄 License
-
-This project is part of the McGill Robotics Mars Rover project. See the main repository for license information.
-
----
-
-For more information about the complete rover system, see the main project documentation in the repository root.
+**"Module not found"**
+- Check import paths and file extensions
+- Verify the
