@@ -5,13 +5,15 @@ currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
 import rclpy
 from speed_control import speed_controller
+import steering as steering
 from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
 from steering import rover_rotation , wheel_orientation_rot
 import math
 import numpy as np
 from std_msgs.msg import Float32MultiArray
-
+from std_msgs.msg import Bool
+import drive_firmware_node as drive_firmware
 
 class drive_controller(Node):
     def __init__(self):
@@ -24,24 +26,37 @@ class drive_controller(Node):
         #Declare field corresponding to speed control node and current state of wheels
         self.speed_controller = speed_controller()
 
+        self.steering = steering.Steering()
+
         # TODO: Tune values
         self.deadzone = 0.1 
         self.turning_speed = 3200.0
 
+        self.tank_drive_mode = False
+
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
        
-        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.controller_callback, 10)
-        self.speedInputPublisher = self.create_publisher(Float32MultiArray, "drive_speed_input", 10)
+        self.gamepad_subscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.controller_callback, 10)
+        self.speed_input_publisher = self.create_publisher(Float32MultiArray, "drive_speed_input", 10)
+        self.acknowledgement_publisher = self.create_publisher(Bool, "acknowledge_faults", 10)
 
         # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
         timer_period = 0.2
         self.timer = self.create_timer(timer_period, self.run)
 
-    def not_in_deadzone_check(self, x_axis, y_axis):
+    def not_in_deadzone_check(self, x_axis: float, y_axis: float) -> bool:
         return not ((-self.deadzone <= x_axis <= self.deadzone) and (-self.deadzone <= y_axis <= self.deadzone))
     
     def run(self):
+        #square -> acknowledged the faults, wheels will stop taking command until it is acknolewdged
+        acknowledge_msg = Bool()
+        if self.gamepad_input.square_button:
+            acknowledge_msg.data = True
+        else:
+            acknowledge_msg.data = False
+        self.acknowledgement_publisher.publish(acknowledge_msg)
+
 
         #Speed given button input
         speed = self.speed_controller.updateSpeed(self.gamepad_input.x_button, self.gamepad_input.o_button)
@@ -61,6 +76,29 @@ class drive_controller(Node):
 
             speed = [direction*self.turning_speed for direction in rotation_sp]
 
+        # Checking for tank drive mode
+        if self.gamepad_input.triangle_button:
+            self.tank_drive_mode = not self.tank_drive_mode
+            if self.tank_drive_mode:
+                self.get_logger().info("TANK DRIVE MODE ACTIVATED - left stick controls left wheel & right stick controls right wheel")
+            else:
+                self.get_logger().info("TANK DRIVE MODE DEACTIVATED - left stick controls rover rotation")
+            
+        if self.tank_drive_mode:    
+            if self.not_in_deadzone_check(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y):
+                left_speed_wheels = steering.update_left_wheel_speeds(self.gamepad_input.l_stick_y)
+            else:
+                left_speed_wheels = [0, 0]
+            if self.not_in_deadzone_check(self.gamepad_input.r_stick_x, self.gamepad_input.r_stick_y):
+                right_speed_wheels = steering.update_right_wheel_speeds(self.gamepad_input.r_stick_y)
+            else:
+                right_speed_wheels = [0, 0]
+                
+            speed = [left_speed_wheels[0], right_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
+            msg.Float32MultiArray()
+            msg.data = [float(s) for s in speed]
+            self.speed_input_publisher.publish(msg)
+            return
 
         #Check whether gears change
         if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
@@ -74,11 +112,12 @@ class drive_controller(Node):
             # TODO: Send new orientation to wheels
 
         # TODO: Use API to send input values for speed, orientation and rotation.
-        msg.data = speed
-        self.speedInputPublisher.publish(msg)
+        msg.data = [float(s) for s in speed]
+        self.speed_input_publisher.publish(msg)
         
     def controller_callback(self, input: GamePadInput):
         self.gamepad_input = input
+
 
 def main(args=None):
     rclpy.init(args=args)

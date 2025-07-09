@@ -16,7 +16,7 @@ class speed_controller():
     def __init__(self, json_filename="max_wheel_speed_levels.json"):
         
         # (Mar.1, 2025) Max speed is 2000 rpm
-        self.gears = [{
+        self.gears : list[dict[str, int | float]] = [{
                         "gear": 1,
                         "speed": 400.0
                     }, {
@@ -36,22 +36,22 @@ class speed_controller():
                         "speed": 3200.0
                     }]
 
-        self.history_size = 3 # How many previous wheels we average over
+        self.history_size : int = 3 # How many previous wheels we average over
 
         # A 1-D Gaussian array to act as a weighted average on self.wheelspeeds
         # "kernlen" must be the same as "self.history_size".
         self.basis = self.gkern(kernlen=self.history_size)
 
         # Window of past wheels speeds of size self.history_size
-        self.wheel_speeds_history = np.zeros(self.history_size).tolist()
+        self.wheel_speeds_history : list[float] = np.zeros(self.history_size).tolist()
 
-        self.current_gear_index = 0
-        self.current_speed = 0.0
-        self.max_speed = self.gears[self.current_gear_index]["speed"]
+        self.current_gear_index : int = 0
+        self.current_speed : float = 0.0
+        self.max_speed : float = self.gears[self.current_gear_index]["speed"]
 
-        self.acceleration_rate = 1000
-        self.deceleration_rate = 2000  # Decay value when no acceleration input is given
-        self.downshift_deceleration_rate = 1000  # Slightly faster decay when downshifting
+        self.acceleration_rate : float = 1000.0
+        self.deceleration_rate : float = 2000.0  # Decay value when no acceleration input is given
+        self.downshift_deceleration_rate : float = 1000.0  # Slightly faster decay when downshifting
 
     # Function that yields a 1D gaussian
     # Source: https://stackoverflow.com/questions/29731726/how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy
@@ -64,7 +64,7 @@ class speed_controller():
     Change absolute max speed
     - R2 shifts up a gear, L2 shifts down a gear with smooth deceleration if needed
     """
-    def shifting_gear(self, gear_up: bool, gear_down: bool):
+    def shifting_gear(self, gear_up: bool, gear_down: bool) -> None:
         if gear_up: # r2 switches to higher gear
             self.current_gear_index = min(self.current_gear_index + 1, len(self.gears) - 1)
         elif gear_down: # l2 switches to lower gear
@@ -72,7 +72,7 @@ class speed_controller():
         self.max_speed = self.gears[self.current_gear_index]["speed"]
         
     # Update current speed, and add it to the self.wheelspeeds history
-    def updateSpeed(self, accelerate: bool, reverse: bool):
+    def updateSpeed(self, accelerate: bool, reverse: bool) -> float:
         """
         Updates current speed based on gamepad inputs and shifting gear
         - X button accelerates, O button decelerates
@@ -107,6 +107,6 @@ class speed_controller():
         return smoothed_speed
 
 
-    def get_gear_and_max_speed(self):
+    def get_gear_and_max_speed(self) -> tuple[int, float]:
         return (self.current_gear_index, self.max_speed)
 
