@@ -27,16 +27,38 @@ class arm_firmware(Node):
     def __init__(self):
         super.__init__("arm_firmware_node")
         self.position_subscriber = self.create_subscription(Float32MultiArray, "arm_position_cmd", self.broadcast_pos, 10) # Returns a list of wais,t shoulder, elbow, wrist, hand
-        self.faults_subscriber = self.create_subscription(Bool, "acknowledge_arm_faults", self.clear_motor_faults, 10)
+        self.fault_acknowledgement_subscriber = self.create_subscription(Bool, "acknowledge_faults", self.clear_motor_faults, 10)
 
         station = aCAN.CANStation(interface="slcan", channel="COM6", birate=500000)
         esc_interface = aCAN.ESCInterface(station)
         self.arm_interface = aCAN.arm_interface(esc_interface)
         self.nodes = [aCAN.NodeID.WAIST, aCAN.NodeID.SHOULDER, aCAN.NodeID.ELBOW]
 
-    def clear_motor_faults(self, acknowledge_faults: Bool):
-        if acknowledge_faults.data:
-            for motor in self.nodes:
-                self.arm_interfaces.acknowledge_motor_fault(motor)
+
+    # def run(self):
+    #     self.publish_motor_position()
+    #     speeds_msg = Float32MultiArray()
+    #     speeds_msg.data = self.drive_speed_info
+    #     self.drive_motors_speeds_publisher.publish(speeds_msg)
+
+    #     if (self.pub_count % 5) == 0:
+    #         self.publish_motor_info()
+    #         self.pub_count = 0
+
+    #     self.pub_count += 1
+
+    def broadcast_post(self, position_cmd: Float32MultiArray):
+        """
+        Broadcasts the position command to the arm motors.
+        """
+        for i, node in enumerate(self.nodes):
+            self.arm_interface.run_motor_position(node, position_cmd.data[i])
+            # self.arm_interface.calibrate_motor(node)  # Uncomment to calibrate motor
+            # self.arm_interface.acknowledge_faults(node)  # Uncomment to acknowledge faults
+            # self.arm_interface.stop_motor(node)  # Uncomment to stop motor
+
+
+
+
 
 
