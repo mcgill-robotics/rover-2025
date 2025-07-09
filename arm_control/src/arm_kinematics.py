@@ -28,7 +28,7 @@ arm_DH = [
 
 
 # Function to convert pose (position and Euler angles) to a transformation matrix
-def Pose2Mat(pose):
+def Pose2Mat(pose: np.array) -> np.array:
     """Converts the pose respecting the XYZ euler convention into a transformation matrix
 
     Parameters
@@ -81,7 +81,7 @@ def Pose2Mat(pose):
 
 
 # Function to convert a transformation matrix to pose (position and Euler angles)
-def Mat2Pose(T):
+def Mat2Pose(T: np.array) -> np.array:
     """Converts the transformation matrix into it's Cartesian coordinates
     and Euler angles in the XYZ Euler convention
 
@@ -115,7 +115,7 @@ def Mat2Pose(T):
 
 
 # Function to compute the transformation matrix for a DH parameter set
-def dhToMat(d, theta, a, alpha):
+def dhToMat(d: float, theta: float, a: float, alpha: float) -> np.array:
     """Computes the transformation matrix corresponding
     to the Denavit-Hartenberg parameters
 
@@ -156,7 +156,7 @@ def dhToMat(d, theta, a, alpha):
 
 
 # Function to compute the forward kinematics of the arm
-def forwardKinematics(q):
+def forwardKinematics(q: list[float]) -> np.array:
     """Computes the forward kinematics of the arm
 
     Parameters
@@ -174,7 +174,7 @@ def forwardKinematics(q):
 
 
 # Function to compute a list of transformation matrices for the arm joints
-def _FK(q):
+def _FK(q: list[float]) -> list[np.array]:
     """Build and performs the matrix multiplication of the transformation matrices
     needed in the forward kinematics of the arm
 
@@ -206,7 +206,7 @@ def _FK(q):
 
 
 # Function to compute the Jacobian matrix for a given set of joint angles
-def Jacobian(q):
+def Jacobian(q: np.array) -> tuple[np.array, np.array, np.array]:
     """Jacobian matrix of the arm for a given set of angles
 
     Parameters
@@ -253,7 +253,7 @@ def Jacobian(q):
 
 
 # Function to compute the forward Cartesian velocity of the arm
-def forwardVelocity(q, dq):
+def forwardVelocity(q: list[float], dq: list[float]) -> np.array:
     """Computes the cartesian velocity of the arm
 
     Parameters
@@ -313,7 +313,7 @@ def inverseVelocity(q, dx):
 
 
 # Function to compute the projection length of a vector onto a line
-def projection_length(line, vector):
+def projection_length(line: list[float], vector: list[float]) -> float:
     """
     Parameters
     --------
@@ -344,8 +344,8 @@ def projection_length(line, vector):
 
 # Function to compute the joint angles to achieve a target end effector position
 def inverseKinematicsComputeJointAngles(
-    ee_target, wrist_target, elbow_target, rotate_waist
-):
+    ee_target: np.array | list[float], wrist_target: list[float], elbow_target: list[float], rotate_waist | bool
+) -> list[float]:
     """Calculates the necessary angles of all joints to achieve the target end effector position
 
     Parameters
@@ -445,7 +445,7 @@ def inverseKinematicsComputeJointAngles(
     return joint_angles
 
 
-def inverseKinematicsJointPositions(hand_pose):
+def inverseKinematicsJointPositions(hand_pose: np.array) -> tuple[list[np.array, np.array, np.array, np.array, np.array]]:
     """Calculates the reference frame positions of the joints on the arm
 
     Parameters
@@ -500,7 +500,7 @@ def inverseKinematicsJointPositions(hand_pose):
     )
 
 
-def inverseKinematicsAngleOptions(hand_pose):
+def inverseKinematicsAngleOptions(hand_pose: np.array) -> list[list[float]]:
     """Calculates the necessary joint positions and selects ideal elbow
 
     Parameters
@@ -510,9 +510,9 @@ def inverseKinematicsAngleOptions(hand_pose):
 
     Returns
     --------
-        joint_angles : list(float)
+        joint_angles : list(list(float))
             list of angles in radians of joints from base to end effector, relative to
-            the last joint
+            the last joint)
     """
 
     poses = inverseKinematicsJointPositions(hand_pose)
@@ -528,7 +528,7 @@ def inverseKinematicsAngleOptions(hand_pose):
     )
 
 
-def legalIKPositionPicker(poses, cur_pose):
+def legalIKPositionPicker(poses: list[list[float]], cur_pose: list[float]) -> np.array:
     """Determines which of the given poses is the best choice.
 
     Parameters
@@ -568,6 +568,6 @@ def legalIKPositionPicker(poses, cur_pose):
     return best_pose
 
 
-def inverseKinematics(hand_pose, cur_pose):
+def inverseKinematics(hand_pose: list[float], cur_pose: list[float]) -> np.array:
 
     return legalIKPositionPicker(inverseKinematicsAngleOptions(hand_pose), cur_pose)

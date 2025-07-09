@@ -20,7 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'test = arm_control.arm_controller:main',
+            'arm_control_node = src.arm_control_node:main',
+            'sim_bridge_node = test.sim_bridge_node:main',
+            'mock_gamepad_publisher = test.mock_gamepad_publisher:main',
         ],
     },
 )
