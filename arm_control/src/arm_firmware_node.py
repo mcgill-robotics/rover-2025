@@ -18,3 +18,21 @@ from std_msgs.msg import Bool
 #     def calibrate_motor(self, node: NodeID):
         # self.esc.run(RunSpec.CALIBRATION, 0.0, self.motor_type, node)
         # the position you calibarate it at when you run motor position it starts from that degree
+
+
+        # get shit from arm_control_node 
+        # arm_control_cmd
+
+class arm_firmware(Node):
+    def __init__(self):
+        super.__init__("arm_firmware_node")
+        self.position_subscriber = self.create_subscription(Float32MultiArray, "arm_position_cmd", self.broadcast_pos, 10) # Returns a list of wais,t shoulder, elbow, wrist, hand
+
+        station = aCAN.CANStation(interface="slcan", channel="COM6", birate=500000)
+        esc_interface = aCAN.ESCInterface(station)
+        self.arm_interface = aCAN.arm_interface(esc_interface)
+        self.nodes = [aCAN.NodeID.WAIST, aCAN.NodeID.SHOULDER, aCAN.NodeID.ELBOW]
+
+
+
+
