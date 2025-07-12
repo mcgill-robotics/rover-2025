@@ -29,10 +29,7 @@ class arm_firmware(Node):
                 self.arm_interfaces.acknowledge_motor_fault(motor)
 
 
-    def broadcast_post(self, position_cmd: Float32MultiArray):
-        """
-        Broadcasts the position command to the arm motors.
-        """
+    def broadcast_pos(self, position_cmd: Float32MultiArray):
         for i, node in enumerate(self.nodes):
             self.arm_interface.run_motor_position(node, position_cmd.data[i])
             # self.arm_interface.calibrate_motor(node)  # Uncomment to calibrate motor
