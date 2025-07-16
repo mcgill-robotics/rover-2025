@@ -159,6 +159,21 @@
   height: 17.5%;
 }
 
+.nav-button {
+  padding: 0.5rem 1rem;
+  background-color: #222;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.nav-button:hover {
+  background-color: #444;
+}
+
+
 
 /* Responsive design - Ensure buttons take full width on mobile */
 @media (max-width: 768px) {

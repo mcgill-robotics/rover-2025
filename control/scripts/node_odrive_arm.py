@@ -1,12 +1,13 @@
 import threading
 from threading import Lock
-from odrive_interface.msg import MotorState, MotorError
+from msg_srv_interface.msg import MotorState, MotorError
 from ODriveJoint import *
 from std_msgs.msg import Float32MultiArray
 from odrive.utils import dump_errors
 from odrive.enums import AxisState, ODriveError, ProcedureResult
 from enum import Enum
-import rospy
+import rclpy
+from rclpy.node import Node
 import os
 import sys
 
@@ -29,8 +30,9 @@ current_mode = FeedbackMode.FROM_OUTSHAFT
 joint_order = ["rover_arm_elbow", "rover_arm_shoulder", "rover_arm_waist"]
 
 
-class NodeODriveInterfaceArm:
+class NodeODriveInterfaceArm(Node):
     def __init__(self):
+        super().__init__("odrive_interface_arm")
         self.is_homed = False
         self.is_calibrated = False
         self.threads = []
@@ -69,33 +71,29 @@ class NodeODriveInterfaceArm:
 
         self.locks = {joint_name: Lock() for joint_name in self.joint_dict.keys()}
 
-        rospy.init_node("odrive_interface_arm", disable_signals=True)
+        #rospy.init_node("odrive_interface_arm", disable_signals=True)
 
         # Subscriptions
-        self.outshaft_pos_fb_subscriber = rospy.Subscriber(
-            "/armBrushlessFb",
-            Float32MultiArray,
-            self.handle_outshaft_fb,
-        )
+        self.outshaft_pos_fb_subscriber = self.create_subscription(Float32MultiArray, "armBruhslessFb", self.handle_outshaft_fb, 10)
+
         # Cmd comes from the external control node, we convert it to setpoint and apply it to the ODrive
-        self.arm_joint_cmd_subscriber = rospy.Subscriber(
-            "/armBrushlessCmd", Float32MultiArray, self.handle_arm_cmd
+        self.arm_joint_cmd_subscriber = self.create_subscription(
+            Float32MultiArray, "/armBrushlessCmd", self.handle_arm_cmd, 10
         )
 
         # Publishers
-        self.odrive_state_publisher = rospy.Publisher(
-            "/odrive_status", MotorState, queue_size=1
+        self.odrive_state_publisher = self.create_publisher(
+            MotorState, "/odrive_status", 1
         )
-        self.odrive_pos_fb_publisher = rospy.Publisher(
-            "/odrive_armBrushlessFb", Float32MultiArray, queue_size=1
+        self.odrive_pos_fb_publisher = self.create_publisher(
+            Float32MultiArray, "/odrive_armBrushlessFb", 1
         )
 
-        rospy.on_shutdown(self.shutdown_hook)
+        #rospy.on_shutdown(self.shutdown_hook)
 
         # Frequency of the ODrive I/O
-        self.rate = rospy.Rate(100)
-
-        self.run()
+        timer_period = 0.01  # seconds
+        self.timer = self.create_timer(timer_period, self.publish_joints_feedback)
 
     # Update encoder angle from external encoders
     def handle_outshaft_fb(self, msg):
@@ -221,6 +219,8 @@ class NodeODriveInterfaceArm:
         # Publish
         self.odrive_pos_fb_publisher.publish(feedback)
 
+        self.handle_joints_error()
+
     def reconnect_joint(self, joint_name, joint_obj):
         # Attempt to reconnect...
         # Update joint_obj.odrv as necessary...
@@ -310,32 +310,32 @@ class NodeODriveInterfaceArm:
             print_joint_state_from_dict(self.joint_dict, sync_print=True)
             time.sleep(0.2)
 
-    def loop_odrive(self):
-        # MAIN LOOP ---------------------------------------------------------------
-        while not rospy.is_shutdown():
-            # PRINT TIMESTAMP
-            # print(f"Time: {rospy.get_time()}")
+    # def loop_odrive(self):
+    #     # MAIN LOOP ---------------------------------------------------------------
+    #     while not rospy.is_shutdown():
+    #         # PRINT TIMESTAMP
+    #         # print(f"Time: {rospy.get_time()}")
 
-            # ODRIVE POSITION FEEDBACK, different from the outshaft feedback
-            self.publish_joints_feedback()
+    #         # ODRIVE POSITION FEEDBACK, different from the outshaft feedback
+    #         self.publish_joints_feedback()
 
-            # APPLY Position Cmd
-            # Done by the handle_arm_cmd function
+    #         # APPLY Position Cmd
+    #         # Done by the handle_arm_cmd function
 
-            # HANDLE ERRORS
-            self.handle_joints_error()
+    #         # HANDLE ERRORS
+    #         self.handle_joints_error()
 
-            # Delay
-            self.rate.sleep()
+    #         # Delay
+    #         self.rate.sleep()
 
-    def run(self):
-        self.setup_odrive()
-        thread = threading.Thread(target=self.loop_odrive)
-        thread.start()
-        print_thread = threading.Thread(target=self.print_loop)
-        print_thread.start()
-        rospy.spin()
-        self.shutdown_hook()
+    # def run(self):
+    #     self.setup_odrive()
+    #     thread = threading.Thread(target=self.loop_odrive)
+    #     thread.start()
+    #     print_thread = threading.Thread(target=self.print_loop)
+    #     print_thread.start()
+    #     rospy.spin()
+    #     self.shutdown_hook()
 
     def shutdown_hook(self):
         self.shutdown_flag = True
@@ -349,13 +349,20 @@ class NodeODriveInterfaceArm:
         print("All threads joined. Shutdown complete.")
 
 
-if __name__ == "__main__":
+def main(args = None):
+    rclpy.init(args=args)
     try:
         driver = NodeODriveInterfaceArm()
-        rospy.spin()
-    except rospy.ROSInterruptException:
+        rclpy.spin(driver)
+    except rclpy.exceptions.ROSInterruptException:
         pass
     except KeyboardInterrupt:
         print("Shutting down due to KeyboardInterrupt")
-        rospy.signal_shutdown("KeyboardInterrupt")
+        rclpy.signal_shutdown("KeyboardInterrupt")
         driver.shutdown_hook()
+        driver.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()

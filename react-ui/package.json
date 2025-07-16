@@ -9,12 +9,17 @@
     "start:all": "concurrently \"npm run drive\" \"npm run dev\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "launch_camera": "python3 src/services/drive/webrtc.py"
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.17",
+    "axios": "^1.8.3",
     "blessed": "^0.1.81",
     "cors": "^2.8.5",
     "express": "^4.21.1",
+    "leaflet": "^1.9.4",
+    "leaflet.offline": "^3.1.0",
     "lucide-react": "^0.476.0",
     "peerjs": "^1.5.4",
     "rclnodejs": "^0.30.0",
@@ -23,13 +28,15 @@
     "react-gamepad": "^1.0.3",
     "react-gamepads": "^1.0.0",
     "react-router-dom": "^6.27.0",
+    "ros3d": "^1.1.0",
     "roslib": "^1.4.1",
+    "vite": "^6.3.5",
     "ws": "^8.18.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
     "@types/express": "^5.0.0",
-    "@types/node": "^22.9.3",
+    "@types/node": "^20.11.24",
     "@types/peerjs": "^0.0.30",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
@@ -44,6 +51,18 @@
     "ts-node": "^10.9.2",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.10.0",
-    "vite": "^5.4.9"
+    "vite-plugin-static-copy": "^2.3.0"
+  },
+  "resolutions": {
+    "glob": "^9.3.5",
+    "minimatch": "^3.0.2",
+    "uuid": "^9.0.1",
+    "inflight": "^2.0.0",
+    "request": "^2.88.2",
+    "hawk": "^9.0.1",
+    "boom": "^10.0.1",
+    "cryptiles": "^4.0.0",
+    "sntp": "^3.0.0",
+    "hoek": "^6.0.4"
   }
 }

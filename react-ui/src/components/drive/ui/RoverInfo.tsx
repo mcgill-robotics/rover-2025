@@ -1,6 +1,5 @@
 import WheelsContainer from "./WheelsContainer";
 import Speedometer from "./Speedometer";
-import GPS from './GPS';
 import "./styles/RoverInfo.css";
 
 const RoverInfo: React.FC = () => {
@@ -38,9 +37,7 @@ const RoverInfo: React.FC = () => {
         <WheelsContainer />
       </div>
 
-      <div className="gps-container">
-        <GPS />
-      </div>
+      
     </div>
   );
 };
