@@ -4,11 +4,10 @@ import sys
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
 import rclpy
-from speed_control import speed_controller
-import steering as steering
+from speed_control import SpeedController
 from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
-from steering import rover_rotation , wheel_orientation_rot
+from steering import Steering
 import math
 import numpy as np
 from std_msgs.msg import Float32MultiArray
@@ -24,9 +23,7 @@ class drive_controller(Node):
         self.gamepad_input = GamePadInput()
 
         #Declare field corresponding to speed control node and current state of wheels
-        self.speed_controller = speed_controller()
-
-        self.steering = steering.Steering()
+        self.steering = Steering()
 
         # TODO: Tune values
         self.deadzone = 0.1 
@@ -59,7 +56,7 @@ class drive_controller(Node):
 
 
         #Speed given button input
-        speed = self.speed_controller.updateSpeed(self.gamepad_input.x_button, self.gamepad_input.o_button)
+        speed = self.steering.speed_controller.update_speed(self.gamepad_input.x_button, self.gamepad_input.o_button)
         speed = [speed for _ in range(4)]
         msg = Float32MultiArray()
         
@@ -72,7 +69,7 @@ class drive_controller(Node):
                 rot_inp = -1
 
             #Array with the desired speed for each wheel during rover rotation
-            rotation_sp = rover_rotation(self.wheel_angles, rot_inp)
+            rotation_sp = self.steering.rover_rotation(self.wheel_angles, rot_inp)
 
             speed = [direction*self.turning_speed for direction in rotation_sp]
 
@@ -86,11 +83,11 @@ class drive_controller(Node):
             
         if self.tank_drive_mode:    
             if self.not_in_deadzone_check(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y):
-                left_speed_wheels = steering.update_left_wheel_speeds(self.gamepad_input.l_stick_y)
+                left_speed_wheels = self.steering.update_left_wheel_speeds(self.gamepad_input.l_stick_y)
             else:
                 left_speed_wheels = [0, 0]
             if self.not_in_deadzone_check(self.gamepad_input.r_stick_x, self.gamepad_input.r_stick_y):
-                right_speed_wheels = steering.update_right_wheel_speeds(self.gamepad_input.r_stick_y)
+                right_speed_wheels = self.steering.update_right_wheel_speeds(self.gamepad_input.r_stick_y)
             else:
                 right_speed_wheels = [0, 0]
                 
@@ -102,12 +99,12 @@ class drive_controller(Node):
 
         #Check whether gears change
         if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
-            self.speed_controller.shifting_gear(self.gamepad_input.r2_button, self.gamepad_input.l2_button)
+            self.steering.speed_controller.shift_gear(self.gamepad_input.r2_button, self.gamepad_input.l2_button)
 
         #Check whether joystick position changes
         if self.not_in_deadzone_check(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y):
             #Orientation for wheels given a joystick positinon
-            self.wheel_angles = wheel_orientation_rot(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y, self.wheel_angles[0])
+            self.wheel_angles = self.steering.wheel_orientation_rot(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y, self.wheel_angles[0])
 
             # TODO: Send new orientation to wheels
 

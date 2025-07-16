@@ -2,7 +2,7 @@ import scipy.stats as st
 import numpy as np
 
 
-class speed_controller():
+class SpeedController():
 
     """
     Hard-coded the rover measurements and gear speeds, need to adapt it towards the real model.
@@ -64,7 +64,7 @@ class speed_controller():
     Change absolute max speed
     - R2 shifts up a gear, L2 shifts down a gear with smooth deceleration if needed
     """
-    def shifting_gear(self, gear_up: bool, gear_down: bool) -> None:
+    def shift_gear(self, gear_up: bool, gear_down: bool) -> None:
         if gear_up: # r2 switches to higher gear
             self.current_gear_index = min(self.current_gear_index + 1, len(self.gears) - 1)
         elif gear_down: # l2 switches to lower gear
@@ -72,7 +72,7 @@ class speed_controller():
         self.max_speed = self.gears[self.current_gear_index]["speed"]
         
     # Update current speed, and add it to the self.wheelspeeds history
-    def updateSpeed(self, accelerate: bool, reverse: bool) -> float:
+    def update_speed(self, accelerate: bool, reverse: bool) -> float:
         """
         Updates current speed based on gamepad inputs and shifting gear
         - X button accelerates, O button decelerates
