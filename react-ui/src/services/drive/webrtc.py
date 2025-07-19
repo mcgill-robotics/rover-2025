@@ -7,7 +7,7 @@ import subprocess
 
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaPlayer
+from aruco_detector import ArucoVideoTrack
 
 pcs = set()
 previous_stats = {}
@@ -77,18 +77,13 @@ async def offer(request):
             pcs.discard(pc)
             print("[ICE] Cleaned up PC.")
 
-    player = None
+    track = None
     for attempt in range(MAX_RETRIES):
         try:
-            player = MediaPlayer(
-                device_path,
-                format="v4l2",
-                options={"framerate": "30", "video_size": "640x480"}
-            )
-            print(f"[MediaPlayer] Started on {device_path}")
+            track = ArucoVideoTrack(f'/dev/video{device_path}')
             break
         except Exception as e:
-            print(f"[ERROR] MediaPlayer attempt {attempt+1} failed: {e}")
+            print(f"[ERROR] ArucoVideoTrack attempt {attempt+1} failed: {e}")
             if "Device or resource busy" in str(e) and attempt == 0:
                 print(f"[BUSY] Attempting to force-kill blocker on {device_path}")
                 await force_kill_device_users(device_path)
@@ -104,8 +99,8 @@ async def offer(request):
         print("[WebRTC] Remote description set.")
 
         for t in pc.getTransceivers():
-            if t.kind == "video" and player.video:
-                pc.addTrack(player.video)
+            if t.kind == "video":
+                pc.addTrack(track)
                 print("[WebRTC] Video track added.")
 
         answer = await pc.createAnswer()
@@ -121,8 +116,8 @@ async def offer(request):
         traceback.print_exc()
         await pc.close()
         pcs.discard(pc)
-        if player:
-            await player.stop()
+        if track:
+            await track.stop()
         return web.json_response({"error": f"WebRTC setup failed: {str(e)}"}, status=500)
 
 # ------------------------- /bandwidth-stats -------------------------
