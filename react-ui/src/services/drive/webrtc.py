@@ -81,6 +81,7 @@ async def offer(request):
     for attempt in range(MAX_RETRIES):
         try:
             track = ArucoVideoTrack(f'/dev/video{device_path}')
+            print(f"[MediaPlayer] Started on {device_path}")
             break
         except Exception as e:
             print(f"[ERROR] ArucoVideoTrack attempt {attempt+1} failed: {e}")

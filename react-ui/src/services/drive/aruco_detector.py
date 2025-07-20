@@ -7,10 +7,9 @@ class ArucoVideoTrack(VideoStreamTrack):
 
     def __init__(self, device_path):
         super().__init__()
-        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
         
         self.cap = cv2.VideoCapture(device_path)
-        # self.cap = cv2.VideoCapture(0)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
@@ -25,7 +24,13 @@ class ArucoVideoTrack(VideoStreamTrack):
         returns the original frame if none found"""
         corners, ids = self.get_aruco(frame)
         if ids is not None:
-            frame_markers = cv2.aruco.drawDetectedMarkers(frame, corners, ids, borderColor=(0, 255, 0))  # Green border
+            frame_markers = cv2.aruco.drawDetectedMarkers(frame, corners, ids=None, borderColor=(0, 255, 0))  # Green border
+            for i in range(len(ids)): # draw ID on in bigger font
+                corner = corners[i][0]
+                top_left = tuple(corner[0].astype(int))
+                cv2.putText(frame_markers, f'id={ids[i][0]}', top_left, 
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX, 
+                    fontScale=1.5, color=(0, 255, 0), thickness=3)
         else:
             frame_markers = frame
         return frame_markers
@@ -35,10 +40,13 @@ class ArucoVideoTrack(VideoStreamTrack):
         ret, frame = self.cap.read()
         if not ret: 
             raise Exception("Failed to read from camera")
-        
-        aruco_frame = self.get_drawn_aruco(frame)
 
-        video_frame = VideoFrame.from_ndarray(aruco_frame, format="rgb24")
+        try:
+            aruco_frame = self.get_drawn_aruco(frame)
+        except:
+            aruco_frame = frame
+
+        video_frame = VideoFrame.from_ndarray(aruco_frame, format="bgr24")
         video_frame.pts = pts
         video_frame.time_base = time_base
 
