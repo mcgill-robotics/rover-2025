@@ -4,14 +4,10 @@ import re
 import time
 import traceback
 import subprocess
-import argparse
-import logging
 
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaPlayer
-
-# ------------------------- Globals -------------------------
+from aruco_detector import ArucoVideoTrack
 
 pcs = set()
 previous_stats = {}
@@ -20,9 +16,6 @@ STATS_INTERVAL = 2  # seconds
 
 MAX_RETRIES = 3
 RETRY_BACKOFF = [1, 2, 4]  # seconds
-
-logger = logging.getLogger("webrtc")
-DEBUG = False
 
 # ------------------------- Middleware -------------------------
 
@@ -48,15 +41,15 @@ async def force_kill_device_users(device_path):
                 pids = [int(p) for p in parts[1:] if p.isdigit()]
 
         if not pids:
-            logger.warning(f"No processes found using {device_path}")
+            print(f"[FORCE-KILL] No processes found using {device_path}")
             return
 
         for pid in pids:
-            logger.info(f"Killing PID {pid} using {device_path}")
+            print(f"[FORCE-KILL] Killing PID {pid} using {device_path}")
             subprocess.run(["kill", "-9", str(pid)])
 
     except Exception as e:
-        logger.error(f"Failed to kill process using {device_path}: {e}")
+        print(f"[FORCE-KILL] Failed to kill process using {device_path}: {e}")
 
 # ------------------------- /offer -------------------------
 
@@ -65,7 +58,7 @@ async def offer(request):
     if not device_path:
         return web.json_response({"error": "Missing 'id' query param for video device"}, status=400)
 
-    logger.info(f"Requested v4l2 device: {device_path}")
+    print(f"[OFFER] Requested v4l2 device: {device_path}")
 
     try:
         params = await request.json()
@@ -78,49 +71,42 @@ async def offer(request):
 
     @pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
-        logger.debug(f"ICE State: {pc.iceConnectionState}")
+        print("[ICE] State:", pc.iceConnectionState)
         if pc.iceConnectionState in ["failed", "disconnected", "closed"]:
             await pc.close()
             pcs.discard(pc)
-            logger.info("PeerConnection closed and cleaned up.")
+            print("[ICE] Cleaned up PC.")
 
-    player = None
+    track = None
     for attempt in range(MAX_RETRIES):
         try:
-            player = MediaPlayer(
-                device_path,
-                format="v4l2",
-                options={"framerate": "30", "video_size": "640x480"}
-            )
-            logger.info(f"MediaPlayer started on {device_path}")
+            track = ArucoVideoTrack(device_path)
+            print(f"[ArucoVideoTrack] Started on {device_path}")
             break
         except Exception as e:
-            logger.warning(f"MediaPlayer attempt {attempt+1} failed: {e}")
+            print(f"[ERROR] ArucoVideoTrack attempt {attempt+1} failed: {e}")
             if "Device or resource busy" in str(e) and attempt == 0:
-                logger.info(f"Attempting to force-kill blocker on {device_path}")
+                print(f"[BUSY] Attempting to force-kill blocker on {device_path}")
                 await force_kill_device_users(device_path)
 
             if attempt < MAX_RETRIES - 1:
                 await asyncio.sleep(RETRY_BACKOFF[attempt])
             else:
-                logger.exception("Failed to open MediaPlayer after retries")
+                traceback.print_exc()
                 return web.json_response({"error": f"Could not open device: {str(e)}"}, status=500)
 
     try:
         await pc.setRemoteDescription(offer)
-        logger.debug("Remote description set.")
+        print("[WebRTC] Remote description set.")
 
         for t in pc.getTransceivers():
-            logger.debug(f"Transceiver kind: {t.kind}")
-            if t.kind == "video" and player.video:
-                pc.addTrack(player.video)
-                logger.info("Video track added to PeerConnection.")
-            else:
-                logger.debug(f"Skipping transceiver {t.kind} or no video source")
+            if t.kind == "video":
+                pc.addTrack(track)
+                print("[WebRTC] Video track added.")
 
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
-        logger.debug("Answer created and set.")
+        print("[WebRTC] Answer created.")
 
         return web.json_response({
             "sdp": pc.localDescription.sdp,
@@ -128,11 +114,11 @@ async def offer(request):
         })
 
     except Exception as e:
-        logger.exception("WebRTC setup failed")
+        traceback.print_exc()
         await pc.close()
         pcs.discard(pc)
-        if player:
-            await player.stop()
+        if track:
+            await track.stop()
         return web.json_response({"error": f"WebRTC setup failed: {str(e)}"}, status=500)
 
 # ------------------------- /bandwidth-stats -------------------------
@@ -144,12 +130,10 @@ async def get_bandwidth_stats(request):
     if now - last_stats_time < STATS_INTERVAL:
         return web.json_response({"bandwidth_stats": [], "ping_ms": None})
 
-    logger.debug(f"Running bandwidth-stats for {len(pcs)} peer(s)")
     start_time = time.perf_counter()
     stats_list = []
 
     for pc in pcs:
-        logger.debug(f"Getting stats for PC {id(pc)}")
         stats = await pc.getStats()
         bitrate_kbps = None
         rtt_ms = None
@@ -169,22 +153,14 @@ async def get_bandwidth_stats(request):
                         "timestamp": timestamp_ms
                     }
 
-            elif report.type == "candidate-pair":
-                if (
-                    getattr(report, "state", "") == "succeeded" and
-                    getattr(report, "nominated", False) and
-                    hasattr(report, "currentRoundTripTime")
-                ):
+            if report.type == "candidate-pair" and getattr(report, "state", "") == "succeeded":
+                if getattr(report, "nominated", False) and hasattr(report, "currentRoundTripTime"):
                     rtt_ms = report.currentRoundTripTime * 1000
-
-            elif report.type == "remote-inbound-rtp" and getattr(report, "kind", "") == "video":
-                rtt = getattr(report, "roundTripTime", None)
-                if rtt is not None:
-                    rtt_ms = rtt * 1000
+                    break
 
         stats_list.append({
-            "bitrate_kbps": round(bitrate_kbps, 1) if bitrate_kbps is not None else None,
-            "rtt_ms": round(rtt_ms, 1) if rtt_ms is not None else None
+            "bitrate_kbps": round(bitrate_kbps, 1) if bitrate_kbps else None,
+            "rtt_ms": round(rtt_ms, 1) if rtt_ms else None
         })
 
     end_time = time.perf_counter()
@@ -250,23 +226,13 @@ async def handle_options(request):
 # ------------------------- Shutdown -------------------------
 
 async def on_shutdown(app):
-    logger.info("Closing all peer connections...")
+    print("[SHUTDOWN] Closing all peer connections...")
     await asyncio.gather(*[pc.close() for pc in pcs])
     pcs.clear()
 
 # ------------------------- Main -------------------------
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Start the WebRTC server.")
-    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    args = parser.parse_args()
-
-    DEBUG = args.debug
-    logging.basicConfig(
-        level=logging.DEBUG if DEBUG else logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s",
-    )
-
     app = web.Application(middlewares=[cors_middleware])
     app.on_shutdown.append(on_shutdown)
 
@@ -275,5 +241,5 @@ if __name__ == "__main__":
     app.router.add_get("/video-devices", list_video_devices)
     app.router.add_get("/bandwidth-stats", get_bandwidth_stats)
 
-    logger.info("WebRTC server running on port 8081")
+    print("[SERVER] WebRTC server running on port 8081")
     web.run_app(app, host="0.0.0.0", port=8081, ssl_context=None)

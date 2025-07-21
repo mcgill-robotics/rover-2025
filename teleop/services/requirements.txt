@@ -14,3 +14,8 @@ asyncio
 
 # Logging and utilities
 python-dateutil>=2.8.0
+
+# Camera and video processing
+# pip uninstall opencv-python opencv-python-headless opencv-contrib-python -y
+# pip install --no-cache-dir opencv-contrib-python
+
