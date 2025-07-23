@@ -91,7 +91,7 @@ class drive_controller(Node):
             else:
                 right_speed_wheels = [0, 0]
                 
-            speed = [left_speed_wheels[0], right_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
+            speed = [right_speed_wheels[0], left_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
             msg.Float32MultiArray()
             msg.data = [float(s) for s in speed]
             self.speed_input_publisher.publish(msg)
