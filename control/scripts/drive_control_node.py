@@ -59,6 +59,11 @@ class drive_controller(Node):
         speed = self.steering.speed_controller.update_speed(self.gamepad_input.x_button, self.gamepad_input.o_button)
         speed = [speed for _ in range(4)]
         msg = Float32MultiArray()
+
+        #Check whether gears change
+        if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
+            self.steering.speed_controller.shift_gear(self.gamepad_input.r2_button, self.gamepad_input.l2_button)
+
         
         #Check whether there is an input value for rover rotation
         if self.gamepad_input.r1_button or self.gamepad_input.l1_button:
@@ -92,14 +97,11 @@ class drive_controller(Node):
                 right_speed_wheels = [0, 0]
                 
             speed = [left_speed_wheels[0], right_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
-            msg.Float32MultiArray()
+            msg = Float32MultiArray()
             msg.data = [float(s) for s in speed]
+            print(msg.data)
             self.speed_input_publisher.publish(msg)
             return
-
-        #Check whether gears change
-        if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
-            self.steering.speed_controller.shift_gear(self.gamepad_input.r2_button, self.gamepad_input.l2_button)
 
         #Check whether joystick position changes
         if self.not_in_deadzone_check(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y):
