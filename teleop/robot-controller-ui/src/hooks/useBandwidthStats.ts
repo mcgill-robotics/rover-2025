@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { CAMERAIP } from "@/config/network";
+import { BASE_STATION_IP } from "@/config/network";
 
 export function useBandwidthStats(isStreaming: boolean) {
   const [bitrateKbps, setBitrate] = useState<string>("0");
@@ -11,7 +11,7 @@ export function useBandwidthStats(isStreaming: boolean) {
 
     const fetchStats = async () => {
       try {
-        const res = await axios.get(`http://${CAMERAIP}:8081/bandwidth-stats`);
+        const res = await axios.get(`http://${BASE_STATION_IP}:8081/bandwidth-stats`);
         const stats = res.data.bandwidth_stats?.[0];
 
         if (typeof stats?.bitrate_kbps === "number") {
