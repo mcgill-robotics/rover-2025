@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import axios from "axios";
+import { BASE_STATION_IP, JETSON_IP } from "@/config/network";
 
 export interface WebRTCStreamOptions {
-  devicePath: string;
+  cameraName: string;
   stallTimeout?: number;
   restartDelay?: number;
 }
 
 export function useWebRTCStream({
-  devicePath,
+  cameraName,
   stallTimeout = 3000,
   restartDelay = 500,
 }: WebRTCStreamOptions) {
@@ -25,11 +27,21 @@ export function useWebRTCStream({
     lastFrameTimeRef.current = null;
   }, []);
 
-  const startStream = useCallback(() => {
-    if (!devicePath) return;
-    setIsStreaming(true);
-    resetStats();
-  }, [devicePath, resetStats]);
+  const startStream = useCallback(async () => {
+    if (!cameraName) return;
+
+    try {
+      // 1. Tell Jetson to start GStreamer stream for this camera
+      await axios.post(`http://${JETSON_IP}:8000/start-stream`, {
+        name: cameraName,
+      });
+      // 2. Begin WebRTC connection
+      setIsStreaming(true);
+      resetStats();
+    } catch (err) {
+      console.error("[Jetson Stream] Failed to start:", err);
+    }
+  }, [cameraName, resetStats]);
 
   const stopStream = useCallback(() => {
     setIsStreaming(false);
@@ -40,10 +52,10 @@ export function useWebRTCStream({
       resetStats();
       setVideoKey((prev) => prev + 1);
     }
-  }, [devicePath, isStreaming, resetStats]);
+  }, [cameraName, isStreaming, resetStats]);
 
   useEffect(() => {
-    if (!isStreaming || !devicePath) return;
+    if (!isStreaming || !cameraName) return;
 
     const pc = new RTCPeerConnection();
     let isCancelled = false;
@@ -62,18 +74,10 @@ export function useWebRTCStream({
           if (!isCancelled) attachStream(event.streams[0]);
         };
 
-        pc.oniceconnectionstatechange = () => {
-          const state = pc.iceConnectionState;
-          console.log("[ICE] State:", state);
-          if (["disconnected", "failed"].includes(state)) {
-            console.warn("[WebRTC] Connection lost");
-          }
-        };
-
         await pc.setLocalDescription(await pc.createOffer());
 
         const response = await fetch(
-          `http://${location.hostname}:8081/offer?id=${encodeURIComponent(devicePath)}`,
+          `http://${BASE_STATION_IP}:8081/offer?id=${encodeURIComponent(cameraName)}`,
           {
             method: "POST",
             body: JSON.stringify(pc.localDescription),
@@ -99,10 +103,10 @@ export function useWebRTCStream({
       pc.getReceivers().forEach((r) => r.track?.stop());
       pc.close();
     };
-  }, [devicePath, isStreaming]);
+  }, [cameraName, isStreaming]);
 
   useEffect(() => {
-    if (!isStreaming || !devicePath) return;
+    if (!isStreaming || !cameraName) return;
 
     let animationId: number;
 
@@ -143,7 +147,7 @@ export function useWebRTCStream({
     monitor();
 
     return () => cancelAnimationFrame(animationId);
-  }, [devicePath, isStreaming, stallTimeout, restartDelay, resetStats]);
+  }, [cameraName, isStreaming, stallTimeout, restartDelay, resetStats]);
 
   const fps =
     frameTimestamps.length > 1

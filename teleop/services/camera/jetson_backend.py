@@ -1,0 +1,87 @@
+import asyncio
+import subprocess
+from aiohttp import web
+from dotenv import load_dotenv
+import os
+import re
+
+load_dotenv()
+
+# Tracks active GStreamer processes keyed by device
+process_map = {}
+
+@web.middleware
+async def cors_middleware(request, handler):
+    response = await handler(request)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
+
+async def handle_options(request):
+    return web.Response(status=200)
+
+def build_gst_pipeline(device_path):
+    return [
+        "gst-launch-1.0",
+        "v4l2src", f"device={device_path}",
+        "!", "video/x-raw,width=640,height=480,framerate=30/1",
+        "!", "nvvidconv",
+        "!", "nvv4l2h264enc", "bitrate=512000", "insert-sps-pps=true", "tune=zerolatency",
+        "!", "h264parse",
+        "!", "rtph264pay", "config-interval=1", "pt=96",
+        "!", "udpsink", f"host={os.getenv('HOST')}", f"port={os.getenv('PORT')}"
+    ]
+
+def resolve_device_path_from_name(camera_name):
+    """Returns the first device path associated with a given camera name."""
+    try:
+        result = subprocess.run(["v4l2-ctl", "--list-devices"], capture_output=True, text=True)
+        output = result.stdout.strip().splitlines()
+
+        current_name = None
+        for line in output:
+            if not line.startswith("\t"):
+                current_name = re.sub(r"\s*\(.*\):?$", "", line.strip())
+            elif current_name == camera_name:
+                return line.strip()  # e.g., '/dev/video0'
+    except Exception as e:
+        print(f"[ERROR] Failed to resolve device: {e}")
+    return None
+
+async def start_stream(request):
+    data = await request.json()
+    camera_name = data.get("camera")
+    if not camera_name:
+        return web.json_response({"error": "Missing 'camera'"}, status=400)
+
+    device_path = resolve_device_path_from_name(camera_name)
+    if not device_path:
+        return web.json_response({"error": f"Camera '{camera_name}' not found"}, status=404)
+
+    # Kill existing process for this device if running
+    if device_path in process_map:
+        process_map[device_path].terminate()
+        await process_map[device_path].wait()
+
+    pipeline = build_gst_pipeline(device_path)
+    print(f"[JETSON] Starting stream: {' '.join(pipeline)}")
+    proc = await asyncio.create_subprocess_exec(*pipeline)
+    process_map[device_path] = proc
+
+    return web.json_response({"status": "started", "device": device_path})
+
+async def stop_all_streams(request):
+    for proc in process_map.values():
+        proc.terminate()
+    await asyncio.gather(*(p.wait() for p in process_map.values()))
+    process_map.clear()
+    return web.json_response({"status": "all streams stopped"})
+
+if __name__ == "__main__":
+    app = web.Application(middlewares=[cors_middleware])
+    app.router.add_post("/start-stream", start_stream)
+    app.router.add_post("/stop-all", stop_all_streams)
+    app.router.add_options("/start-stream", handle_options)
+    app.router.add_options("/stop-all", handle_options)
+    web.run_app(app, host="0.0.0.0", port=8000)

@@ -1,1 +1,2 @@
-export const CAMERAIP = "localhost" // IP used for the cameras, should be the jetson for comp
+export const BASE_STATION_IP = "localhost"; // Base IP (Should be localhost)
+export const JETSON_IP = "192.168.1.10"; // Jetson IP
