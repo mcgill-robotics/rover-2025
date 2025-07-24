@@ -172,44 +172,6 @@ async def get_bandwidth_stats(request):
         "ping_ms": ping_ms
     })
 
-# ------------------------- /video-devices -------------------------
-
-async def list_video_devices(request):
-    try:
-        result = await asyncio.create_subprocess_shell(
-            "v4l2-ctl --list-devices",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await result.communicate()
-
-        if result.returncode != 0:
-            return web.json_response({"error": stderr.decode()}, status=500)
-
-        lines = stdout.decode().splitlines()
-        devices = []
-        current = None
-
-        for line in lines:
-            if line.strip() == "":
-                continue
-            if not line.startswith("\t"):
-                if current:
-                    devices.append(current)
-                name = re.sub(r"\s*\(.*\):?$", "", line.strip())
-                current = {"name": name, "devices": []}
-            else:
-                if current:
-                    current["devices"].append(line.strip())
-
-        if current:
-            devices.append(current)
-
-        return web.json_response({"devices": devices})
-
-    except Exception as e:
-        return web.json_response({"error": str(e)}, status=500)
-
 # ------------------------- OPTIONS -------------------------
 
 async def handle_options(request):
@@ -238,7 +200,6 @@ if __name__ == "__main__":
 
     app.router.add_options("/offer", handle_options)
     app.router.add_post("/offer", offer)
-    app.router.add_get("/video-devices", list_video_devices)
     app.router.add_get("/bandwidth-stats", get_bandwidth_stats)
 
     print("[SERVER] WebRTC server running on port 8081")

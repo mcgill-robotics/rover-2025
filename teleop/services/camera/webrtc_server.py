@@ -130,7 +130,6 @@ if __name__ == "__main__":
 
     app.router.add_options("/offer", handle_options)
     app.router.add_post("/offer", offer)
-    app.router.add_get("/video-devices", list_video_devices)
     app.router.add_get("/bandwidth-stats", get_bandwidth_stats)
 
     print("[SERVER] WebRTC server running on port 8081")

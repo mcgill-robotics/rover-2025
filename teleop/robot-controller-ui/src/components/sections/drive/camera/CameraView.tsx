@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useWebRTCStream } from "@/hooks/useWebRTCStreams";
 import { useBandwidthStats } from "@/hooks/useBandwidthStats";
+import { JETSON_IP } from "@/config/network";
 
 import DPad from "./DPadController";
 import PowerButton from "@/components/ui/PowerButton";
@@ -10,7 +11,7 @@ import ArrowButton from "@/components/ui/ArrowButton";
 
 interface CameraInfo {
   name: string;
-  id: string;
+  id: string; // /dev/video path
 }
 
 const CameraView: React.FC = () => {
@@ -33,20 +34,20 @@ const CameraView: React.FC = () => {
   useEffect(() => {
     const fetchCameraList = async () => {
       try {
-        const res = await fetch(`http://${location.hostname}:8081/video-devices`);
+        const res = await fetch(`http://${JETSON_IP}:8000/list-devices`);
         const data = await res.json();
-        const all: CameraInfo[] = [];
+        const found: CameraInfo[] = [];
 
         data.devices.forEach((entry: { name: string; devices: string[] }) => {
-          entry.devices.forEach((dev) => {
-            all.push({ name: entry.name, id: dev });
+          entry.devices.forEach((devPath) => {
+            found.push({ name: entry.name, id: devPath });
           });
         });
 
-        setCameras(all);
-        setSelectedCamera(all[0] || null);
+        setCameras(found);
+        setSelectedCamera(found[0] || null);
       } catch (err) {
-        console.error("Failed to fetch camera list:", err);
+        console.error("Failed to fetch camera list from Jetson:", err);
       }
     };
 

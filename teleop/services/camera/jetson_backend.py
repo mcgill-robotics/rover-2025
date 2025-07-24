@@ -44,7 +44,7 @@ def resolve_device_path_from_name(camera_name):
             if not line.startswith("\t"):
                 current_name = re.sub(r"\s*\(.*\):?$", "", line.strip())
             elif current_name == camera_name:
-                return line.strip()  # e.g., '/dev/video0'
+                return line.strip()
     except Exception as e:
         print(f"[ERROR] Failed to resolve device: {e}")
     return None
@@ -78,10 +78,39 @@ async def stop_all_streams(request):
     process_map.clear()
     return web.json_response({"status": "all streams stopped"})
 
+async def list_devices(request):
+    """Returns all camera names and associated device paths."""
+    try:
+        result = subprocess.run(["v4l2-ctl", "--list-devices"], capture_output=True, text=True)
+        output = result.stdout.strip().splitlines()
+
+        devices = []
+        current = None
+
+        for line in output:
+            if not line.startswith("\t"):
+                if current:
+                    devices.append(current)
+                name = re.sub(r"\s*\(.*\):?$", "", line.strip())
+                current = {"name": name, "devices": []}
+            else:
+                if current:
+                    current["devices"].append(line.strip())
+
+        if current:
+            devices.append(current)
+
+        return web.json_response({"devices": devices})
+
+    except Exception as e:
+        return web.json_response({"error": f"Failed to list devices: {e}"}, status=500)
+
 if __name__ == "__main__":
     app = web.Application(middlewares=[cors_middleware])
     app.router.add_post("/start-stream", start_stream)
     app.router.add_post("/stop-all", stop_all_streams)
+    app.router.add_get("/list-devices", list_devices)
     app.router.add_options("/start-stream", handle_options)
     app.router.add_options("/stop-all", handle_options)
+    app.router.add_options("/list-devices", handle_options)
     web.run_app(app, host="0.0.0.0", port=8000)
