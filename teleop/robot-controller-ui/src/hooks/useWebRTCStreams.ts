@@ -33,13 +33,14 @@ export function useWebRTCStream({
     try {
       // 1. Tell Jetson to start GStreamer stream for this camera
       await axios.post(`http://${JETSON_IP}:8000/start-stream`, {
-        name: cameraName,
+        camera: cameraName,
       });
       // 2. Begin WebRTC connection
       setIsStreaming(true);
       resetStats();
     } catch (err) {
       console.error("[Jetson Stream] Failed to start:", err);
+      console.error(cameraName)
     }
   }, [cameraName, resetStats]);
 
