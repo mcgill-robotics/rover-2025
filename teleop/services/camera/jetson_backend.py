@@ -25,9 +25,9 @@ def build_gst_pipeline(device_path):
     return [
         "gst-launch-1.0",
         "v4l2src", f"device={device_path}",
-        "!", "video/x-raw,width=640,height=480,framerate=30/1",
+        "!", "video/x-raw,width=640,height=480,framerate=20/1",
         "!", "nvvidconv",
-        "!", "nvv4l2h264enc", "bitrate=512000", "insert-sps-pps=true", "tune=zerolatency",
+        "!", "x264enc", "bitrate=512", "tune=zerolatency",
         "!", "h264parse",
         "!", "rtph264pay", "config-interval=1", "pt=96",
         "!", "udpsink", f"host={os.getenv('HOST')}", f"port={os.getenv('PORT')}"
@@ -42,8 +42,8 @@ def resolve_device_path_from_name(camera_name):
         current_name = None
         for line in output:
             if not line.startswith("\t"):
-                current_name = re.sub(r"\s*\(.*\):?$", "", line.strip())
-            elif current_name == camera_name:
+                current_name = re.sub(r"\s(.):?$", "", line.strip())
+            elif current_name == camera_name and "/dev/video" in line:
                 return line.strip()
     except Exception as e:
         print(f"[ERROR] Failed to resolve device: {e}")
@@ -55,7 +55,9 @@ async def start_stream(request):
     if not camera_name:
         return web.json_response({"error": "Missing 'camera'"}, status=400)
 
+    print(f'Name {camera_name}')
     device_path = resolve_device_path_from_name(camera_name)
+    print(f'Path: {device_path}')
     if not device_path:
         return web.json_response({"error": f"Camera '{camera_name}' not found"}, status=404)
 
@@ -88,14 +90,15 @@ async def list_devices(request):
         current = None
 
         for line in output:
-            if not line.startswith("\t"):
+            if not line.startswith("\t") and line.strip():  # Name line
                 if current:
                     devices.append(current)
-                name = re.sub(r"\s*\(.*\):?$", "", line.strip())
+                name = re.sub(r"\s(.):?$", "", line.strip())
                 current = {"name": name, "devices": []}
-            else:
-                if current:
-                    current["devices"].append(line.strip())
+            elif line.startswith("\t") and current:  # Device path line
+                dev_path = line.strip()
+                if dev_path.startswith("/dev/video"):
+                    current["devices"].append(dev_path)
 
         if current:
             devices.append(current)
