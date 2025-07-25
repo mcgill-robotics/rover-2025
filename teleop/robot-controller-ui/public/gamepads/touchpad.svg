@@ -1,0 +1,45 @@
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="263.8" height="151.2" viewBox="0 0 263.8 151.2">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+      }
+
+      .cls-2 {
+        fill: #4c4c4c;
+      }
+
+      .cls-3 {
+        fill: #ededed;
+      }
+
+      .cls-4 {
+        fill: #f7f7f7;
+      }
+
+      .cls-5 {
+        opacity: 0.12;
+      }
+
+      .cls-6 {
+        fill: url(#SVGID_1_);
+      }
+    </style>
+    <pattern id="SVGID_1_" data-name="SVGID 1 " width="71" height="71" patternTransform="matrix(0.1, 0, 0, -0.1, -7927.93, 7486.73)" patternUnits="userSpaceOnUse" viewBox="0 0 71 71">
+      <rect class="cls-1" width="71" height="71"/>
+      <g>
+        <polygon class="cls-1" points="0 71 71 71 71 0 0 0 0 71"/>
+        <path class="cls-2" d="M41.8,35.5a6.3,6.3,0,1,0-6.3,6.3A6.27,6.27,0,0,0,41.8,35.5Z"/>
+      </g>
+    </pattern>
+  </defs>
+  <g>
+    <path class="cls-3" d="M263.8,5.6A6.57,6.57,0,0,0,257.3,0H6.7A6.48,6.48,0,0,0,.2,5.6,14.77,14.77,0,0,0,.1,7.7V135.1a16.09,16.09,0,0,0,16.1,16.1H247.8a16.09,16.09,0,0,0,16.1-16.1V7.7A13.42,13.42,0,0,0,263.8,5.6Z" transform="translate(-0.1)"/>
+    <g>
+      <path class="cls-4" d="M259.4,1.9A1.9,1.9,0,0,0,257.5,0H6.4A1.9,1.9,0,0,0,4.5,1.9V131.1a15.62,15.62,0,0,0,15.6,15.6H243.9a15.62,15.62,0,0,0,15.6-15.6V7.9Z" transform="translate(-0.1)"/>
+      <g class="cls-5">
+        <path class="cls-6" d="M4.5,131.1a15.62,15.62,0,0,0,15.6,15.6H243.9a15.62,15.62,0,0,0,15.6-15.6V24.5H4.6V131.1Z" transform="translate(-0.1)"/>
+      </g>
+    </g>
+  </g>
+</svg>

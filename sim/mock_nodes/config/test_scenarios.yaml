@@ -1,0 +1,150 @@
+# Test scenarios for mock drive firmware node
+# Each scenario simulates different hardware conditions
+
+scenarios:
+  # Normal operation - healthy rover
+  normal:
+    voltage_range: [11.5, 12.5]
+    current_max: 3.0
+    temp_range: [20.0, 45.0]
+    speed_max: 100.0
+    all_motors_connected: true
+    description: "Normal operation with healthy motors and good battery"
+
+  # Low battery scenario
+  low_battery:
+    voltage_range: [9.0, 10.5]
+    current_max: 2.0
+    temp_range: [20.0, 40.0]
+    speed_max: 60.0
+    all_motors_connected: true
+    description: "Low battery voltage affecting performance"
+
+  # Motor fault scenario
+  motor_fault:
+    voltage_range: [11.5, 12.5]
+    current_max: 3.0
+    temp_range: [20.0, 80.0]
+    speed_max: 100.0
+    all_motors_connected: false
+    faulty_motors: ["RB"]
+    description: "Right-back motor disconnected/faulty"
+
+  # Multiple motor faults
+  multiple_faults:
+    voltage_range: [11.5, 12.5]
+    current_max: 3.0
+    temp_range: [20.0, 80.0]
+    speed_max: 100.0
+    all_motors_connected: false
+    faulty_motors: ["RB", "LF"]
+    description: "Multiple motors with faults"
+
+  # Overheating scenario
+  overheating:
+    voltage_range: [11.5, 12.5]
+    current_max: 4.0
+    temp_range: [60.0, 85.0]
+    speed_max: 100.0
+    all_motors_connected: true
+    description: "Motors running hot due to high load"
+
+  # Extreme conditions
+  extreme_conditions:
+    voltage_range: [8.5, 9.5]
+    current_max: 5.0
+    temp_range: [70.0, 95.0]
+    speed_max: 40.0
+    all_motors_connected: false
+    faulty_motors: ["RF"]
+    description: "Extreme conditions - low battery, overheating, motor fault"
+
+  # High performance scenario
+  high_performance:
+    voltage_range: [12.0, 13.0]
+    current_max: 4.5
+    temp_range: [25.0, 55.0]
+    speed_max: 150.0
+    all_motors_connected: true
+    description: "High performance mode with good power supply"
+
+  # Intermittent faults
+  intermittent_faults:
+    voltage_range: [11.0, 12.0]
+    current_max: 3.5
+    temp_range: [20.0, 60.0]
+    speed_max: 100.0
+    all_motors_connected: true
+    enable_random_faults: true
+    fault_probability: 0.05
+    description: "Random intermittent faults for testing error recovery"
+
+  # Cold start scenario
+  cold_start:
+    voltage_range: [11.8, 12.2]
+    current_max: 2.5
+    temp_range: [-10.0, 15.0]
+    speed_max: 80.0
+    all_motors_connected: true
+    description: "Cold weather operation"
+
+  # Development testing
+  dev_test:
+    voltage_range: [10.0, 14.0]
+    current_max: 6.0
+    temp_range: [0.0, 100.0]
+    speed_max: 200.0
+    all_motors_connected: true
+    enable_random_faults: true
+    fault_probability: 0.02
+    description: "Wide range testing for development"
+
+# Default parameters for all scenarios
+default_params:
+  diagnostics_rate: 10.0
+  speeds_rate: 20.0
+  realistic_physics: true
+  enable_faults: false
+  fault_probability: 0.01
+
+# Test sequences - predefined sequences of scenarios
+test_sequences:
+  basic_functionality:
+    - scenario: normal
+      duration: 30
+    - scenario: low_battery
+      duration: 20
+    - scenario: normal
+      duration: 10
+    description: "Basic functionality test sequence"
+
+  fault_recovery:
+    - scenario: normal
+      duration: 15
+    - scenario: motor_fault
+      duration: 20
+    - scenario: normal
+      duration: 15
+    - scenario: multiple_faults
+      duration: 20
+    - scenario: normal
+      duration: 10
+    description: "Test fault detection and recovery"
+
+  stress_test:
+    - scenario: normal
+      duration: 10
+    - scenario: overheating
+      duration: 30
+    - scenario: extreme_conditions
+      duration: 30
+    - scenario: intermittent_faults
+      duration: 60
+    description: "Stress test with various failure modes"
+
+  performance_test:
+    - scenario: high_performance
+      duration: 60
+    - scenario: normal
+      duration: 30
+    description: "Performance testing under optimal conditions"
