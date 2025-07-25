@@ -1,0 +1,99 @@
+/* Base background */
+.bg-controller-base {
+  background-image: url('/gamepads/base.svg');
+}
+
+/* Triggers */
+.rtrigger.active {
+  background: url('/gamepads/triggers.svg') no-repeat left / cover;
+}
+.ltrigger.active {
+  background: url('/gamepads/triggers.svg') no-repeat right / cover;
+}
+
+/* Bumpers */
+.lbumper.active {
+  background: url('/gamepads/bumper.svg') no-repeat left / cover;
+}
+.rbumper.active {
+  background: url('/gamepads/bumper.svg') no-repeat right / cover;
+  transform: scaleX(-1);
+}
+
+/* Touchpad */
+.touchpad.active {
+  position: absolute;
+  width: 32.5%;
+  height: 24%;
+  top: 18.5%;
+  left: 32.5%;
+  border-radius: 10%;
+  background-image: url('/gamepads/touchpad.svg');
+}
+
+/* Meta button */
+.meta {
+  position: absolute;
+  width: 4.5%;
+  height: 5.75%;
+  top: 55%;
+  left: 46.5%;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+}
+.meta.active {
+  background-image: url('/gamepads/meta.svg') !important;
+}
+.meta.connected {
+  background-image: url('/gamepads/connected.svg');
+}
+.meta.disconnected {
+  background-image: url('/gamepads/disconnected.svg');
+}
+
+/* Share/Options */
+.share.active {
+  background: url('/gamepads/start.svg') no-repeat left / cover;
+}
+.options.active {
+  background: url('/gamepads/start.svg') no-repeat right / cover;
+}
+
+/* ABXY buttons */
+.a.active {
+  background: url('/gamepads/star.svg') center / cover no-repeat;
+}
+.b.active {
+  background: url('/gamepads/circle.svg') center / cover no-repeat;
+}
+.x.active {
+  background: url('/gamepads/square.svg') center / cover no-repeat;
+}
+.y.active {
+  background: url('/gamepads/triangle.svg') center / cover no-repeat;
+}
+
+/* Sticks */
+.lstick.active,
+.lstick.moving {
+  background: url('/gamepads/sticks.svg') center / cover no-repeat;
+}
+.rstick.active,
+.rstick.moving {
+  background: url('/gamepads/sticks.svg') right / cover no-repeat;
+}
+
+/* Dpad directions */
+.fu.active {
+  background: url('/gamepads/up.svg') center / cover no-repeat;
+}
+.fd.active {
+  background: url('/gamepads/down.svg') left / cover no-repeat;
+}
+.fl.active {
+  background: url('/gamepads/left.svg') center / cover no-repeat;
+}
+.fr.active {
+  background: url('/gamepads/right.svg') right / cover no-repeat;
+}
