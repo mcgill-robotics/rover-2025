@@ -1,8 +1,7 @@
-device_name: Logitech C920
 width: 640
 height: 480
 framerate: 20
-bitrate: 512
+bitrate: 1024
 encoder: x264enc
 tune: zerolatency
 speed_preset: ultrafast

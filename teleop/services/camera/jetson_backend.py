@@ -19,6 +19,7 @@ PORT = int(os.getenv("PORT", "5000"))
 
 # Tracks pipelines keyed by device path
 pipeline_map = {}
+camera_name_file_map = {"Centerm Camera: Centerm Camera (usb-3610000.usb-2.4):" : "example1"}
 
 @web.middleware
 async def cors_middleware(request, handler):
@@ -46,7 +47,9 @@ def resolve_device_path_from_name(camera_name):
     return None
 
 def load_camera_config(camera_name):
-    path = os.path.join(os.path.dirname(__file__), "configs", f"{camera_name}.yaml")
+    print(f"Loading config {camera_name}")
+    file_name = camera_name_file_map.get(camera_name, "")
+    path = os.path.join(os.path.dirname(__file__), "configs", f"{file_name}.yaml")
     if not os.path.exists(path):
         raise FileNotFoundError(f"Missing config file for camera '{camera_name}' at {path}")
     with open(path, 'r') as f:
@@ -76,6 +79,7 @@ def build_pipeline(config, device_path):
 
 
 async def start_stream(request):
+    print("got start stream")
     data = await request.json()
     camera_name = data.get("camera")
     if not camera_name:
