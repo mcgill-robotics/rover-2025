@@ -23,9 +23,9 @@ class ArucoProcessorTrack(VideoStreamTrack):
         pts, time_base = await self.next_timestamp()
 
         for _ in range(3):
-            print("Waiting for frames")
+            # print("Waiting for frames")
             ret, frame = self.cap.read()
-            print("Received frames")
+            # print("Received frames")
             if ret:
                 break
             await asyncio.sleep(0.03)
