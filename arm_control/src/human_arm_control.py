@@ -99,7 +99,7 @@ class HumanArmControl:
         """
         #assume button check is done before calling this
         self.current_cycle_mode += 1
-        self.current_cycle_mode %= 6
+        self.current_cycle_mode %= 5
         return self.current_cycle_mode
 
     def cycle_down(self):
@@ -113,7 +113,7 @@ class HumanArmControl:
         """
         #assume button check is done before calling this
         self.current_cycle_mode -= 1
-        self.current_cycle_mode %= 6
+        self.current_cycle_mode %= 5
         return self.current_cycle_mode
 
     def depth_motion(self, joystick_input: float, cur_angles: list[float]) -> list[float]:

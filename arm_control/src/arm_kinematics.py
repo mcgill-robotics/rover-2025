@@ -343,9 +343,10 @@ def projection_length(line: list[float], vector: list[float]) -> float:
 
 
 # Function to compute the joint angles to achieve a target end effector position
-def inverseKinematicsComputeJointAngles(
-    ee_target: np.array | list[float], wrist_target: list[float], elbow_target: list[float], rotate_waist | bool
-) -> list[float]:
+def inverseKinematicsComputeJointAngles(ee_target: np.array, 
+                                        wrist_target : list[float], 
+                                        elbow_target: list[float], 
+                                        rotate_waist : bool) -> list[float]:
     """Calculates the necessary angles of all joints to achieve the target end effector position
 
     Parameters
