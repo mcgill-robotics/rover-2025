@@ -127,7 +127,7 @@ class drive_firmware(Node):
 
     
     def broadcast_speeds(self, speeds: Float32MultiArray):
-        inp = speeds.data
+        inp = [speeds.data[0], -speeds.data[1], -speeds.data[2], speeds.data[3]] # RF, LF, LB, RB
         self.drive_interface.broadcast_multi_motor_speeds(inp)
 
 

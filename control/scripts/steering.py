@@ -14,11 +14,15 @@ class Steering:
 
         '''
         joystick_angle_rad = math.atan2(y_input, x_input)
-        curr_angle_rad = joystick_angle_rad
+        angle = joystick_angle_rad
 
-        if curr_angle_rad < 0:
-            curr_angle_rad += 2* math.pi
-        return np.full(4,round(curr_angle_rad,2))
+        if angle < 0:
+            angle += 2* math.pi
+
+        if abs(angle) > math.pi:
+            angle = curr_angle_rad
+        
+        return np.full(4,round(angle,2))
 
 
     def update_left_wheel_speeds(self, l_stick_y: float) -> list[float]:
