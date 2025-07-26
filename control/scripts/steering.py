@@ -26,13 +26,13 @@ class Steering:
 
 
     def update_left_wheel_speeds(self, l_stick_y: float) -> list[float]:
-        base_speed = self.speed_controller.max_speed 
-        left_speed = l_stick_y * base_speed
+        print(l_stick_y)
+        left_speed = l_stick_y * self.speed_controller.max_speed
         return [left_speed, left_speed] # because same speed for both left wheels
 
     def update_right_wheel_speeds(self, r_stick_y: float) -> list[float]:
-        base_speed = self.speed_controller.max_speed
-        right_speed = r_stick_y * base_speed
+        print(r_stick_y)
+        right_speed = r_stick_y * self.speed_controller.max_speed
         return [right_speed, right_speed]
 
 
@@ -69,12 +69,13 @@ class Steering:
         # CASE 2: approximately parallel to rover
         # front of wheel facing front
         elif abs(wheel_angles[0]-math.pi/2) <= tolerance:
+            print("HAPPENED")
             if rotation_dir < 0: #turn left
                 # left wheels go backward, right wheels rotate forward
-                return [i*abs(rotation_dir) for i in [1, -1, -1, 1]] 
+                return [i*abs(rotation_dir) for i in [1, -1, 1, -1]] 
             else: #turning right
                 # left wheels go forward, right wheel rotate backward
-                return [i*abs(rotation_dir) for i in [-1, 1, 1, -1]]
+                return [i*abs(rotation_dir) for i in [-1, 1, -1, 1]]
         
         # front of wheel facing backward
         elif abs(wheel_angles[0]-3*math.pi/2) <= tolerance:

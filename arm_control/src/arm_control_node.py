@@ -9,6 +9,7 @@ from msg_srv_interface.msg import GamePadInput
 from human_arm_control import *
 import numpy as np
 from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Bool
 
 # Enum for control schema
 IK_CONTROL = 0
@@ -34,6 +35,7 @@ class arm_control_node(Node):
         self.feedbackSubscriber = self.create_subscription(Float32MultiArray, "arm_position_feedback", self.updateArmPosition, 10)
 
         self.position_publisher = self.create_publisher(Float32MultiArray, 'arm_position_cmd', 10)
+        self.fault_publisher = self.create_publisher(Bool, "acknowledge_arm_faults", 10)
 
         # # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
         # timer_period = 0.25
@@ -46,6 +48,15 @@ class arm_control_node(Node):
         """
         Main control loop that processes gamepad input and updates arm angles accordingly
         """
+        if gamepad_input.home_button:
+            msg = Bool()
+            msg.data = True
+            self.fault_publisher.publish(msg)
+        else:
+            msg = Bool()
+            msg.data = False
+            self.fault_publisher.publish(msg)
+
         new_angles = self.cur_angles # Create a copy of the current angles to modify
         #Check if there is input value for changing the speed
         if gamepad_input.square_button:
