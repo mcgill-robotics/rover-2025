@@ -1,0 +1,16 @@
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 56 56 56">
+  <defs>
+    <style>
+      .svg-border { fill: #d3d3d3; }
+      .svg-inner-circle { fill: #ddd; }
+      .svg-star { fill: #834d17; }
+    </style>
+  </defs>
+  <g>
+    <g>
+      <path class="svg-border" d="M27.3,111.4A26.3,26.3,0,1,1,53.6,85.1,26.33,26.33,0,0,1,27.3,111.4Z"/>
+      <path class="svg-inner-circle" d="M27.3,59.8A25.3,25.3,0,1,1,2,85.1,25.33,25.33,0,0,1,27.3,59.8Z"/>
+    </g>
+    <polygon class="svg-star" points="41.7 72.7 39.7 70.7 27.3 83.1 14.9 70.7 12.9 72.7 25.3 85.1 12.9 97.5 14.9 99.5 27.3 87.1 39.7 99.5 41.7 97.5 29.3 85.1 41.7 72.7"/>
+  </g>
+</svg>
