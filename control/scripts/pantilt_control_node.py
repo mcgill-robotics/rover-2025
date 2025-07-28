@@ -20,7 +20,7 @@ class pantilt(Node):
             self.get_logger().error("Failed to connect to the PanTiltGPS board. Check the connection.")
             return
         self.step_size = 5 #in degrees
-        timer_period = 1e-1
+        timer_period = 1e-2
 
         self.gps_publisher = self.create_publisher(Float32MultiArray, "roverGPSData", 10)
         self.imu_publisher = self.create_publisher(Float32MultiArray, "roverIMUData", 10)
@@ -46,8 +46,8 @@ class pantilt(Node):
 
     def update_pantilt(self, gamepad_input : GamePadInput) :
         # Update the angles based on the gamepad input
-        tilt_change = gamepad_input.d_pad_y * self.step_size
-        pan_change = gamepad_input.d_pad_x * self.step_size
+        tilt_change = -gamepad_input.d_pad_x * self.step_size # NOTE: Negated the input to ensure tilt up and down moved the camera accordingly
+        pan_change = gamepad_input.d_pad_y * self.step_size
         # Control the servos
         try:
             self.pantilt_firmware.add_pan_angle(pan_change)
