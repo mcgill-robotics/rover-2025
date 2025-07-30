@@ -111,9 +111,9 @@ class MultiCameraStreamer:
         return [
             "gst-launch-1.0",
             "v4l2src", f"device={camera_info.device_path}",
-            "!", f"video/x-raw,width={self.width},height={self.height},framerate={self.framerate}/1",
+            "!", f"video/x-raw, width={self.width}, height={self.height}, framerate={self.framerate}/1",
             "!", "nvvidconv",
-            "!", "x264enc", f"bitrate={self.bitrate}", f"tune={self.h264_tune}",
+            "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
             "!", "h264parse",
             "!", "rtph264pay", "config-interval=1", "pt=96",
             "!", "udpsink", f"host=127.0.0.1", f"port={udp_port}"
