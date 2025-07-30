@@ -6,6 +6,7 @@ Receives UDP frames from Jetson/Pi devices and serves them via WebSocket to fron
 
 import asyncio
 import json
+import socket
 import time
 import threading
 from collections import defaultdict, deque
@@ -269,6 +270,7 @@ class MultiCameraBackend:
                 rtp_port = camera_info.get('rtp_port')
                 is_active = camera_info.get('is_active', False)
                 name = camera_info.get('name', camera_id)
+                camera_type = camera_info.get('camera_type', 'UNKNOWN')
                 
                 if rtp_port and is_active:
                     # Check if we need to add or update this camera
@@ -348,6 +350,7 @@ class MultiCameraBackend:
 
     def udp_receiver_thread(self):
         """Thread to receive UDP packets from Jetson devices."""
+        import socket
         logger.info("Starting UDP receiver thread")
         
         while self.running:
@@ -515,6 +518,7 @@ class MultiCameraBackend:
         threading.Thread(target=self.udp_receiver_thread, daemon=True).start()
         
         # Wait a moment for heartbeats to discover cameras
+        logger.info("Waiting for heartbeats from Jetson devices...")
         time.sleep(3) 
         
         # Start camera polling threads for any existing cameras

@@ -54,10 +54,12 @@ class GStreamerCameraReader:
         
         # Build pipeline from config
         pipeline_elements = " ! ".join(gst_config["PIPELINE_ELEMENTS"])
-        max_buffers = gst_config.get("BUFFER_SIZE", 2)
+        max_buffers = gst_config.get("BUFFER_SIZE", 1)
         
+        # Configure udpsrc to receive RTP streams from any address on the specified port
+        # The Jetson sends RTP streams TO this backend, so we need to listen on the port
         pipeline = (
-            f"udpsrc port={port} "
+            f"udpsrc port={port} address=0.0.0.0 "
             f"caps=\"{gst_config['RTP_CAPS']}\" ! "
             f"{pipeline_elements.replace('appsink drop=true max-buffers=2', f'appsink drop=true max-buffers={max_buffers}')}"
         )

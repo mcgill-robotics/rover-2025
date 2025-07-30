@@ -32,6 +32,7 @@ class CameraInfo:
         self.last_frame_time = 0
         self.gst_process = None
         self.rtp_port = None  # Port where RTP stream is sent to backend
+        self.camera_type = None  # Type of camera/pipeline (MJPG, YUYV, RAW)
 
 class MultiCameraStreamer:
     def __init__(self, backend_host: str, backend_port: int, device_id: str = "jetson-01"):
@@ -105,7 +106,8 @@ class MultiCameraStreamer:
             logger.error(f"Failed to test camera {device_path}: {e}")
             return False
         
-    def build_gst_pipeline(self, camera_info: CameraInfo, udp_port: int) -> List[str]:
+    def build_gst_pipeline(self, camera_info: CameraInfo, udp_port: int) -> tuple[List[str], str]:
+        """Build GStreamer pipeline and return (pipeline, camera_type)."""
         try:
             fmt_info = subprocess.check_output([
                 "v4l2-ctl", "--device", camera_info.device_path, "--list-formats-ext"
@@ -113,7 +115,8 @@ class MultiCameraStreamer:
 
             if 'MJPG' in fmt_info:
                 logger.info(f"Using MJPG pipeline for {camera_info.device_path}")
-                return [
+                camera_info.camera_type = "MJPG"
+                pipeline = [
                     "gst-launch-1.0",
                     "v4l2src", f"device={camera_info.device_path}",
                     "!", "image/jpeg,width=640,height=480,framerate=30/1",
@@ -125,9 +128,11 @@ class MultiCameraStreamer:
                     "!", "rtph264pay", "config-interval=1", "pt=96",
                     "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
                 ]
+                return pipeline, "MJPG"
             elif 'YUYV' in fmt_info or 'YUYV8' in fmt_info:
                 logger.info(f"Using YUYV pipeline for {camera_info.device_path}")
-                return [
+                camera_info.camera_type = "YUYV"
+                pipeline = [
                     "gst-launch-1.0",
                     "v4l2src", f"device={camera_info.device_path}",
                     "!", "video/x-raw,format=YUY2,width=640,height=480,framerate=20/1",
@@ -138,13 +143,15 @@ class MultiCameraStreamer:
                     "!", "rtph264pay", "config-interval=1", "pt=96",
                     "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
                 ]
+                return pipeline, "YUYV"
             else:
                 logger.warning(f"Unknown formats for {camera_info.device_path}, using fallback raw pipeline")
 
         except Exception as e:
             logger.warning(f"Could not query format for {camera_info.device_path}, using fallback pipeline: {e}")
 
-        return [
+        camera_info.camera_type = "RAW"
+        pipeline = [
             "gst-launch-1.0",
             "v4l2src", f"device={camera_info.device_path}",
             "!", f"video/x-raw,width={self.width},height={self.height},framerate={self.framerate}/1",
@@ -154,6 +161,7 @@ class MultiCameraStreamer:
             "!", "rtph264pay", "config-interval=1", "pt=96",
             "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
         ]
+        return pipeline, "RAW"
 
     def get_free_udp_port(self) -> int:
         """Get a free UDP port for GStreamer output."""
@@ -288,7 +296,7 @@ class MultiCameraStreamer:
             local_udp_port = self.get_free_udp_port()
             
             # Build GStreamer pipeline that sends RTP to backend
-            pipeline = self.build_gst_pipeline(camera_info, rtp_port)
+            pipeline, camera_type = self.build_gst_pipeline(camera_info, rtp_port)
             
             logger.info(f"Starting GStreamer for {camera_id} -> RTP port {rtp_port}: {' '.join(pipeline)}")
             
@@ -376,7 +384,8 @@ class MultiCameraStreamer:
                         'device_path': camera_info.device_path,
                         'is_active': camera_info.is_active,
                         'last_frame_time': camera_info.last_frame_time,
-                        'rtp_port': camera_info.rtp_port  # Include RTP port for backend
+                        'rtp_port': camera_info.rtp_port,  # Include RTP port for backend
+                        'camera_type': camera_info.camera_type  # Include camera type (MJPG, YUYV, RAW)
                     }
                 
                 heartbeat_data = {
