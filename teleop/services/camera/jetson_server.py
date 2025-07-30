@@ -111,7 +111,7 @@ class MultiCameraStreamer:
         return [
             "gst-launch-1.0",
             "v4l2src", f"device={camera_info.device_path}",
-            "!", f"image/jpeg,width={self.width},height={self.height},framerate={self.framerate}/1",
+            "!", f"video/x-mjpeg,width={self.width},height={self.height},framerate={self.framerate}/1",
             "!", "jpegdec",
             "!", "videoconvert",
             "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
@@ -120,7 +120,7 @@ class MultiCameraStreamer:
             "!", "udpsink", f"host=127.0.0.1", f"port={udp_port}"
         ]
 
-    
+
     def get_free_udp_port(self) -> int:
         """Get a free UDP port for GStreamer output."""
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
