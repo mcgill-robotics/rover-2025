@@ -78,6 +78,10 @@ class MultiCameraBackend:
 
         self.inactive_timeout = 30.0
 
+        # UDP socket for receiving heartbeats
+        self.udp_sock = None
+        self.udp_port = get_backend_config()["UDP_PORT"]
+
         # Initialize ArUco detector
         self.aruco_detector = None
         if self.enable_aruco:
@@ -210,41 +214,212 @@ class MultiCameraBackend:
                 "timestamp": time.time()
             }
 
-    def add_default_cameras(self):
-        """Add default cameras based on configuration."""
+    def setup_udp_socket(self):
+        """Setup UDP socket for receiving heartbeats from Jetson devices."""
         try:
-            # Get default camera configuration from config
-            config = get_backend_config()
-            default_cameras = config["DEFAULT_CAMERAS"]
+            import socket
+            self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.udp_sock.bind(('0.0.0.0', self.udp_port))
+            self.udp_sock.settimeout(1.0)  # 1 second timeout
+            logger.info(f"UDP socket listening on port {self.udp_port} for heartbeats")
+        except Exception as e:
+            logger.error(f"Failed to setup UDP socket: {e}")
+            self.udp_sock = None
+
+    def parse_udp_packet(self, data: bytes) -> Optional[dict]:
+        """Parse UDP packet from Jetson device."""
+        try:
+            import struct
+            if len(data) < 13:  # Minimum header size
+                return None
             
-            for cam_config in default_cameras:
-                try:
-                    camera_id = cam_config["camera_id"]
-                    port = cam_config["port"]
+            # Parse header: [camera_id_len][packet_num][total_packets][timestamp]
+            camera_id_len, packet_num, total_packets, timestamp = struct.unpack('!BHHQ', data[:13])
+            
+            if camera_id_len == 0 or camera_id_len > 100:  # Sanity check
+                return None
+            
+            # Extract camera_id
+            camera_id = data[13:13+camera_id_len].decode('utf-8')
+            
+            # Extract payload
+            payload = data[13+camera_id_len:]
+            
+            return {
+                'camera_id': camera_id,
+                'packet_num': packet_num,
+                'total_packets': total_packets,
+                'timestamp': timestamp,
+                'payload': payload
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to parse UDP packet: {e}")
+            return None
+
+    def handle_heartbeat(self, heartbeat_data: dict):
+        """Handle heartbeat message from Jetson device."""
+        try:
+            device_id = heartbeat_data.get('device_id')
+            cameras = heartbeat_data.get('cameras', {})
+            
+            logger.debug(f"Received heartbeat from {device_id} with {len(cameras)} cameras")
+            
+            for camera_id, camera_info in cameras.items():
+                rtp_port = camera_info.get('rtp_port')
+                is_active = camera_info.get('is_active', False)
+                name = camera_info.get('name', camera_id)
+                
+                if rtp_port and is_active:
+                    # Check if we need to add or update this camera
+                    if camera_id not in self.cameras:
+                        # Add new camera
+                        try:
+                            reader = self.camera_readers.add_camera(camera_id, rtp_port)
+                            
+                            self.cameras[camera_id] = CameraInfo(
+                                camera_id=camera_id,
+                                device_id=device_id,
+                                name=name,
+                                port=rtp_port,
+                                is_active=True,
+                                last_frame_time=time.time(),
+                                resolution=reader.get_resolution(),
+                                fps=reader.get_frame_rate()
+                            )
+                            
+                            self.frame_buffers[camera_id] = FrameBuffer()
+                            
+                            # Start polling thread for this camera
+                            thread = threading.Thread(
+                                target=self.camera_polling_loop,
+                                args=(camera_id, reader),
+                                daemon=True
+                            )
+                            thread.start()
+                            
+                            logger.info(f"Added camera {camera_id} from heartbeat on RTP port {rtp_port}")
+                            
+                        except Exception as e:
+                            logger.error(f"Failed to add camera {camera_id} from heartbeat: {e}")
                     
-                    # Add camera reader
-                    reader = self.camera_readers.add_camera(camera_id, port)
+                    else:
+                        # Update existing camera
+                        camera = self.cameras[camera_id]
+                        if camera.port != rtp_port:
+                            # Port changed, need to restart camera reader
+                            logger.info(f"Camera {camera_id} port changed from {camera.port} to {rtp_port}")
+                            
+                            # Remove old reader
+                            self.camera_readers.remove_camera(camera_id)
+                            
+                            # Add new reader with new port
+                            try:
+                                reader = self.camera_readers.add_camera(camera_id, rtp_port)
+                                camera.port = rtp_port
+                                camera.is_active = True
+                                camera.last_frame_time = time.time()
+                                
+                                # Start new polling thread
+                                thread = threading.Thread(
+                                    target=self.camera_polling_loop,
+                                    args=(camera_id, reader),
+                                    daemon=True
+                                )
+                                thread.start()
+                                
+                                logger.info(f"Updated camera {camera_id} to new RTP port {rtp_port}")
+                                
+                            except Exception as e:
+                                logger.error(f"Failed to update camera {camera_id} port: {e}")
+                        
+                        else:
+                            # Just update timestamp
+                            camera.last_frame_time = time.time()
+                            camera.is_active = True
+                
+                elif camera_id in self.cameras and not is_active:
+                    # Camera became inactive
+                    self.cameras[camera_id].is_active = False
+                    logger.debug(f"Camera {camera_id} marked as inactive")
                     
-                    # Create camera info
-                    self.cameras[camera_id] = CameraInfo(
-                        camera_id=camera_id,
-                        device_id=cam_config["device_id"],
-                        name=cam_config["name"],
-                        port=port,
-                        is_active=reader.is_active(),
-                        last_frame_time=time.time(),
-                        resolution=reader.get_resolution(),
-                        fps=reader.get_frame_rate()
-                    )
+        except Exception as e:
+            logger.error(f"Failed to handle heartbeat: {e}")
+
+    def udp_receiver_thread(self):
+        """Thread to receive UDP packets from Jetson devices."""
+        logger.info("Starting UDP receiver thread")
+        
+        while self.running:
+            if not self.udp_sock:
+                time.sleep(1)
+                continue
+                
+            try:
+                data, addr = self.udp_sock.recvfrom(65536)
+                packet_info = self.parse_udp_packet(data)
+                
+                if packet_info:
+                    camera_id = packet_info['camera_id']
                     
-                    # Create frame buffer
-                    self.frame_buffers[camera_id] = FrameBuffer()
+                    if camera_id == '__HEARTBEAT__':
+                        # Handle heartbeat
+                        try:
+                            heartbeat_data = json.loads(packet_info['payload'].decode('utf-8'))
+                            self.handle_heartbeat(heartbeat_data)
+                        except Exception as e:
+                            logger.error(f"Failed to parse heartbeat JSON: {e}")
                     
-                    logger.info(f"Added default camera {camera_id} on port {port}")
+                    # Note: We no longer handle frame data here since we use GStreamer RTP streams
                     
-                except Exception as e:
-                    logger.warning(f"Failed to add default camera {cam_config['camera_id']}: {e}")
-                    
+            except Exception as e:
+                if self.running:  # Only log if we're supposed to be running
+                    logger.debug(f"UDP receive timeout or error: {e}")
+                time.sleep(0.1)
+        
+        logger.info("UDP receiver thread ended")
+
+    def add_default_cameras(self):
+        """Add default cameras based on configuration (fallback only)."""
+        try:
+            # Only add default cameras if no cameras are discovered via heartbeat
+            # This serves as a fallback for testing without Jetson devices
+            if len(self.cameras) == 0:
+                logger.info("No cameras discovered via heartbeat, adding default cameras as fallback")
+                
+                config = get_backend_config()
+                default_cameras = config["DEFAULT_CAMERAS"]
+                
+                for cam_config in default_cameras:
+                    try:
+                        camera_id = cam_config["camera_id"]
+                        port = cam_config["port"]
+                        
+                        # Add camera reader
+                        reader = self.camera_readers.add_camera(camera_id, port)
+                        
+                        # Create camera info
+                        self.cameras[camera_id] = CameraInfo(
+                            camera_id=camera_id,
+                            device_id=cam_config["device_id"],
+                            name=cam_config["name"],
+                            port=port,
+                            is_active=reader.is_active(),
+                            last_frame_time=time.time(),
+                            resolution=reader.get_resolution(),
+                            fps=reader.get_frame_rate()
+                        )
+                        
+                        # Create frame buffer
+                        self.frame_buffers[camera_id] = FrameBuffer()
+                        
+                        logger.info(f"Added fallback camera {camera_id} on port {port}")
+                        
+                    except Exception as e:
+                        logger.warning(f"Failed to add fallback camera {cam_config['camera_id']}: {e}")
+            else:
+                logger.info(f"Found {len(self.cameras)} cameras via heartbeat, skipping default cameras")
+                        
         except Exception as e:
             logger.error(f"Failed to add default cameras: {e}")
 
@@ -368,10 +543,19 @@ class MultiCameraBackend:
         logger.info("Starting multi-camera backend server")
         self.running = True
         
-        # Add default cameras
+        # Setup UDP socket for heartbeats
+        self.setup_udp_socket()
+        
+        # Start UDP receiver thread
+        threading.Thread(target=self.udp_receiver_thread, daemon=True).start()
+        
+        # Wait a moment for heartbeats to discover cameras
+        time.sleep(3)
+        
+        # Add default cameras as fallback if no cameras discovered
         self.add_default_cameras()
         
-        # Start camera polling threads
+        # Start camera polling threads for any existing cameras
         self.start_camera_polling_threads()
         
         # Start cleanup thread
@@ -383,6 +567,8 @@ class MultiCameraBackend:
         finally:
             self.running = False
             self.camera_readers.release_all()
+            if self.udp_sock:
+                self.udp_sock.close()
 
 
 def main():

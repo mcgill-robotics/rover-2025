@@ -31,6 +31,7 @@ class CameraInfo:
         self.is_active = False
         self.last_frame_time = 0
         self.gst_process = None
+        self.rtp_port = None  # Port where RTP stream is sent to backend
 
 class MultiCameraStreamer:
     def __init__(self, backend_host: str, backend_port: int, device_id: str = "jetson-01"):
@@ -279,13 +280,17 @@ class MultiCameraStreamer:
             return False
         
         try:
-            # Get free UDP port for GStreamer output
-            udp_port = self.get_free_udp_port()
+            # Get free UDP port for RTP stream to backend
+            rtp_port = self.get_free_udp_port()
+            camera_info.rtp_port = rtp_port
             
-            # Build GStreamer pipeline
-            pipeline = self.build_gst_pipeline(camera_info, udp_port)
+            # Get free UDP port for local GStreamer capture
+            local_udp_port = self.get_free_udp_port()
             
-            logger.info(f"Starting GStreamer for {camera_id}: {' '.join(pipeline)}")
+            # Build GStreamer pipeline that sends RTP to backend
+            pipeline = self.build_gst_pipeline(camera_info, rtp_port)
+            
+            logger.info(f"Starting GStreamer for {camera_id} -> RTP port {rtp_port}: {' '.join(pipeline)}")
             
             # Start GStreamer process
             camera_info.gst_process = subprocess.Popen(
@@ -307,22 +312,19 @@ class MultiCameraStreamer:
                     logger.error(f"GStreamer stderr: {stderr.decode('utf-8', errors='ignore')}")
                 if stdout:
                     logger.error(f"GStreamer stdout: {stdout.decode('utf-8', errors='ignore')}")
+                camera_info.rtp_port = None
                 return False
             
-            # Start H.264 capture thread
+            # Mark camera as active
             camera_info.is_active = True
-            capture_thread = threading.Thread(
-                target=self.capture_h264_stream,
-                args=(camera_info, udp_port)
-            )
-            capture_thread.daemon = True
-            capture_thread.start()
+            camera_info.last_frame_time = time.time()
             
-            logger.info(f"Started streaming from {camera_id}")
+            logger.info(f"Started streaming from {camera_id} to backend port {rtp_port}")
             return True
             
         except Exception as e:
             logger.error(f"Failed to start camera {camera_id}: {e}")
+            camera_info.rtp_port = None
             return False
     
     def stop_camera(self, camera_id: str):
@@ -361,7 +363,7 @@ class MultiCameraStreamer:
             self.stop_camera(camera_id)
     
     def send_heartbeat(self):
-        """Send periodic heartbeat with camera status."""
+        """Send periodic heartbeat with camera status including RTP port information."""
         while self.running:
             try:
                 camera_status = {}
@@ -370,7 +372,8 @@ class MultiCameraStreamer:
                         'name': camera_info.name,
                         'device_path': camera_info.device_path,
                         'is_active': camera_info.is_active,
-                        'last_frame_time': camera_info.last_frame_time
+                        'last_frame_time': camera_info.last_frame_time,
+                        'rtp_port': camera_info.rtp_port  # Include RTP port for backend
                     }
                 
                 heartbeat_data = {
