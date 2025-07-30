@@ -265,7 +265,13 @@ class MultiCameraStreamer:
             
             # Check if process is still running
             if camera_info.gst_process.poll() is not None:
+                # Get error output from GStreamer
+                stdout, stderr = camera_info.gst_process.communicate()
                 logger.error(f"GStreamer process failed to start for {camera_id}")
+                if stderr:
+                    logger.error(f"GStreamer stderr: {stderr.decode('utf-8', errors='ignore')}")
+                if stdout:
+                    logger.error(f"GStreamer stdout: {stdout.decode('utf-8', errors='ignore')}")
                 return False
             
             # Start H.264 capture thread
