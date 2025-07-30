@@ -57,6 +57,19 @@ class MultiCameraStreamer:
         logger.info(f"Received signal {signum}, shutting down...")
         self.running = False
 
+    def send_heartbeat(self):
+        while self.running:
+            try:
+                message = json.dumps({
+                    "device_id": self.device_id,
+                    "timestamp": time.time(),
+                    "event": "heartbeat"
+                }).encode("utf-8")
+                self.sock.sendto(message, (self.backend_host, self.backend_port))
+            except Exception as e:
+                logger.warning(f"Failed to send heartbeat: {e}")
+            time.sleep(5)
+
     def discover_cameras(self) -> List[CameraInfo]:
         cameras = []
         try:
