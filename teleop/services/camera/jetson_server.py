@@ -56,7 +56,7 @@ class MultiCameraStreamer:
         self.max_frame_size = 60000
         
     def discover_cameras(self) -> List[CameraInfo]:
-        """Discover available cameras using v4l2-ctl."""
+        """Discover available cameras using v4l2-ctl, only using even-numbered video devices."""
         cameras = []
         try:
             result = subprocess.run(["v4l2-ctl", "--list-devices"], 
@@ -74,12 +74,20 @@ class MultiCameraStreamer:
                     # Device path line
                     device_path = line.strip()
                     if device_path.startswith("/dev/video"):
-                        # Create unique camera ID
-                        camera_id = f"{self.device_id}-cam{device_counter:02d}"
-                        camera_info = CameraInfo(camera_id, current_name, device_path)
-                        cameras.append(camera_info)
-                        device_counter += 1
-                        logger.info(f"Found camera: {camera_id} - {current_name} ({device_path})")
+                        # Extract video device number
+                        video_match = re.search(r'/dev/video(\d+)', device_path)
+                        if video_match:
+                            video_num = int(video_match.group(1))
+                            # Only use even-numbered video devices (0, 2, 4, etc.)
+                            # Odd numbers are typically metadata streams
+                            if video_num % 2 == 0:
+                                camera_id = f"{self.device_id}-cam{device_counter:02d}"
+                                camera_info = CameraInfo(camera_id, current_name, device_path)
+                                cameras.append(camera_info)
+                                device_counter += 1
+                                logger.info(f"Found camera: {camera_id} - {current_name} ({device_path})")
+                            else:
+                                logger.debug(f"Skipping odd video device (metadata stream): {device_path}")
                         
         except Exception as e:
             logger.error(f"Failed to discover cameras: {e}")
