@@ -5,7 +5,6 @@ Uses GStreamer for hardware-accelerated capture and H.264 encoding.
 Sends encoded frames with camera IDs over UDP to central backend.
 """
 
-import asyncio
 import json
 import socket
 import struct
@@ -14,10 +13,9 @@ import threading
 import subprocess
 import re
 import argparse
-from typing import Dict, List, Optional
+from typing import Dict, List
 import logging
 import signal
-import sys
 
 from config import get_jetson_config
 

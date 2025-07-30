@@ -6,15 +6,14 @@ Receives UDP frames from Jetson/Pi devices and serves them via WebSocket to fron
 
 import asyncio
 import json
-import socket
-import struct
 import time
 import threading
 from collections import defaultdict, deque
-from typing import Dict, List, Optional, Set
+from typing import Dict, Optional, Set
 import logging
 from dataclasses import dataclass
 import base64
+import cv2
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,6 +21,7 @@ import uvicorn
 
 from config import get_backend_config
 from aruco_detector import create_aruco_detector
+from gstreamer_reader import GStreamerCameraReader, MultiGStreamerReader
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -39,10 +39,11 @@ class CameraInfo:
     camera_id: str
     device_id: str
     name: str
-    device_path: str
+    port: int
     is_active: bool
     last_frame_time: float
-    last_heartbeat_time: float
+    resolution: tuple = (0, 0)
+    fps: float = 0.0
 
 class FrameBuffer:
     def __init__(self, max_size: int = 10):
@@ -62,28 +63,29 @@ class FrameBuffer:
             self.frames.clear()
 
 class MultiCameraBackend:
-    def __init__(self, udp_port: int = 9999, http_port: int = 8001, enable_aruco: bool = True, loop: Optional[asyncio.AbstractEventLoop] = None):
-        self.udp_port = udp_port
+    def __init__(self, http_port: int = 8001, enable_aruco: bool = True, loop: Optional[asyncio.AbstractEventLoop] = None):
         self.http_port = http_port
         self.enable_aruco = enable_aruco
         self.loop = loop or asyncio.get_event_loop()
 
         self.cameras: Dict[str, CameraInfo] = {}
         self.frame_buffers: Dict[str, FrameBuffer] = {}
-        self.partial_frames: Dict[str, Dict[int, bytes]] = defaultdict(dict)
         self.websocket_connections: Dict[str, Set[WebSocket]] = defaultdict(set)
 
-        self.udp_socket = None
+        # GStreamer camera readers
+        self.camera_readers = MultiGStreamerReader()
         self.running = False
 
         self.inactive_timeout = 30.0
-        self.heartbeat_timeout = 15.0
 
+        # Initialize ArUco detector
         self.aruco_detector = None
         if self.enable_aruco:
             try:
-                self.aruco_detector = create_aruco_detector("DICT_4X4_100")
-                logger.info("ArUco detector initialized")
+                config = get_backend_config()
+                aruco_dict = config["ARUCO_CONFIG"]["DICTIONARY"]
+                self.aruco_detector = create_aruco_detector(aruco_dict)
+                logger.info(f"ArUco detector initialized with {aruco_dict}")
             except Exception as e:
                 logger.error(f"Failed to initialize ArUco detector: {e}")
                 self.enable_aruco = False
@@ -107,10 +109,72 @@ class MultiCameraBackend:
             current_time = time.time()
             active_cameras = []
             for camera_id, info in self.cameras.items():
-                if (current_time - info.last_frame_time < self.inactive_timeout or
-                    current_time - info.last_heartbeat_time < self.heartbeat_timeout):
+                if current_time - info.last_frame_time < self.inactive_timeout:
                     active_cameras.append({**info.__dict__})
             return {"cameras": active_cameras}
+
+        @self.app.post("/api/cameras/add")
+        async def add_camera(camera_data: dict):
+            """Add a new camera with specified port."""
+            try:
+                camera_id = camera_data.get("camera_id")
+                port = camera_data.get("port")
+                device_id = camera_data.get("device_id", "unknown")
+                name = camera_data.get("name", camera_id)
+                
+                if not camera_id or not port:
+                    return {"error": "camera_id and port are required"}
+                
+                # Add camera reader
+                reader = self.camera_readers.add_camera(camera_id, port)
+                
+                # Create camera info
+                self.cameras[camera_id] = CameraInfo(
+                    camera_id=camera_id,
+                    device_id=device_id,
+                    name=name,
+                    port=port,
+                    is_active=reader.is_active(),
+                    last_frame_time=time.time(),
+                    resolution=reader.get_resolution(),
+                    fps=reader.get_frame_rate()
+                )
+                
+                # Create frame buffer
+                self.frame_buffers[camera_id] = FrameBuffer()
+                
+                logger.info(f"Added camera {camera_id} on port {port}")
+                return {"success": True, "camera_id": camera_id, "port": port}
+                
+            except Exception as e:
+                logger.error(f"Failed to add camera: {e}")
+                return {"error": str(e)}
+
+        @self.app.delete("/api/cameras/{camera_id}")
+        async def remove_camera(camera_id: str):
+            """Remove a camera."""
+            try:
+                if camera_id in self.cameras:
+                    # Remove camera reader
+                    self.camera_readers.remove_camera(camera_id)
+                    
+                    # Remove camera info and buffer
+                    del self.cameras[camera_id]
+                    self.frame_buffers.pop(camera_id, None)
+                    
+                    # Close WebSocket connections
+                    connections = self.websocket_connections.pop(camera_id, set())
+                    for ws in connections:
+                        await ws.close()
+                    
+                    logger.info(f"Removed camera {camera_id}")
+                    return {"success": True, "camera_id": camera_id}
+                else:
+                    return {"error": f"Camera {camera_id} not found"}
+                    
+            except Exception as e:
+                logger.error(f"Failed to remove camera: {e}")
+                return {"error": str(e)}
 
         @self.app.websocket("/stream")
         async def websocket_stream(websocket: WebSocket, camera_id: str):
@@ -146,92 +210,50 @@ class MultiCameraBackend:
                 "timestamp": time.time()
             }
 
-    def setup_udp_socket(self):
-        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024 * 1024)
-        self.udp_socket.bind(('0.0.0.0', self.udp_port))
-        logger.info(f"UDP socket listening on port {self.udp_port}")
-
-    def parse_udp_packet(self, data: bytes) -> Optional[tuple]:
+    def add_default_cameras(self):
+        """Add default cameras based on configuration."""
         try:
-            if len(data) < 13:
-                return None
-            camera_id_len, packet_num, total_packets, timestamp = struct.unpack('!BHHQ', data[:13])
-            if len(data) < 13 + camera_id_len:
-                return None
-            camera_id = data[13:13 + camera_id_len].decode('utf-8')
-            frame_data = data[13 + camera_id_len:]
-            return camera_id, packet_num, total_packets, timestamp, frame_data
+            # Get default camera configuration from config
+            config = get_backend_config()
+            default_cameras = config["DEFAULT_CAMERAS"]
+            
+            for cam_config in default_cameras:
+                try:
+                    camera_id = cam_config["camera_id"]
+                    port = cam_config["port"]
+                    
+                    # Add camera reader
+                    reader = self.camera_readers.add_camera(camera_id, port)
+                    
+                    # Create camera info
+                    self.cameras[camera_id] = CameraInfo(
+                        camera_id=camera_id,
+                        device_id=cam_config["device_id"],
+                        name=cam_config["name"],
+                        port=port,
+                        is_active=reader.is_active(),
+                        last_frame_time=time.time(),
+                        resolution=reader.get_resolution(),
+                        fps=reader.get_frame_rate()
+                    )
+                    
+                    # Create frame buffer
+                    self.frame_buffers[camera_id] = FrameBuffer()
+                    
+                    logger.info(f"Added default camera {camera_id} on port {port}")
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to add default camera {cam_config['camera_id']}: {e}")
+                    
         except Exception as e:
-            logger.error(f"Failed to parse UDP packet: {e}")
-            return None
+            logger.error(f"Failed to add default cameras: {e}")
 
-    def handle_heartbeat(self, camera_id: str, heartbeat_data: bytes):
-        try:
-            heartbeat_json = json.loads(heartbeat_data.decode('utf-8'))
-            device_id = heartbeat_json.get('device_id', 'unknown')
-            cameras_status = heartbeat_json.get('cameras', {})
-            now = time.time()
-            for cam_id, status in cameras_status.items():
-                if cam_id not in self.cameras:
-                    self.cameras[cam_id] = CameraInfo(cam_id, device_id, status.get('name', 'Unknown'), status.get('device_path', ''), status.get('is_active', False), status.get('last_frame_time', 0), now)
-                    self.frame_buffers[cam_id] = FrameBuffer()
-                    logger.info(f"New camera registered: {cam_id} from device {device_id}")
-                else:
-                    info = self.cameras[cam_id]
-                    info.is_active = status.get('is_active', False)
-                    info.last_heartbeat_time = now
-                    if status.get('last_frame_time', 0) > info.last_frame_time:
-                        info.last_frame_time = status.get('last_frame_time', 0)
-        except Exception as e:
-            logger.error(f"Failed to handle heartbeat: {e}")
-
-    def handle_frame_packet(self, camera_id: str, packet_num: int, total_packets: int, timestamp: int, frame_data: bytes):
-        if total_packets == 1:
-            self.process_complete_frame(camera_id, timestamp, frame_data)
-        else:
-            key = f"{camera_id}_{timestamp}"
-            self.partial_frames[key][packet_num] = frame_data
-            if len(self.partial_frames[key]) == total_packets:
-                full_frame = b''.join(self.partial_frames[key][i] for i in range(total_packets))
-                del self.partial_frames[key]
-                self.process_complete_frame(camera_id, timestamp, full_frame)
-
-    def process_complete_frame(self, camera_id: str, timestamp: int, frame_data: bytes):
-        now = time.time()
-        if camera_id in self.cameras:
-            self.cameras[camera_id].last_frame_time = now
-        if camera_id in self.frame_buffers:
-            frame = CameraFrame(camera_id, timestamp, frame_data, now)
-            self.frame_buffers[camera_id].add_frame(frame)
-            try:
-                asyncio.run_coroutine_threadsafe(self.broadcast_frame(camera_id, frame), self.loop)
-            except Exception as e:
-                logger.error(f"Failed to schedule broadcast: {e}")
-
-    async def broadcast_frame(self, camera_id: str, frame: CameraFrame):
+    async def broadcast_frame_data(self, camera_id: str, message: dict):
+        """Broadcast frame data to connected WebSocket clients."""
         connections = self.websocket_connections.get(camera_id, set()).copy()
         if not connections:
             return
-        processed_data = frame.frame_data
-        aruco_detected = False
-        if self.enable_aruco and self.aruco_detector:
-            try:
-                result = self.aruco_detector.process_frame(frame.frame_data, is_h264=True)
-                if result:
-                    processed_data = result
-                    aruco_detected = True
-            except Exception as e:
-                logger.error(f"ArUco detection failed: {e}")
-        encoded = base64.b64encode(processed_data).decode('utf-8')
-        message = {
-            "type": "frame",
-            "camera_id": camera_id,
-            "timestamp": frame.timestamp,
-            "received_time": frame.received_time,
-            "frame_data": encoded,
-            "aruco_detected": aruco_detected
-        }
+            
         for ws in connections:
             try:
                 await ws.send_json(message)
@@ -239,58 +261,136 @@ class MultiCameraBackend:
                 logger.warning(f"WebSocket send failed: {e}")
                 self.websocket_connections[camera_id].discard(ws)
 
-    def udp_receiver_thread(self):
-        logger.info("Starting UDP receiver thread")
+    def camera_polling_loop(self, camera_id: str, reader: GStreamerCameraReader):
+        """Polling loop for a single camera."""
+        logger.info(f"Starting polling loop for camera {camera_id}")
+        
         while self.running:
             try:
-                data, _ = self.udp_socket.recvfrom(65536)
-                parsed = self.parse_udp_packet(data)
-                if parsed:
-                    camera_id, packet_num, total_packets, timestamp, frame_data = parsed
-                    if camera_id == '__HEARTBEAT__':
-                        self.handle_heartbeat(camera_id, frame_data)
-                    else:
-                        self.handle_frame_packet(camera_id, packet_num, total_packets, timestamp, frame_data)
+                frame = reader.read_frame()
+                if frame is not None:
+                    # Update camera info
+                    if camera_id in self.cameras:
+                        self.cameras[camera_id].last_frame_time = time.time()
+                        self.cameras[camera_id].is_active = True
+                    
+                    # Process frame with ArUco detection if enabled
+                    processed_frame = frame
+                    aruco_detected = False
+                    
+                    if self.enable_aruco and self.aruco_detector:
+                        try:
+                            processed_frame, aruco_detected = self.aruco_detector.process_frame(frame)
+                        except Exception as e:
+                            logger.error(f"ArUco detection failed for {camera_id}: {e}")
+                    
+                    # Encode frame to JPEG
+                    try:
+                        config = get_backend_config()
+                        jpeg_quality = config["JPEG_CONFIG"]["QUALITY"]
+                        _, encoded = cv2.imencode(".jpg", processed_frame, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
+                        b64 = base64.b64encode(encoded).decode("utf-8")
+                        
+                        # Create message
+                        message = {
+                            "type": "frame",
+                            "camera_id": camera_id,
+                            "timestamp": int(time.time() * 1000),
+                            "received_time": time.time(),
+                            "frame_data": b64,
+                            "aruco_detected": aruco_detected
+                        }
+                        
+                        # Store in frame buffer
+                        if camera_id in self.frame_buffers:
+                            frame_obj = CameraFrame(camera_id, message["timestamp"], encoded.tobytes(), message["received_time"])
+                            self.frame_buffers[camera_id].add_frame(frame_obj)
+                        
+                        # Broadcast to WebSocket clients
+                        asyncio.run_coroutine_threadsafe(
+                            self.broadcast_frame_data(camera_id, message), self.loop
+                        )
+                        
+                    except Exception as e:
+                        logger.error(f"Failed to encode frame for {camera_id}: {e}")
+                        
+                else:
+                    # No frame received, brief sleep
+                    time.sleep(0.033)  # ~30 FPS
+                    
             except Exception as e:
-                logger.error(f"UDP receiver error: {e}")
-                time.sleep(0.1)
+                logger.error(f"Error in camera polling loop for {camera_id}: {e}")
+                time.sleep(1)  # Longer sleep on error
+                
+        logger.info(f"Camera polling loop ended for {camera_id}")
+
+    def start_camera_polling_threads(self):
+        """Start polling threads for all cameras."""
+        for camera_id, reader in self.camera_readers.get_all_readers().items():
+            thread = threading.Thread(
+                target=self.camera_polling_loop, 
+                args=(camera_id, reader), 
+                daemon=True
+            )
+            thread.start()
+            logger.info(f"Started polling thread for camera {camera_id}")
 
     def cleanup_thread(self):
+        """Cleanup thread to remove inactive cameras."""
         logger.info("Starting cleanup thread")
         while self.running:
             try:
                 now = time.time()
                 for cam_id in list(self.cameras):
                     info = self.cameras[cam_id]
-                    if now - info.last_frame_time > self.inactive_timeout and now - info.last_heartbeat_time > self.heartbeat_timeout:
+                    if now - info.last_frame_time > self.inactive_timeout:
                         logger.info(f"Removing inactive camera: {cam_id}")
+                        
+                        # Remove camera reader
+                        self.camera_readers.remove_camera(cam_id)
+                        
+                        # Remove camera info and buffer
                         del self.cameras[cam_id]
                         self.frame_buffers.pop(cam_id, None)
+                        
+                        # Close WebSocket connections
                         conns = self.websocket_connections.pop(cam_id, set())
                         for ws in conns:
                             asyncio.run_coroutine_threadsafe(ws.close(), self.loop)
+                            
                 time.sleep(10)
             except Exception as e:
                 logger.error(f"Cleanup error: {e}")
                 time.sleep(10)
 
     def run(self):
+        """Start the multi-camera backend server."""
         logger.info("Starting multi-camera backend server")
         self.running = True
-        self.setup_udp_socket()
-        threading.Thread(target=self.udp_receiver_thread, daemon=True).start()
+        
+        # Add default cameras
+        self.add_default_cameras()
+        
+        # Start camera polling threads
+        self.start_camera_polling_threads()
+        
+        # Start cleanup thread
         threading.Thread(target=self.cleanup_thread, daemon=True).start()
-        uvicorn.run(self.app, host="0.0.0.0", port=self.http_port, log_level="info")
+        
+        # Start the web server
+        try:
+            uvicorn.run(self.app, host="0.0.0.0", port=self.http_port, log_level="info")
+        finally:
+            self.running = False
+            self.camera_readers.release_all()
 
 
 def main():
     import argparse
     config = get_backend_config()
     parser = argparse.ArgumentParser()
-    parser.add_argument('--udp-port', type=int, default=config["UDP_PORT"])
     parser.add_argument('--http-port', type=int, default=config["HTTP_PORT"])
     parser.add_argument('--inactive-timeout', type=float, default=config["INACTIVE_TIMEOUT"])
-    parser.add_argument('--heartbeat-timeout', type=float, default=config["HEARTBEAT_TIMEOUT"])
     parser.add_argument('--enable-aruco', action='store_true', default=True)
     parser.add_argument('--disable-aruco', action='store_true', default=False)
     args = parser.parse_args()
@@ -301,13 +401,11 @@ def main():
     asyncio.set_event_loop(loop)
 
     backend = MultiCameraBackend(
-        udp_port=args.udp_port,
         http_port=args.http_port,
         enable_aruco=enable_aruco,
         loop=loop
     )
     backend.inactive_timeout = args.inactive_timeout
-    backend.heartbeat_timeout = args.heartbeat_timeout
     backend.run()
 
 

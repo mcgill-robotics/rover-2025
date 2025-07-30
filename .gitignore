@@ -17,6 +17,7 @@
 **/venv/
 **rosEnv/
 **/camera_venv/
+**/.python-version
 
 # === CMake and Build Artifacts ===
 
