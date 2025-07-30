@@ -16,7 +16,7 @@
 **/.venv/
 **/venv/
 **rosEnv/
-**/camera_env/
+**/camera_venv/
 
 # === CMake and Build Artifacts ===
 

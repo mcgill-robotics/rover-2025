@@ -2,7 +2,7 @@
 # Run script for central backend server
 
 # Load default values from config.py
-eval $(python3 -c "
+eval $(python -c "
 from config import get_backend_config
 config = get_backend_config()
 print(f'UDP_PORT={config[\"UDP_PORT\"]}')
@@ -74,7 +74,7 @@ if [ ! -d "venv" ]; then
 fi
 
 # Activate virtual environment
-source venv/bin/activate
+source camera_venv/bin/activate
 
 echo "Starting central backend server..."
 echo "UDP Port: $UDP_PORT (for receiving frames from Jetson/Pi devices)"
@@ -91,7 +91,7 @@ echo "Press Ctrl+C to stop"
 echo ""
 
 # Run the server
-python3 central_backend.py \
+python central_backend.py \
     --udp-port "$UDP_PORT" \
     --http-port "$HTTP_PORT" \
     --inactive-timeout "$INACTIVE_TIMEOUT" \
