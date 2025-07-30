@@ -24,7 +24,7 @@ from aruco_detector import create_aruco_detector
 from gstreamer_reader import GStreamerCameraReader, MultiGStreamerReader
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -357,71 +357,36 @@ class MultiCameraBackend:
                 
             try:
                 data, addr = self.udp_sock.recvfrom(65536)
+                logger.debug(f"Received UDP packet from {addr}, size: {len(data)} bytes")
+                
                 packet_info = self.parse_udp_packet(data)
                 
                 if packet_info:
                     camera_id = packet_info['camera_id']
+                    logger.debug(f"Parsed packet with camera_id: {camera_id}")
                     
                     if camera_id == '__HEARTBEAT__':
                         # Handle heartbeat
                         try:
                             heartbeat_data = json.loads(packet_info['payload'].decode('utf-8'))
+                            logger.info(f"Received heartbeat from {heartbeat_data.get('device_id', 'unknown')} at {addr}")
                             self.handle_heartbeat(heartbeat_data)
                         except Exception as e:
                             logger.error(f"Failed to parse heartbeat JSON: {e}")
                     
                     # Note: We no longer handle frame data here since we use GStreamer RTP streams
+                else:
+                    logger.warning(f"Failed to parse UDP packet from {addr}")
                     
+            except socket.timeout:
+                # Normal timeout, continue
+                continue
             except Exception as e:
                 if self.running:  # Only log if we're supposed to be running
-                    logger.debug(f"UDP receive timeout or error: {e}")
+                    logger.debug(f"UDP receive error: {e}")
                 time.sleep(0.1)
         
         logger.info("UDP receiver thread ended")
-
-    def add_default_cameras(self):
-        """Add default cameras based on configuration (fallback only)."""
-        try:
-            # Only add default cameras if no cameras are discovered via heartbeat
-            # This serves as a fallback for testing without Jetson devices
-            if len(self.cameras) == 0:
-                logger.info("No cameras discovered via heartbeat, adding default cameras as fallback")
-                
-                config = get_backend_config()
-                default_cameras = config["DEFAULT_CAMERAS"]
-                
-                for cam_config in default_cameras:
-                    try:
-                        camera_id = cam_config["camera_id"]
-                        port = cam_config["port"]
-                        
-                        # Add camera reader
-                        reader = self.camera_readers.add_camera(camera_id, port)
-                        
-                        # Create camera info
-                        self.cameras[camera_id] = CameraInfo(
-                            camera_id=camera_id,
-                            device_id=cam_config["device_id"],
-                            name=cam_config["name"],
-                            port=port,
-                            is_active=reader.is_active(),
-                            last_frame_time=time.time(),
-                            resolution=reader.get_resolution(),
-                            fps=reader.get_frame_rate()
-                        )
-                        
-                        # Create frame buffer
-                        self.frame_buffers[camera_id] = FrameBuffer()
-                        
-                        logger.info(f"Added fallback camera {camera_id} on port {port}")
-                        
-                    except Exception as e:
-                        logger.warning(f"Failed to add fallback camera {cam_config['camera_id']}: {e}")
-            else:
-                logger.info(f"Found {len(self.cameras)} cameras via heartbeat, skipping default cameras")
-                        
-        except Exception as e:
-            logger.error(f"Failed to add default cameras: {e}")
 
     async def broadcast_frame_data(self, camera_id: str, message: dict):
         """Broadcast frame data to connected WebSocket clients."""
@@ -550,10 +515,7 @@ class MultiCameraBackend:
         threading.Thread(target=self.udp_receiver_thread, daemon=True).start()
         
         # Wait a moment for heartbeats to discover cameras
-        time.sleep(3)
-        
-        # Add default cameras as fallback if no cameras discovered
-        self.add_default_cameras()
+        time.sleep(3) 
         
         # Start camera polling threads for any existing cameras
         self.start_camera_polling_threads()

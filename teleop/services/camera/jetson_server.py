@@ -364,6 +364,9 @@ class MultiCameraStreamer:
     
     def send_heartbeat(self):
         """Send periodic heartbeat with camera status including RTP port information."""
+        heartbeat_failures = 0
+        max_failures = 3
+        
         while self.running:
             try:
                 camera_status = {}
@@ -395,8 +398,19 @@ class MultiCameraStreamer:
                 
                 self.sock.sendto(packet, (self.backend_host, self.backend_port))
                 
+                # Reset failure counter on successful send
+                heartbeat_failures = 0
+                logger.debug(f"Sent heartbeat to {self.backend_host}:{self.backend_port} with {len(camera_status)} cameras")
+                
             except Exception as e:
-                logger.error(f"Failed to send heartbeat: {e}")
+                heartbeat_failures += 1
+                logger.error(f"Failed to send heartbeat ({heartbeat_failures}/{max_failures}): {e}")
+                
+                if heartbeat_failures >= max_failures:
+                    logger.error(f"Too many heartbeat failures. Check network connectivity to {self.backend_host}:{self.backend_port}")
+                    # Continue trying but with longer intervals
+                    time.sleep(15)
+                    heartbeat_failures = 0  # Reset counter
                 
             time.sleep(5)  # Send heartbeat every 5 seconds
     
