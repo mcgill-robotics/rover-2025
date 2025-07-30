@@ -53,6 +53,10 @@ class MultiCameraStreamer:
         self.frame_buffer_size = 65536
         self.max_frame_size = 60000
 
+    def signal_handler(self, signum, frame):
+        logger.info(f"Received signal {signum}, shutting down...")
+        self.running = False
+
     def discover_cameras(self) -> List[CameraInfo]:
         cameras = []
         try:
@@ -119,7 +123,6 @@ class MultiCameraStreamer:
         except Exception as e:
             logger.warning(f"Could not query format for {camera_info.device_path}, using fallback pipeline: {e}")
 
-        # Conservative fallback
         return [
             "gst-launch-1.0",
             "v4l2src", f"device={camera_info.device_path}",
@@ -166,7 +169,6 @@ class MultiCameraStreamer:
             self.stop_all_cameras()
             self.sock.close()
 
-
 def main():
     config = get_jetson_config()
 
@@ -195,7 +197,6 @@ def main():
     streamer.h264_tune = args.tune
 
     streamer.run()
-
 
 if __name__ == "__main__":
     main()

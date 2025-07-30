@@ -3,7 +3,7 @@
 # Central Backend Server Configuration
 BACKEND_CONFIG = {
     # Backend server host (where central_backend.py runs)
-    "HOST": "192.168.1.100",  # Listen on all interfaces
+    "HOST": "0.0.0.0",  # Listen on all interfaces
     
     # HTTP port for REST API and WebSocket connections
     "HTTP_PORT": 8001,
