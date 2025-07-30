@@ -71,7 +71,7 @@ class MultiCameraStreamer:
                 elif line.startswith("\t") and current_name:
                     device_path = line.strip()
                     if device_path.startswith("/dev/video"):
-                        match = re.search(r'/dev/video(\\d+)', device_path)
+                        match = re.search(r'/dev/video(\d+)', device_path)
                         if match:
                             num = int(match.group(1))
                             if num % 2 == 0:
