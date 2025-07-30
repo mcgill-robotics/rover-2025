@@ -105,20 +105,20 @@ class MultiCameraStreamer:
         except Exception as e:
             logger.error(f"Failed to test camera {device_path}: {e}")
             return False
-        
+    
     def build_gst_pipeline(self, camera_info: CameraInfo, udp_port: int) -> List[str]:
-        """Build GStreamer pipeline command using MJPEG input and H.264 output."""
+        """Use raw YUYV input with Jetson hardware acceleration (nvvidconv)."""
         return [
             "gst-launch-1.0",
             "v4l2src", f"device={camera_info.device_path}",
-            "!", f"video/x-mjpeg,width={self.width},height={self.height},framerate={self.framerate}/1",
-            "!", "jpegdec",
-            "!", "videoconvert",
+            "!", f"video/x-raw,width={self.width},height={self.height},framerate={self.framerate}/1",
+            "!", "nvvidconv",
             "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
             "!", "h264parse",
             "!", "rtph264pay", "config-interval=1", "pt=96",
             "!", "udpsink", f"host=127.0.0.1", f"port={udp_port}"
         ]
+
 
 
     def get_free_udp_port(self) -> int:
