@@ -9,7 +9,7 @@
 #define H2_SENSOR_VOLTAGE_RESOLUTION 4095.0 // 12-bit ADC resolution (0–4095)
 #define O3_SENSOR_VOLTAGE_RESOLUTION 4095.0 // 12-bit ADC resolution (0–4095)
 
-#define SERIAL_NUMBER_RESOLUTION // Number of decimal places for voltage output
+#define SERIAL_NUMBER_RESOLUTION 4 // Number of decimal places for voltage output
 void setup() {
   Serial.begin(9600);         
   analogReadResolution(12);   // 12-bit ADC resolution (0–4095)

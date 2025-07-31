@@ -34,8 +34,6 @@ class SensorPublisher(Node):
                     self.get_logger().info(f'Published: {msg.data}')
             except Exception as e:
                 self.get_logger().error(f"Serial read error: {e}")
-`
-`
 
 def main(args=None):
     rclpy.init(args=args)
