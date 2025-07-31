@@ -346,6 +346,21 @@ class DriveInterface:
             is_single=True
         )
 
+    def run_steer_motor_position(self, node: NodeID, position_deg: float):
+        """
+        Sends a single position command (in degrees) to a steer motor.
+        Inputs:
+            node: The steer motor NodeID (e.g., NodeID.RF_STEER)
+            position_deg: Target position in degrees
+        """
+        self.esc.run(
+            spec=RunSpec.POSITION,
+            value=position_deg,
+            motor_type=MotorType.STEER,
+            node_id=node,
+            is_single=True
+        )
+
     def stop_motor(self, node: NodeID):
         """ Stops the motor being reffered to in the ID"""
         self.esc.run(ReadSpec.SPEED, 0.0, MotorType.DRIVE, node)
