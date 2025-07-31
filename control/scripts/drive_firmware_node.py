@@ -43,16 +43,17 @@ class drive_firmware(Node):
         self.timer = self.create_timer(timer_period, self.run)
 
     def run(self):
-        self.update_speed_info()
-        speeds_msg = Float32MultiArray()
-        speeds_msg.data = self.drive_speed_info
-        self.drive_motors_speeds_publisher.publish(speeds_msg)
+        # self.update_speed_info()
+        # speeds_msg = Float32MultiArray()
+        # speeds_msg.data = self.drive_speed_info
+        # self.drive_motors_speeds_publisher.publish(speeds_msg)
 
-        if (self.pub_count % 5) == 0:
-            self.publish_motor_info()
-            self.pub_count = 0
+        # if (self.pub_count % 5) == 0:
+        #     self.publish_motor_info()
+        #     self.pub_count = 0
 
-        self.pub_count += 1
+        # self.pub_count += 1
+        pass
 
 
     def clear_motor_faults(self, acknowledge_faults: Bool):
@@ -143,11 +144,12 @@ class drive_firmware(Node):
 
     
     def broadcast_speeds(self, speeds: Float32MultiArray):
-        inp = [speeds.data[0], -speeds.data[1], -speeds.data[2], speeds.data[3]] # RF, LF, LB, RB
+        inp = [speeds.data[0], speeds.data[1], -speeds.data[2], -speeds.data[3]] # RF, LF, LB, RB
         self.drive_interface.broadcast_multi_motor_speeds(inp)
 
     def broadcast_steering_angles(self, steering_angles: Float32MultiArray):
-        self.drive_interface.run_steer_motor_position(dCAN.NodeID.RF_STEER, steering_angles[0])
+        inp = steering_angles.data[0]
+        self.drive_interface.run_steer_motor_position(dCAN.NodeID.RF_STEER, inp)
 
 
     '''request: contains the request data

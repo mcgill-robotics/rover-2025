@@ -110,7 +110,7 @@ class drive_controller(Node):
 
             # TODO: Send new orientation to wheels
             msg = Float32MultiArray()
-            msg.data = self.wheel_angles
+            msg.data = [float(angle) for angle in self.wheel_angles]
             self.steering_input_publisher.publish(msg)
             
 
