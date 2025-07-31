@@ -17,6 +17,7 @@ class drive_firmware(Node):
         super().__init__("drive_firmware_node")
 
         self.drive_speed_input_subscriber     = self.create_subscription(Float32MultiArray, "drive_speed_input",   self.broadcast_speeds,   10)
+        self.drive_steering_input_subscriber  = self.create_subscription(Float32MultiArray, "drive_steering_input",   self.broadcast_steering_angles,   10)
         self.fault_acknowledgement_subscriber = self.create_subscription(Bool, "acknowledge_faults", self.clear_motor_faults, 10)
         self.drive_motors_info_publisher   = self.create_publisher(DriveMotorDiagnostic, "drive_motors_info", 10) 
         self.drive_motors_speeds_publisher = self.create_publisher(Float32MultiArray,    "drive_speeds_info", 10)
@@ -127,6 +128,9 @@ class drive_firmware(Node):
     def broadcast_speeds(self, speeds: Float32MultiArray):
         inp = [speeds.data[0], -speeds.data[1], -speeds.data[2], speeds.data[3]] # RF, LF, LB, RB
         self.drive_interface.broadcast_multi_motor_speeds(inp)
+
+    def broadcast_steering_angles(self, steering_angles: Float32MultiArray):
+        pass
 
 
     '''request: contains the request data
