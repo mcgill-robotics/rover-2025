@@ -27,13 +27,10 @@ class drive_firmware(Node):
         self.drive_interface = dCAN.DriveInterface(esc_interface)
         self.nodes           = [dCAN.NodeID.RF_DRIVE, dCAN.NodeID.RB_DRIVE, dCAN.NodeID.LB_DRIVE, dCAN.NodeID.LF_DRIVE] #Steering motors should be appended
 
-        self.motor_info = {"RF": {"Voltage": 0, "Current": 0, "State": 0, "Temperature": 0},
-                           "RB": {"Voltage": 0, "Current": 0, "State": 0, "Temperature": 0},
-                           "LB": {"Voltage": 0, "Current": 0, "State": 0, "Temperature": 0},
-                           "LF": {"Voltage": 0, "Current": 0, "State": 0, "Temperature": 0}}
+        self.motor_info = {node: {"Voltage": -1.0, "Current": -1.0, "State": -1.0, "Temperature": -1.0} for node in ["RF", "RB", "LB", "LF"]}
         #Steering motors should be appended to this dict.
 
-        self.drive_speed_info = [0,0,0,0] #List entries corresponding to [RF, RB, LB, LF]
+        self.drive_speed_info = [0.0, 0.0, 0.0, 0.0] #List entries corresponding to [RF, RB, LB, LF]
         self.motors = list(self.motor_info.keys())
         self.pub_count = 0
 
@@ -68,22 +65,23 @@ class drive_firmware(Node):
 
         for ind in range(len(self.nodes)):
             if states[ind]:
-                self.motor_info[self.motors[ind]]["Voltage"] = self.drive_interface.read_voltage(self.nodes[ind])
-                self.drive_interface.esc.station.recv_msg(timeout=0.25)
+                self.drive_interface.read_voltage(self.nodes[ind])
+                self.motor_info[self.motors[ind]]["Voltage"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
 
-                self.motor_info[self.motors[ind]]["Current"] = self.drive_interface.read_current(self.nodes[ind])
-                self.drive_interface.esc.station.recv_msg(timeout=0.25)
+                self.drive_interface.read_current(self.nodes[ind])
+                self.motor_info[self.motors[ind]]["Current"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
 
-                self.motor_info[self.motors[ind]]["State"] = self.drive_interface.read_state(self.nodes[ind])
-                self.drive_interface.esc.station.recv_msg(timeout=0.25)
+                self.drive_interface.read_state(self.nodes[ind])
+                self.motor_info[self.motors[ind]]["State"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
 
-                self.motor_info[self.motors[ind]]["Temperature"] = self.drive_interface.read_temperature(self.nodes[ind])
-                self.drive_interface.esc.station.recv_msg(timeout=0.25)
+                #Uncomment when able to get temperature readings (July. 28 2025)
+                #self.drive_interface.read_temperature(self.nodes[ind])
+                #self.motor_info[self.motors[ind]]["Temperature"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
             else:
-                self.motor_info[self.motors[ind]]["Voltage"] = 0.0
-                self.motor_info[self.motors[ind]]["Current"] = 0.0
-                self.motor_info[self.motors[ind]]["State"] = 0.0
-                self.motor_info[self.motors[ind]]["Temperature"] = 0.0
+                self.motor_info[self.motors[ind]]["Voltage"] = -1.0
+                self.motor_info[self.motors[ind]]["Current"] = -1.0
+                self.motor_info[self.motors[ind]]["State"] = -1.0
+                self.motor_info[self.motors[ind]]["Temperature"] = -1.0
 
     def publish_motor_info(self):
         self.update_motor_info()
@@ -120,10 +118,10 @@ class drive_firmware(Node):
         states = self.drive_interface.getAllMotorStatus()
         for ind in range(len(self.nodes)):
             if states[ind]:
-                self.drive_speed_info[ind] = self.drive_interface.read_speed(self.nodes[ind])
-                self.drive_interface.esc.station.recv_msg(timeout=0.25)
+                self.drive_interface.read_speed(self.nodes[ind])
+                self.drive_speed_info[ind] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
             else:
-                self.drive_speed_info[ind] = 0.0
+                self.drive_speed_info[ind] = -1.0
 
     
     def broadcast_speeds(self, speeds: Float32MultiArray):
