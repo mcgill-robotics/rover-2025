@@ -212,10 +212,33 @@ class MockDriveFirmwareNode(Node):
     
     def _simulate_motor_physics(self, motor: Dict, config: Dict, dt: float):
         """Simulate realistic motor physics."""
-        # Add some dynamic target speed changes
-        base_speed = 30.0 * math.sin(self.simulation_time * 0.1)  # Slow oscillation
-        noise = random.uniform(-5.0, 5.0)  # Random noise
-        motor['target_speed'] = max(0, base_speed + noise)
+        # Add some dynamic target speed changes based on scenario
+        if self.scenario == 'normal':
+            # Normal driving pattern - figure-eight like movement
+            base_speed = 30.0 * math.sin(self.simulation_time * 0.1)  # Slow oscillation
+            turn_component = 10.0 * math.sin(self.simulation_time * 0.2)  # Turning
+            noise = random.uniform(-2.0, 2.0)  # Small noise
+            motor['target_speed'] = max(0, base_speed + turn_component + noise)
+        elif self.scenario == 'motor_fault':
+            # Reduced performance for non-faulty motors
+            base_speed = 20.0 * math.sin(self.simulation_time * 0.08)
+            noise = random.uniform(-3.0, 3.0)
+            motor['target_speed'] = max(0, base_speed + noise)
+        elif self.scenario == 'low_battery':
+            # Slower, more conservative movement
+            base_speed = 15.0 * math.sin(self.simulation_time * 0.05)
+            noise = random.uniform(-1.0, 1.0)
+            motor['target_speed'] = max(0, base_speed + noise)
+        elif self.scenario == 'overheating':
+            # Erratic movement due to thermal throttling
+            base_speed = 25.0 * math.sin(self.simulation_time * 0.15)
+            thermal_noise = random.uniform(-8.0, 8.0)  # More erratic
+            motor['target_speed'] = max(0, base_speed + thermal_noise)
+        else:
+            # Default pattern
+            base_speed = 30.0 * math.sin(self.simulation_time * 0.1)
+            noise = random.uniform(-5.0, 5.0)
+            motor['target_speed'] = max(0, base_speed + noise)
         
         # Simulate motor acceleration/deceleration
         speed_diff = motor['target_speed'] - motor['speed']
