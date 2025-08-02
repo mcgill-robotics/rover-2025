@@ -13,7 +13,7 @@ setup(
         ("share/" + package_name, ["package.xml"]),
         (
             os.path.join("share", package_name, "launch"),
-            glob(os.path.join("launch", "*launch.[pxy][yma]*")),
+            glob(os.path.join('launch', '*.launch.py')),
         ),
     ],
     install_requires=["setuptools"],
