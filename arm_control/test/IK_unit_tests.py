@@ -1,7 +1,7 @@
 import numpy as np
 import math
-from ..src import arm_kinematics
-from ..src import human_arm_control
+from ..arm_control import arm_kinematics
+from ..arm_control import human_arm_control
 
 jointUpperLimits = [
     90 * np.pi / 180,
