@@ -184,27 +184,42 @@ class MultiCameraBackend:
         @self.app.websocket("/stream")
         async def websocket_stream(websocket: WebSocket, camera_id: str):
             await websocket.accept()
+
             if camera_id not in self.cameras:
-                await websocket.send_json({"type": "error", "message": f"Camera {camera_id} not found"})
+                await websocket.send_json({
+                    "type": "error",
+                    "message": f"Camera {camera_id} not found"
+                })
                 await websocket.close()
                 return
+
             self.websocket_connections[camera_id].add(websocket)
             logger.info(f"WebSocket connected for camera {camera_id}")
+
             try:
-                await websocket.send_json({"type": "status", "camera_id": camera_id, "message": "Connected"})
                 while True:
-                    try:
-                        message = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
-                        data = json.loads(message)
-                        if data.get("type") == "ping":
-                            await websocket.send_json({"type": "pong"})
-                    except asyncio.TimeoutError:
-                        pass
-                    except WebSocketDisconnect:
-                        break
+                    frame_buffer = self.frame_buffers.get(camera_id)
+                    if not frame_buffer:
+                        await asyncio.sleep(0.05)
+                        continue
+
+                    frame = frame_buffer.get_latest_frame()
+                    if frame is not None:
+                        jpeg_b64 = base64.b64encode(frame.frame_data).decode()
+                        await websocket.send_json({
+                            "type": "frame",
+                            "frame_data": jpeg_b64,
+                            "timestamp": frame.timestamp
+                        })
+
+                    await asyncio.sleep(1 / 20)  # assuming 20 FPS target
+            except WebSocketDisconnect:
+                logger.info(f"WebSocket disconnected for camera {camera_id}")
+            except Exception as e:
+                logger.error(f"WebSocket error for {camera_id}: {e}")
             finally:
                 self.websocket_connections[camera_id].discard(websocket)
-                logger.info(f"WebSocket disconnected for camera {camera_id}")
+
 
         @self.app.get("/api/health")
         async def health_check():

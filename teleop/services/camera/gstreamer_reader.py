@@ -1,22 +1,31 @@
 #!/usr/bin/env python3
 """
 GStreamer-based camera reader for receiving RTP/H.264 streams via UDP.
-Replaces manual UDP packet parsing with proper GStreamer pipeline decoding.
+Uses GStreamer Python bindings (gi) instead of cv2.VideoCapture for reliable UDP stream handling.
 """
+
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import Gst, GLib
 
 import cv2
 import numpy as np
 import logging
 import asyncio
 import time
-from typing import Optional
+import threading
+from typing import Optional, Callable
+from queue import Queue, Empty
+
+# Initialize GStreamer
+Gst.init(None)
 
 logger = logging.getLogger(__name__)
 
 class GStreamerCameraReader:
     """
     GStreamer-based camera reader that receives RTP/H.264 streams via UDP
-    and provides decoded frames via OpenCV.
+    using GStreamer Python bindings (gi) for reliable UDP stream handling.
     """
     
     def __init__(self, port: int, camera_id: str = None):
@@ -29,16 +38,30 @@ class GStreamerCameraReader:
         """
         self.port = port
         self.camera_id = camera_id or f"camera_{port}"
-        self.pipeline = self._build_pipeline(port)
-        self.cap = None
+        self.pipeline = None
+        self.appsink = None
+        self.loop = None
+        self.loop_thread = None
         self.is_opened = False
+        self.running = False
+        
+        # Frame queue for thread-safe frame access
+        self.frame_queue = Queue(maxsize=2)  # Keep only latest frames
+        self.latest_frame = None
+        self.frame_lock = threading.Lock()
+        
+        # Pipeline stats
+        self.frame_count = 0
+        self.last_frame_time = 0
+        self.width = 0
+        self.height = 0
         
         logger.info(f"Initializing GStreamer reader for {self.camera_id} on port {port}")
         
         # Try to open the pipeline
         self._open_pipeline()
     
-    def _build_pipeline(self, port: int) -> str:
+    def _build_pipeline_string(self, port: int) -> str:
         """
         Build GStreamer pipeline string for RTP/H.264 reception.
         
@@ -52,62 +75,163 @@ class GStreamerCameraReader:
         config = get_backend_config()
         gst_config = config["GSTREAMER_CONFIG"]
         
-        # Build pipeline from config
-        pipeline_elements = " ! ".join(gst_config["PIPELINE_ELEMENTS"])
-        max_buffers = gst_config.get("BUFFER_SIZE", 1)
-        
-        # Configure udpsrc to receive RTP streams from any address on the specified port
-        # The Jetson sends RTP streams TO this backend, so we need to listen on the port
-        pipeline = (
-            f"udpsrc port={port} address=0.0.0.0 "
+        # Build pipeline for reliable UDP RTP reception
+        pipeline_str = (
+            f"udpsrc port={port} "
             f"caps=\"{gst_config['RTP_CAPS']}\" ! "
-            f"{pipeline_elements.replace('appsink drop=true max-buffers=2', f'appsink drop=true max-buffers={max_buffers}')}"
+            "rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! "
+            "video/x-raw,format=BGR ! "
+            f"appsink name=sink emit-signals=true max-buffers={gst_config['BUFFER_SIZE']} drop=true"
         )
         
-        logger.debug(f"GStreamer pipeline for {self.camera_id}: {pipeline}")
-        return pipeline
+        logger.debug(f"GStreamer pipeline for {self.camera_id}: {pipeline_str}")
+        return pipeline_str
+    
+    def _on_new_sample(self, sink):
+        """
+        Callback for new frame samples from GStreamer appsink.
+        
+        Args:
+            sink: GStreamer appsink element
+            
+        Returns:
+            Gst.FlowReturn.OK on success
+        """
+        try:
+            sample = sink.emit("pull-sample")
+            if sample is None:
+                return Gst.FlowReturn.ERROR
+            
+            buf = sample.get_buffer()
+            caps = sample.get_caps()
+            
+            # Get frame dimensions
+            structure = caps.get_structure(0)
+            self.width = structure.get_value('width')
+            self.height = structure.get_value('height')
+            
+            # Map buffer to access raw data
+            success, mapinfo = buf.map(Gst.MapFlags.READ)
+            if not success:
+                return Gst.FlowReturn.ERROR
+            
+            try:
+                # Convert buffer to numpy array
+                frame_data = np.frombuffer(mapinfo.data, dtype=np.uint8)
+                frame = frame_data.reshape((self.height, self.width, 3))
+                
+                # Update frame statistics
+                self.frame_count += 1
+                self.last_frame_time = time.time()
+                
+                # Store latest frame (thread-safe)
+                with self.frame_lock:
+                    self.latest_frame = frame.copy()
+                
+                # Add to queue (non-blocking, drop old frames)
+                try:
+                    self.frame_queue.put_nowait(frame.copy())
+                except:
+                    # Queue full, remove old frame and add new one
+                    try:
+                        self.frame_queue.get_nowait()
+                        self.frame_queue.put_nowait(frame.copy())
+                    except Empty:
+                        pass
+                
+                if self.frame_count % 100 == 0:
+                    logger.debug(f"Received {self.frame_count} frames from {self.camera_id}")
+                
+            finally:
+                buf.unmap(mapinfo)
+            
+            return Gst.FlowReturn.OK
+            
+        except Exception as e:
+            logger.error(f"Error processing frame from {self.camera_id}: {e}")
+            return Gst.FlowReturn.ERROR
+    
+    def _run_glib_loop(self):
+        """Run GLib main loop in separate thread."""
+        try:
+            self.loop = GLib.MainLoop()
+            logger.debug(f"Starting GLib main loop for {self.camera_id}")
+            self.loop.run()
+        except Exception as e:
+            logger.error(f"GLib main loop error for {self.camera_id}: {e}")
+        finally:
+            logger.debug(f"GLib main loop ended for {self.camera_id}")
     
     def _open_pipeline(self):
-        """Open the GStreamer pipeline."""
+        """Open the GStreamer pipeline using gi bindings."""
         try:
-            self.cap = cv2.VideoCapture(self.pipeline, cv2.CAP_GSTREAMER)
+            # Build pipeline string
+            pipeline_str = self._build_pipeline_string(self.port)
             
-            if not self.cap.isOpened():
-                logger.error(f"Failed to open GStreamer pipeline for {self.camera_id} on port {self.port}")
-                raise RuntimeError(f"GStreamer pipeline failed for {self.camera_id} on port {self.port}")
-            else:
-                self.is_opened = True
-                logger.info(f"GStreamer pipeline opened successfully for {self.camera_id} on port {self.port}")
-                
-                # Set buffer size to minimize latency
-                from config import get_backend_config
-                config = get_backend_config()
-                buffer_size = config["GSTREAMER_CONFIG"]["BUFFER_SIZE"]
-                self.cap.set(cv2.CAP_PROP_BUFFERSIZE, buffer_size)
-                
+            # Create pipeline
+            self.pipeline = Gst.parse_launch(pipeline_str)
+            if self.pipeline is None:
+                raise RuntimeError(f"Failed to create GStreamer pipeline for {self.camera_id}")
+            
+            # Get appsink element
+            self.appsink = self.pipeline.get_by_name("sink")
+            if self.appsink is None:
+                raise RuntimeError(f"Failed to get appsink element for {self.camera_id}")
+            
+            # Connect new-sample signal
+            self.appsink.connect("new-sample", self._on_new_sample)
+            
+            # Start GLib main loop in separate thread
+            self.running = True
+            self.loop_thread = threading.Thread(target=self._run_glib_loop, daemon=True)
+            self.loop_thread.start()
+            
+            # Wait a moment for loop to start
+            time.sleep(0.1)
+            
+            # Start pipeline
+            ret = self.pipeline.set_state(Gst.State.PLAYING)
+            if ret == Gst.StateChangeReturn.FAILURE:
+                raise RuntimeError(f"Failed to start GStreamer pipeline for {self.camera_id}")
+            
+            # Wait for pipeline to reach PLAYING state
+            ret, state, pending = self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
+            if ret == Gst.StateChangeReturn.FAILURE or state != Gst.State.PLAYING:
+                raise RuntimeError(f"Pipeline failed to reach PLAYING state for {self.camera_id}")
+            
+            self.is_opened = True
+            logger.info(f"GStreamer pipeline opened successfully for {self.camera_id} on port {self.port}")
+            
         except Exception as e:
             logger.error(f"Exception opening GStreamer pipeline for {self.camera_id}: {e}")
             self.is_opened = False
+            self._cleanup()
             raise
     
     def read_frame(self) -> Optional[np.ndarray]:
         """
-        Read a frame from the GStreamer pipeline.
+        Read the latest frame from the GStreamer pipeline.
         
         Returns:
             OpenCV image array or None if no frame available
         """
-        if not self.is_opened or self.cap is None:
-            logger.warning(f"Pipeline not opened for {self.camera_id}")
+        if not self.is_opened:
             return None
         
         try:
-            ret, frame = self.cap.read()
-            if not ret:
-                logger.debug(f"No frame received from GStreamer pipeline for {self.camera_id}")
-                return None
+            # Try to get frame from queue first (most recent)
+            try:
+                frame = self.frame_queue.get_nowait()
+                return frame
+            except Empty:
+                pass
             
-            return frame
+            # Fall back to latest stored frame
+            with self.frame_lock:
+                if self.latest_frame is not None:
+                    return self.latest_frame.copy()
+            
+            return None
             
         except Exception as e:
             logger.error(f"Error reading frame from {self.camera_id}: {e}")
@@ -120,27 +244,28 @@ class GStreamerCameraReader:
         Returns:
             OpenCV image array or None if no frame available
         """
-        # Run the blocking read_frame in a thread pool
-        loop = asyncio.get_event_loop()
-        try:
-            frame = await loop.run_in_executor(None, self.read_frame)
-            return frame
-        except Exception as e:
-            logger.error(f"Async frame read failed for {self.camera_id}: {e}")
-            return None
+        # Since read_frame is now non-blocking, we can call it directly
+        return self.read_frame()
     
     def is_active(self) -> bool:
         """
         Check if the camera reader is active and receiving frames.
         
         Returns:
-            True if pipeline is open and ready
+            True if pipeline is open and receiving frames
         """
-        return self.is_opened and self.cap is not None and self.cap.isOpened()
+        if not self.is_opened or not self.running:
+            return False
+        
+        # Check if we've received frames recently (within last 5 seconds)
+        if self.last_frame_time > 0:
+            return (time.time() - self.last_frame_time) < 5.0
+        
+        return False
     
     def get_frame_rate(self) -> float:
         """
-        Get the frame rate of the stream.
+        Get the estimated frame rate of the stream.
         
         Returns:
             Frame rate in FPS, or 0 if not available
@@ -148,11 +273,12 @@ class GStreamerCameraReader:
         if not self.is_active():
             return 0.0
         
-        try:
-            fps = self.cap.get(cv2.CAP_PROP_FPS)
-            return fps if fps > 0 else 30.0  # Default to 30 FPS if not available
-        except Exception:
-            return 30.0
+        # Estimate FPS based on frame count and time
+        if self.frame_count > 10 and self.last_frame_time > 0:
+            # Simple estimation - could be improved with better tracking
+            return 20.0  # Default to expected FPS
+        
+        return 20.0
     
     def get_resolution(self) -> tuple:
         """
@@ -164,22 +290,52 @@ class GStreamerCameraReader:
         if not self.is_active():
             return (0, 0)
         
+        return (self.width, self.height)
+    
+    def _cleanup(self):
+        """Internal cleanup method."""
         try:
-            width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            return (width, height)
-        except Exception:
-            return (0, 0)
+            # Stop pipeline
+            if self.pipeline is not None:
+                self.pipeline.set_state(Gst.State.NULL)
+            
+            # Stop GLib loop
+            if self.loop is not None:
+                self.loop.quit()
+            
+            # Wait for loop thread to finish
+            if self.loop_thread is not None and self.loop_thread.is_alive():
+                self.loop_thread.join(timeout=2.0)
+            
+            # Clear references
+            self.pipeline = None
+            self.appsink = None
+            self.loop = None
+            self.loop_thread = None
+            
+            # Clear frame data
+            with self.frame_lock:
+                self.latest_frame = None
+            
+            # Clear frame queue
+            while not self.frame_queue.empty():
+                try:
+                    self.frame_queue.get_nowait()
+                except Empty:
+                    break
+            
+        except Exception as e:
+            logger.error(f"Error during cleanup for {self.camera_id}: {e}")
     
     def release(self):
         """Release the GStreamer pipeline and cleanup resources."""
         try:
-            if self.cap is not None:
-                self.cap.release()
-                logger.info(f"Released GStreamer pipeline for {self.camera_id}")
-            
-            self.cap = None
+            self.running = False
             self.is_opened = False
+            
+            self._cleanup()
+            
+            logger.info(f"Released GStreamer pipeline for {self.camera_id}")
             
         except Exception as e:
             logger.error(f"Error releasing GStreamer pipeline for {self.camera_id}: {e}")
@@ -188,7 +344,7 @@ class GStreamerCameraReader:
         """Restart the GStreamer pipeline."""
         logger.info(f"Restarting GStreamer pipeline for {self.camera_id}")
         self.release()
-        time.sleep(1)  # Brief pause before restart
+        time.sleep(2)  # Longer pause for UDP streams
         self._open_pipeline()
     
     def __enter__(self):

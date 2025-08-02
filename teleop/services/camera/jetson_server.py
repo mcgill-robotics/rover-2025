@@ -106,6 +106,63 @@ class MultiCameraStreamer:
             logger.error(f"Failed to test camera {device_path}: {e}")
             return False
         
+    # def build_gst_pipeline(self, camera_info: CameraInfo, udp_port: int) -> tuple[List[str], str]:
+    #     """Build GStreamer pipeline and return (pipeline, camera_type)."""
+    #     try:
+    #         fmt_info = subprocess.check_output([
+    #             "v4l2-ctl", "--device", camera_info.device_path, "--list-formats-ext"
+    #         ], text=True)
+
+    #         if 'MJPG' in fmt_info:
+    #             logger.info(f"Using MJPG pipeline for {camera_info.device_path}")
+    #             camera_info.camera_type = "MJPG"
+    #             pipeline = [
+    #                 "gst-launch-1.0",
+    #                 "v4l2src", f"device={camera_info.device_path}",
+    #                 "!", "image/jpeg,width=640,height=480,framerate=30/1",
+    #                 "!", "jpegdec",
+    #                 "!", "videoconvert",
+    #                 "!", "video/x-raw,format=NV12",
+    #                 "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
+    #                 "!", "h264parse",
+    #                 "!", "rtph264pay", "config-interval=1", "pt=96",
+    #                 "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
+    #             ]
+    #             return pipeline, "MJPG"
+    #         elif 'YUYV' in fmt_info or 'YUYV8' in fmt_info:
+    #             logger.info(f"Using YUYV pipeline for {camera_info.device_path}")
+    #             camera_info.camera_type = "YUYV"
+    #             pipeline = [
+    #                 "gst-launch-1.0",
+    #                 "v4l2src", f"device={camera_info.device_path}",
+    #                 "!", "video/x-raw,format=YUY2,width=640,height=480,framerate=20/1",
+    #                 "!", "videoconvert",
+    #                 "!", "video/x-raw,format=NV12",
+    #                 "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
+    #                 "!", "h264parse",
+    #                 "!", "rtph264pay", "config-interval=1", "pt=96",
+    #                 "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
+    #             ]
+    #             return pipeline, "YUYV"
+    #         else:
+    #             logger.warning(f"Unknown formats for {camera_info.device_path}, using fallback raw pipeline")
+
+    #     except Exception as e:
+    #         logger.warning(f"Could not query format for {camera_info.device_path}, using fallback pipeline: {e}")
+
+    #     camera_info.camera_type = "RAW"
+    #     pipeline = [
+    #         "gst-launch-1.0",
+    #         "v4l2src", f"device={camera_info.device_path}",
+    #         "!", f"video/x-raw,width={self.width},height={self.height},framerate={self.framerate}/1",
+    #         "!", "videoconvert",
+    #         "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
+    #         "!", "h264parse",
+    #         "!", "rtph264pay", "config-interval=1", "pt=96",
+    #         "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
+    #     ]
+    #     return pipeline, "RAW"
+
     def build_gst_pipeline(self, camera_info: CameraInfo, udp_port: int) -> tuple[List[str], str]:
         """Build GStreamer pipeline and return (pipeline, camera_type)."""
         try:
@@ -113,49 +170,54 @@ class MultiCameraStreamer:
                 "v4l2-ctl", "--device", camera_info.device_path, "--list-formats-ext"
             ], text=True)
 
+            # MJPG pipeline
             if 'MJPG' in fmt_info:
                 logger.info(f"Using MJPG pipeline for {camera_info.device_path}")
                 camera_info.camera_type = "MJPG"
                 pipeline = [
                     "gst-launch-1.0",
                     "v4l2src", f"device={camera_info.device_path}",
-                    "!", "image/jpeg,width=640,height=480,framerate=30/1",
+                    "!", "image/jpeg,width=320,height=240,framerate=15/1",  # ⬅️ safer defaults
                     "!", "jpegdec",
-                    "!", "nvvidconv",
-                    "!", "video/x-raw,format=NV12",
+                    "!", "videoconvert",  # ⬅️ replaced nvvidconv
+                    "!", "video/x-raw,format=I420",  # ⬅️ use I420 for broadest compatibility
                     "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
                     "!", "h264parse",
                     "!", "rtph264pay", "config-interval=1", "pt=96",
                     "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
                 ]
                 return pipeline, "MJPG"
+
+            # YUYV fallback
             elif 'YUYV' in fmt_info or 'YUYV8' in fmt_info:
                 logger.info(f"Using YUYV pipeline for {camera_info.device_path}")
                 camera_info.camera_type = "YUYV"
                 pipeline = [
                     "gst-launch-1.0",
                     "v4l2src", f"device={camera_info.device_path}",
-                    "!", "video/x-raw,format=YUY2,width=640,height=480,framerate=20/1",
-                    "!", "nvvidconv",
-                    "!", "video/x-raw,format=NV12",
+                    "!", "video/x-raw,format=YUY2,width=320,height=240,framerate=15/1",
+                    "!", "videoconvert",
+                    "!", "video/x-raw,format=I420",
                     "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
                     "!", "h264parse",
                     "!", "rtph264pay", "config-interval=1", "pt=96",
                     "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
                 ]
                 return pipeline, "YUYV"
-            else:
-                logger.warning(f"Unknown formats for {camera_info.device_path}, using fallback raw pipeline")
+
+            logger.warning(f"Unknown formats for {camera_info.device_path}, using fallback RAW pipeline")
 
         except Exception as e:
             logger.warning(f"Could not query format for {camera_info.device_path}, using fallback pipeline: {e}")
 
+        # Fallback RAW pipeline
         camera_info.camera_type = "RAW"
         pipeline = [
             "gst-launch-1.0",
             "v4l2src", f"device={camera_info.device_path}",
-            "!", f"video/x-raw,width={self.width},height={self.height},framerate={self.framerate}/1",
-            "!", "nvvidconv",
+            "!", f"video/x-raw,width=320,height=240,framerate=15/1",  # ⬅️ low-res fallback
+            "!", "videoconvert",
+            "!", "video/x-raw,format=I420",
             "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
             "!", "h264parse",
             "!", "rtph264pay", "config-interval=1", "pt=96",
