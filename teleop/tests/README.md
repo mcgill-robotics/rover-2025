@@ -2,7 +2,27 @@
 
 This directory contains comprehensive testing tools for the teleop system, including both camera management and drive data simulation.
 
-## **Interactive Testing with Frontend (Recommended)**
+## 🐍 **Python Environment Setup**
+
+**IMPORTANT**: Before running any tests, make sure to set up and activate the Python environment:
+
+```bash
+# Navigate to teleop directory
+cd teleop
+
+# Set up the environment (first time only)
+./setup_env.sh
+
+# Activate the environment (every time you start testing)
+source ./activate_env.sh
+
+# For ROS-based tests, also source ROS2 environment
+source /opt/ros/humble/setup.bash  # or your ROS distro
+```
+
+All the commands below assume you have the Python environment activated. You'll see `(venv)` in your terminal prompt when it's active. For ROS-based tests, you also need to source the ROS2 environment.
+
+## 🎯 **Interactive Testing with Frontend (Recommended)**
 
 You can run the mock systems alongside your frontend to see real-time behavior and test the complete user experience.
 
@@ -266,14 +286,20 @@ python3 mock_ros_drive_data.py \
    - ROS manager: `localhost:8082`
    - Frontend: `localhost:3000`
 
-3. **Service Dependencies:**
+3. **Python Environment Issues:**
    ```bash
-   # Install Python dependencies
-   cd teleop/services
+   # Make sure you're in the teleop directory and environment is activated
+   cd teleop
+   source ./activate_env.sh
+   
+   # Check if environment is active (should show (venv) in prompt)
+   which python  # Should point to teleop/venv/bin/python
+   
+   # Reinstall dependencies if needed
    pip install -r requirements.txt
    
-   # Install Node.js dependencies
-   cd teleop/robot-controller-ui
+   # Install Node.js dependencies (separate from Python)
+   cd robot-controller-ui
    npm install
    ```
 

@@ -131,17 +131,27 @@ class MultiCameraBackend:
             for device_id, device_info in self.jetson_devices.items():
                 # Only include devices that have sent recent heartbeats
                 if current_time - device_info['last_heartbeat'] < 30:
-                    # Get camera info from the last heartbeat
-                    # Note: This is a simplified version - in a real implementation,
-                    # you might want to store the camera info from heartbeats
-                    available_cameras.append({
-                        "device_id": device_id,
-                        "host": device_info['host'],
-                        "last_heartbeat": device_info['last_heartbeat'],
-                        "status": "connected"
-                    })
+                    # Get camera info from the stored heartbeat data
+                    cameras_data = device_info.get('cameras', {})
+                    
+                    for camera_id, camera_info in cameras_data.items():
+                        available_cameras.append({
+                            "camera_id": camera_id,
+                            "device_id": device_id,
+                            "name": camera_info.get('name', camera_id),
+                            "device_path": camera_info.get('device_path', ''),
+                            "is_active": camera_info.get('is_active', False),
+                            "rtp_port": camera_info.get('rtp_port'),
+                            "host": device_info['host'],
+                            "last_heartbeat": device_info['last_heartbeat'],
+                            "status": "connected"
+                        })
             
-            return {"available_cameras": available_cameras, "jetson_devices": list(self.jetson_devices.keys())}
+            return {
+                "available_cameras": available_cameras, 
+                "total_devices": len(self.jetson_devices),
+                "total_cameras": len(available_cameras)
+            }
 
         @self.app.post("/api/cameras/{camera_id}/start")
         async def start_camera(camera_id: str):
@@ -410,7 +420,8 @@ class MultiCameraBackend:
                 self.jetson_devices[device_id] = {
                     'host': sender_addr[0],
                     'command_port': self.udp_port + 1,  # Jetson uses udp_port + 1 for commands
-                    'last_heartbeat': time.time()
+                    'last_heartbeat': time.time(),
+                    'cameras': cameras  # Store camera information from heartbeat
                 }
             
             logger.debug(f"Received heartbeat from {device_id} with {len(cameras)} cameras")

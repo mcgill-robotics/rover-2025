@@ -12,13 +12,12 @@ Usage:
 Features:
 - Simulates 3 Jetson devices (jetson-01, jetson-02, jetson-03)
 - Each device has 2-3 cameras using generated video patterns
-- Responds to start/stop commands from central_backend
-- Sends heartbeats and device discovery
-- Streams video data when requested
+- Sends UDP heartbeats to central backend
+- Responds to start/stop commands via UDP
+- Simulates camera streaming when requested
 """
 
 import asyncio
-import websockets
 import json
 import time
 import threading
@@ -26,6 +25,8 @@ import cv2
 import numpy as np
 import base64
 import logging
+import socket
+import struct
 from typing import Dict, List, Optional, Any
 import argparse
 from dataclasses import dataclass, asdict
@@ -48,6 +49,8 @@ class CameraInfo:
     fps: int
     is_active: bool = False
     video_pattern: str = "color_bars"  # color_bars, checkerboard, gradient, noise
+    rtp_port: Optional[int] = None
+    device_path: str = ""
 
 @dataclass
 class JetsonDevice:
@@ -163,14 +166,19 @@ class VideoPatternGenerator:
 class MockJetsonServer:
     """Mock Jetson server that simulates multiple devices."""
     
-    def __init__(self, central_backend_url: str = "ws://localhost:8081/jetson"):
-        self.central_backend_url = central_backend_url
+    def __init__(self, backend_host: str = "localhost", backend_port: int = 9999, num_devices: int = 3, cameras_per_device: int = 2):
+        self.backend_host = backend_host
+        self.backend_port = backend_port
+        self.num_devices = num_devices
+        self.cameras_per_device = cameras_per_device
         self.devices = self._create_mock_devices()
         self.video_generators = {}
         self.streaming_tasks = {}
-        self.websocket = None
         self.running = False
         self.heartbeat_task = None
+        self.udp_socket = None
+        self.command_socket = None
+        self.command_port = backend_port + 1
         
         # Initialize video generators for each camera
         for device in self.devices.values():
@@ -184,317 +192,324 @@ class MockJetsonServer:
         """Create mock Jetson devices with cameras."""
         devices = {}
         
-        # Jetson 01 - Front cameras
-        devices["jetson-01"] = JetsonDevice(
-            device_id="jetson-01",
-            name="Front Camera Unit",
-            ip_address="192.168.1.101",
-            port=8080,
-            cameras=[
-                CameraInfo("cam_0", "Front Left", (640, 480), 30, pattern="color_bars"),
-                CameraInfo("cam_1", "Front Right", (640, 480), 30, pattern="checkerboard"),
-                CameraInfo("cam_2", "Front Center", (1280, 720), 30, pattern="gradient")
-            ]
-        )
+        patterns = ["color_bars", "checkerboard", "gradient", "noise"]
+        resolutions = [(640, 480), (1280, 720), (320, 240)]
+        device_names = ["Front Camera Unit", "Side Camera Unit", "Rear Camera Unit", "Aux Camera Unit", "Mobile Camera Unit"]
         
-        # Jetson 02 - Side cameras
-        devices["jetson-02"] = JetsonDevice(
-            device_id="jetson-02",
-            name="Side Camera Unit",
-            ip_address="192.168.1.102",
-            port=8080,
-            cameras=[
-                CameraInfo("cam_0", "Left Side", (640, 480), 30, pattern="noise"),
-                CameraInfo("cam_1", "Right Side", (640, 480), 30, pattern="color_bars")
-            ]
-        )
-        
-        # Jetson 03 - Rear cameras
-        devices["jetson-03"] = JetsonDevice(
-            device_id="jetson-03",
-            name="Rear Camera Unit",
-            ip_address="192.168.1.103",
-            port=8080,
-            cameras=[
-                CameraInfo("cam_0", "Rear View", (1280, 720), 30, pattern="checkerboard"),
-                CameraInfo("cam_1", "Rear Wide", (640, 480), 15, pattern="gradient"),
-                CameraInfo("cam_2", "Backup Camera", (320, 240), 15, pattern="noise")
-            ]
-        )
+        for i in range(self.num_devices):
+            device_id = f"jetson-{i+1:02d}"
+            device_name = device_names[i % len(device_names)]
+            ip_address = f"192.168.1.{101 + i}"
+            
+            cameras = []
+            for j in range(self.cameras_per_device):
+                camera_id = f"cam_{j}"
+                camera_name = f"Camera {j+1}"
+                resolution = resolutions[j % len(resolutions)]
+                pattern = patterns[(i + j) % len(patterns)]
+                fps = 30 if resolution[0] >= 640 else 15
+                device_path = f"/dev/video{i*self.cameras_per_device + j}"
+                
+                cameras.append(CameraInfo(
+                    camera_id=camera_id,
+                    name=camera_name,
+                    resolution=resolution,
+                    fps=fps,
+                    video_pattern=pattern,
+                    device_path=device_path
+                ))
+            
+            devices[device_id] = JetsonDevice(
+                device_id=device_id,
+                name=device_name,
+                ip_address=ip_address,
+                port=8080,
+                cameras=cameras
+            )
         
         return devices
     
-    async def connect_to_central_backend(self):
-        """Connect to the central backend."""
-        max_retries = 5
-        retry_delay = 2
+    def create_udp_packet(self, camera_id: str, payload: bytes) -> bytes:
+        """Create UDP packet in the format expected by central backend."""
+        camera_id_bytes = camera_id.encode('utf-8')
+        camera_id_len = len(camera_id_bytes)
         
-        for attempt in range(max_retries):
-            try:
-                logger.info(f"Connecting to central backend: {self.central_backend_url}")
-                self.websocket = await websockets.connect(self.central_backend_url)
-                logger.info("Connected to central backend")
-                return True
-            except Exception as e:
-                logger.warning(f"Connection attempt {attempt + 1} failed: {e}")
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay)
-                    retry_delay *= 2
+        # Header: [camera_id_len][packet_num][total_packets][timestamp]
+        packet_num = 1
+        total_packets = 1
+        timestamp = int(time.time() * 1000)
         
-        logger.error("Failed to connect to central backend after all retries")
-        return False
+        header = struct.pack('!BHHQ', camera_id_len, packet_num, total_packets, timestamp)
+        
+        return header + camera_id_bytes + payload
     
-    async def send_device_discovery(self):
-        """Send device discovery messages for all mock devices."""
-        if not self.websocket:
+    def send_heartbeat(self):
+        """Send heartbeat for all devices."""
+        if not self.udp_socket:
             return
-        
+            
         for device in self.devices.values():
-            discovery_msg = {
-                "type": "device_discovery",
-                "device_id": device.device_id,
-                "device_info": {
+            if device.is_online:
+                # Create heartbeat data
+                cameras_data = {}
+                for camera in device.cameras:
+                    cameras_data[f"{device.device_id}-{camera.camera_id}"] = {
+                        "name": camera.name,
+                        "device_path": camera.device_path,
+                        "is_active": camera.is_active,
+                        "rtp_port": camera.rtp_port if camera.is_active else None
+                    }
+                
+                heartbeat_data = {
+                    "device_id": device.device_id,
                     "name": device.name,
                     "ip_address": device.ip_address,
-                    "port": device.port,
-                    "cameras": [
-                        {
-                            "camera_id": cam.camera_id,
-                            "name": cam.name,
-                            "resolution": cam.resolution,
-                            "fps": cam.fps,
-                            "is_active": cam.is_active
-                        }
-                        for cam in device.cameras
-                    ]
-                },
-                "timestamp": time.time()
-            }
+                    "cameras": cameras_data,
+                    "timestamp": time.time()
+                }
+                
+                # Send as UDP packet
+                try:
+                    payload = json.dumps(heartbeat_data).encode('utf-8')
+                    packet = self.create_udp_packet("__HEARTBEAT__", payload)
+                    
+                    self.udp_socket.sendto(packet, (self.backend_host, self.backend_port))
+                    device.last_heartbeat = time.time()
+                    logger.debug(f"Sent heartbeat for device {device.device_id}")
+                    
+                except Exception as e:
+                    logger.error(f"Failed to send heartbeat for {device.device_id}: {e}")
+    
+    def setup_command_listener(self):
+        """Set up UDP socket to listen for commands from central backend."""
+        try:
+            self.command_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.command_socket.bind(('0.0.0.0', self.command_port))
+            self.command_socket.settimeout(1.0)
+            logger.info(f"Command listener started on port {self.command_port}")
+        except Exception as e:
+            logger.error(f"Failed to setup command listener: {e}")
+            self.command_socket = None
+    
+    def handle_command(self, command_data: dict):
+        """Handle command from central backend."""
+        try:
+            command_type = command_data.get("type")
+            camera_id = command_data.get("camera_id")
             
-            try:
-                await self.websocket.send(json.dumps(discovery_msg))
-                logger.info(f"Sent discovery for device: {device.device_id}")
-            except Exception as e:
-                logger.error(f"Failed to send discovery for {device.device_id}: {e}")
-    
-    async def send_heartbeat(self):
-        """Send heartbeat messages for all devices."""
-        while self.running and self.websocket:
-            try:
-                for device in self.devices.values():
-                    if device.is_online:
-                        heartbeat_msg = {
-                            "type": "heartbeat",
-                            "device_id": device.device_id,
-                            "status": "online",
-                            "active_cameras": [
-                                cam.camera_id for cam in device.cameras if cam.is_active
-                            ],
-                            "timestamp": time.time()
-                        }
-                        
-                        await self.websocket.send(json.dumps(heartbeat_msg))
-                        device.last_heartbeat = time.time()
+            if command_type == "start_camera":
+                self.start_camera(camera_id)
+            elif command_type == "stop_camera":
+                self.stop_camera(camera_id)
+            else:
+                logger.warning(f"Unknown command type: {command_type}")
                 
-                await asyncio.sleep(5)  # Send heartbeat every 5 seconds
-                
-            except Exception as e:
-                logger.error(f"Heartbeat error: {e}")
-                break
+        except Exception as e:
+            logger.error(f"Failed to handle command: {e}")
     
-    async def handle_camera_command(self, message: dict):
-        """Handle camera start/stop commands."""
-        device_id = message.get("device_id")
-        camera_id = message.get("camera_id")
-        command = message.get("command")
-        
-        if device_id not in self.devices:
-            logger.warning(f"Unknown device: {device_id}")
-            return
-        
-        device = self.devices[device_id]
-        camera = None
-        
-        for cam in device.cameras:
-            if cam.camera_id == camera_id:
-                camera = cam
-                break
-        
-        if not camera:
-            logger.warning(f"Unknown camera: {camera_id} on device {device_id}")
-            return
-        
-        if command == "start":
+    def start_camera(self, full_camera_id: str):
+        """Start a camera (e.g., 'jetson-01-cam_0')."""
+        try:
+            # Parse camera ID to get device and camera
+            parts = full_camera_id.split('-')
+            if len(parts) < 3:
+                logger.error(f"Invalid camera ID format: {full_camera_id}")
+                return
+                
+            device_id = '-'.join(parts[:-1])  # e.g., "jetson-01"
+            camera_id = parts[-1]  # e.g., "cam_0"
+            
+            if device_id not in self.devices:
+                logger.error(f"Device not found: {device_id}")
+                return
+                
+            device = self.devices[device_id]
+            camera = None
+            
+            for cam in device.cameras:
+                if cam.camera_id == camera_id:
+                    camera = cam
+                    break
+            
+            if not camera:
+                logger.error(f"Camera not found: {camera_id} on device {device_id}")
+                return
+            
             if not camera.is_active:
+                # Assign RTP port (simulate starting GStreamer pipeline)
+                camera.rtp_port = 5000 + len([c for c in device.cameras if c.is_active])
                 camera.is_active = True
-                await self.start_camera_stream(device_id, camera_id)
-                logger.info(f"Started camera {camera_id} on device {device_id}")
-        
-        elif command == "stop":
+                
+                logger.info(f"Started camera {full_camera_id} on RTP port {camera.rtp_port}")
+                
+                # Start streaming simulation (optional - for testing)
+                key = f"{device_id}_{camera_id}"
+                if key not in self.streaming_tasks:
+                    task = threading.Thread(
+                        target=self.simulate_camera_stream,
+                        args=(device_id, camera_id, camera),
+                        daemon=True
+                    )
+                    task.start()
+                    self.streaming_tasks[key] = task
+            
+        except Exception as e:
+            logger.error(f"Failed to start camera {full_camera_id}: {e}")
+    
+    def stop_camera(self, full_camera_id: str):
+        """Stop a camera."""
+        try:
+            # Parse camera ID
+            parts = full_camera_id.split('-')
+            if len(parts) < 3:
+                logger.error(f"Invalid camera ID format: {full_camera_id}")
+                return
+                
+            device_id = '-'.join(parts[:-1])
+            camera_id = parts[-1]
+            
+            if device_id not in self.devices:
+                logger.error(f"Device not found: {device_id}")
+                return
+                
+            device = self.devices[device_id]
+            camera = None
+            
+            for cam in device.cameras:
+                if cam.camera_id == camera_id:
+                    camera = cam
+                    break
+            
+            if not camera:
+                logger.error(f"Camera not found: {camera_id} on device {device_id}")
+                return
+            
             if camera.is_active:
                 camera.is_active = False
-                await self.stop_camera_stream(device_id, camera_id)
-                logger.info(f"Stopped camera {camera_id} on device {device_id}")
-        
-        # Send acknowledgment
-        ack_msg = {
-            "type": "camera_command_ack",
-            "device_id": device_id,
-            "camera_id": camera_id,
-            "command": command,
-            "status": "success",
-            "timestamp": time.time()
-        }
-        
-        try:
-            await self.websocket.send(json.dumps(ack_msg))
+                camera.rtp_port = None
+                
+                logger.info(f"Stopped camera {full_camera_id}")
+                
+                # Stop streaming simulation
+                key = f"{device_id}_{camera_id}"
+                if key in self.streaming_tasks:
+                    # Note: Thread will stop when camera.is_active becomes False
+                    del self.streaming_tasks[key]
+            
         except Exception as e:
-            logger.error(f"Failed to send acknowledgment: {e}")
+            logger.error(f"Failed to stop camera {full_camera_id}: {e}")
     
-    async def start_camera_stream(self, device_id: str, camera_id: str):
-        """Start streaming for a specific camera."""
-        key = f"{device_id}_{camera_id}"
-        
-        if key in self.streaming_tasks:
-            return  # Already streaming
-        
-        device = self.devices[device_id]
-        camera = None
-        
-        for cam in device.cameras:
-            if cam.camera_id == camera_id:
-                camera = cam
-                break
-        
-        if not camera:
-            return
-        
-        # Start streaming task
-        task = asyncio.create_task(
-            self.stream_camera_data(device_id, camera_id, camera)
-        )
-        self.streaming_tasks[key] = task
-    
-    async def stop_camera_stream(self, device_id: str, camera_id: str):
-        """Stop streaming for a specific camera."""
-        key = f"{device_id}_{camera_id}"
-        
-        if key in self.streaming_tasks:
-            self.streaming_tasks[key].cancel()
-            del self.streaming_tasks[key]
-    
-    async def stream_camera_data(self, device_id: str, camera_id: str, camera: CameraInfo):
-        """Stream video data for a camera."""
+    def simulate_camera_stream(self, device_id: str, camera_id: str, camera: CameraInfo):
+        """Simulate camera streaming (for testing purposes)."""
         key = f"{device_id}_{camera_id}"
         generator = self.video_generators[key]
         
         frame_interval = 1.0 / camera.fps
         
+        logger.info(f"Started streaming simulation for {device_id}-{camera_id}")
+        
         try:
             while camera.is_active and self.running:
-                # Generate frame
+                # Generate frame (this simulates the camera producing frames)
                 frame = generator.get_frame(camera.video_pattern)
                 
-                # Encode frame as JPEG
-                _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-                frame_data = base64.b64encode(buffer).decode('utf-8')
+                # In a real implementation, this would be sent via GStreamer RTP
+                # For now, we just simulate the frame generation
                 
-                # Send frame data
-                stream_msg = {
-                    "type": "camera_frame",
-                    "device_id": device_id,
-                    "camera_id": camera_id,
-                    "frame_data": frame_data,
-                    "timestamp": time.time(),
-                    "frame_number": generator.frame_count
-                }
+                time.sleep(frame_interval)
                 
-                if self.websocket:
-                    try:
-                        await self.websocket.send(json.dumps(stream_msg))
-                    except Exception as e:
-                        logger.error(f"Failed to send frame for {key}: {e}")
-                        break
-                
-                await asyncio.sleep(frame_interval)
-                
-        except asyncio.CancelledError:
-            logger.info(f"Streaming cancelled for {key}")
         except Exception as e:
-            logger.error(f"Streaming error for {key}: {e}")
+            logger.error(f"Streaming simulation error for {key}: {e}")
+        
+        logger.info(f"Stopped streaming simulation for {device_id}-{camera_id}")
     
-    async def handle_messages(self):
-        """Handle incoming messages from central backend."""
-        try:
-            async for message in self.websocket:
+    def command_listener_thread(self):
+        """Thread to listen for commands from central backend."""
+        logger.info("Starting command listener thread")
+        
+        while self.running:
+            if not self.command_socket:
+                time.sleep(1)
+                continue
+                
+            try:
+                data, addr = self.command_socket.recvfrom(1024)
+                logger.debug(f"Received command from {addr}: {data}")
+                
                 try:
-                    data = json.loads(message)
-                    msg_type = data.get("type")
-                    
-                    if msg_type == "camera_command":
-                        await self.handle_camera_command(data)
-                    elif msg_type == "ping":
-                        # Respond to ping
-                        pong_msg = {
-                            "type": "pong",
-                            "timestamp": time.time()
-                        }
-                        await self.websocket.send(json.dumps(pong_msg))
-                    else:
-                        logger.info(f"Received unknown message type: {msg_type}")
-                        
+                    command_data = json.loads(data.decode('utf-8'))
+                    self.handle_command(command_data)
                 except json.JSONDecodeError:
-                    logger.warning("Received invalid JSON message")
-                except Exception as e:
-                    logger.error(f"Error handling message: {e}")
+                    logger.warning(f"Invalid JSON command from {addr}")
                     
-        except websockets.exceptions.ConnectionClosed:
-            logger.info("Connection to central backend closed")
-        except Exception as e:
-            logger.error(f"Message handling error: {e}")
+            except socket.timeout:
+                continue
+            except Exception as e:
+                if self.running:
+                    logger.error(f"Command listener error: {e}")
+                time.sleep(0.1)
+        
+        logger.info("Command listener thread ended")
     
-    async def run(self):
+    def heartbeat_thread(self):
+        """Thread to send periodic heartbeats."""
+        logger.info("Starting heartbeat thread")
+        
+        while self.running:
+            try:
+                self.send_heartbeat()
+                time.sleep(5)  # Send heartbeat every 5 seconds
+            except Exception as e:
+                logger.error(f"Heartbeat error: {e}")
+                time.sleep(5)
+        
+        logger.info("Heartbeat thread ended")
+    
+    def run(self):
         """Run the mock Jetson server."""
         self.running = True
         
-        # Connect to central backend
-        if not await self.connect_to_central_backend():
-            logger.error("Failed to connect to central backend")
-            return
-        
         try:
-            # Send initial device discovery
-            await self.send_device_discovery()
+            # Setup UDP socket for sending heartbeats
+            self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             
-            # Start heartbeat task
-            self.heartbeat_task = asyncio.create_task(self.send_heartbeat())
+            # Setup command listener
+            self.setup_command_listener()
             
-            # Handle incoming messages
-            await self.handle_messages()
+            # Start command listener thread
+            if self.command_socket:
+                command_thread = threading.Thread(target=self.command_listener_thread, daemon=True)
+                command_thread.start()
             
+            # Start heartbeat thread
+            heartbeat_thread = threading.Thread(target=self.heartbeat_thread, daemon=True)
+            heartbeat_thread.start()
+            
+            logger.info("Mock Jetson server started")
+            logger.info(f"Sending heartbeats to {self.backend_host}:{self.backend_port}")
+            logger.info(f"Listening for commands on port {self.command_port}")
+            
+            # Keep main thread alive
+            while self.running:
+                time.sleep(1)
+                
         except KeyboardInterrupt:
             logger.info("Received interrupt signal")
         except Exception as e:
             logger.error(f"Server error: {e}")
         finally:
-            await self.cleanup()
+            self.cleanup()
     
-    async def cleanup(self):
+    def cleanup(self):
         """Clean up resources."""
         logger.info("Cleaning up mock Jetson server...")
         self.running = False
         
-        # Cancel all streaming tasks
-        for task in self.streaming_tasks.values():
-            task.cancel()
-        
-        # Cancel heartbeat task
-        if self.heartbeat_task:
-            self.heartbeat_task.cancel()
-        
-        # Close WebSocket connection
-        if self.websocket:
-            await self.websocket.close()
+        # Close sockets
+        if self.udp_socket:
+            self.udp_socket.close()
+        if self.command_socket:
+            self.command_socket.close()
         
         logger.info("Cleanup complete")
 
@@ -503,19 +518,37 @@ def signal_handler(signum, frame):
     logger.info("Received interrupt signal, shutting down...")
     sys.exit(0)
 
-async def main():
+def main():
     """Main function."""
     parser = argparse.ArgumentParser(description="Mock Jetson Server for Camera Testing")
     parser.add_argument(
-        "--backend-url", 
-        default="ws://localhost:8081/jetson",
-        help="Central backend WebSocket URL"
+        "--backend-host", 
+        default="localhost",
+        help="Central backend host"
+    )
+    parser.add_argument(
+        "--backend-port", 
+        type=int,
+        default=9999,
+        help="Central backend UDP port"
     )
     parser.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Logging level"
+    )
+    parser.add_argument(
+        "--num-devices",
+        type=int,
+        default=3,
+        help="Number of Jetson devices to simulate"
+    )
+    parser.add_argument(
+        "--cameras-per-device",
+        type=int,
+        default=2,
+        help="Number of cameras per device"
     )
     
     args = parser.parse_args()
@@ -528,7 +561,7 @@ async def main():
     signal.signal(signal.SIGTERM, signal_handler)
     
     # Create and run mock server
-    server = MockJetsonServer(args.backend_url)
+    server = MockJetsonServer(args.backend_host, args.backend_port, args.num_devices, args.cameras_per_device)
     
     logger.info("Starting Mock Jetson Server...")
     logger.info(f"Simulating {len(server.devices)} Jetson devices")
@@ -537,11 +570,11 @@ async def main():
         logger.info(f"  {device_id}: {device.name} ({len(device.cameras)} cameras)")
     
     try:
-        await server.run()
+        server.run()
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:
         logger.error(f"Server error: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

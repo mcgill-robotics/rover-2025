@@ -47,13 +47,13 @@ export function useMultiCameraStream({
     setError(null);
     
     try {
-      const response = await fetch(`${backendUrl.replace('ws://', 'http://')}/api/cameras`);
+      const response = await fetch(`${backendUrl.replace('ws://', 'http://')}/api/cameras/available`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
-      setCameras(data.cameras || []);
+      setCameras(data.available_cameras || []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch cameras';
       setError(errorMessage);
