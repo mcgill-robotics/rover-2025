@@ -15,7 +15,7 @@ websockets==12.0
 python-multipart==0.0.6
 
 # ===== Computer Vision & Camera Processing =====
-opencv-python==4.8.1.78
+opencv-contrib-python==4.8.1.78
 # Note: If you encounter conflicts, uninstall other opencv packages first:
 # pip uninstall opencv-python opencv-python-headless opencv-contrib-python -y
 # pip install --no-cache-dir opencv-contrib-python

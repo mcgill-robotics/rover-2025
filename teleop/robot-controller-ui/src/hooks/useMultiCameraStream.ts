@@ -113,10 +113,33 @@ export function useMultiCameraStream({
     initializeStreamState(cameraId);
 
     const wsUrl = `${backendUrl}/stream?camera_id=${encodeURIComponent(cameraId)}`;
-    const ws = new WebSocket(wsUrl);
+    
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (error) {
+      console.error('Failed to create WebSocket object:', error);
+      setStreamStates(prev => ({
+        ...prev,
+        [cameraId]: { ...prev[cameraId], error: `Failed to create WebSocket: ${error}` }
+      }));
+      return;
+    }
+
+    // Add a timeout to detect stuck connections
+    const connectionTimeout = setTimeout(() => {
+      if (ws.readyState === WebSocket.CONNECTING) {
+        console.error(`WebSocket connection timeout for camera ${cameraId}`);
+        ws.close();
+        setStreamStates(prev => ({
+          ...prev,
+          [cameraId]: { ...prev[cameraId], error: 'Connection timeout' }
+        }));
+      }
+    }, 10000); // 10 second timeout
 
     ws.onopen = () => {
-      console.log(`WebSocket connected for camera ${cameraId}`);
+      clearTimeout(connectionTimeout);
       setStreamStates(prev => ({
         ...prev,
         [cameraId]: { ...prev[cameraId], isConnected: true, error: null }
@@ -158,6 +181,9 @@ export function useMultiCameraStream({
                 canvas.height = img.height;
                 ctx.drawImage(img, 0, 0);
               };
+              img.onerror = (err) => {
+                console.error(`Image load error for ${cameraId}:`, err);
+              };
               img.src = `data:image/jpeg;base64,${data.frame_data}`;
             }
           }
@@ -165,6 +191,7 @@ export function useMultiCameraStream({
           // Update FPS
           updateFPS(cameraId);
         } else if (data.type === 'error') {
+          console.error(`Server error for camera ${cameraId}:`, data.message);
           setStreamStates(prev => ({
             ...prev,
             [cameraId]: { ...prev[cameraId], error: data.message }
@@ -184,7 +211,7 @@ export function useMultiCameraStream({
     };
 
     ws.onclose = (event) => {
-      console.log(`WebSocket closed for camera ${cameraId}:`, event.code, event.reason);
+      clearTimeout(connectionTimeout);
       
       setStreamStates(prev => ({
         ...prev,

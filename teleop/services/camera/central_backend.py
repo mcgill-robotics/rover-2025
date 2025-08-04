@@ -293,8 +293,21 @@ class MultiCameraBackend:
                 return {"error": str(e)}
 
         @self.app.websocket("/stream")
-        async def websocket_stream(websocket: WebSocket, camera_id: str):
+        async def websocket_stream(websocket: WebSocket, camera_id: str = None):
             await websocket.accept()
+            
+            # Get camera_id from query parameters if not provided as path parameter
+            if not camera_id:
+                query_params = dict(websocket.query_params)
+                camera_id = query_params.get('camera_id')
+            
+            if not camera_id:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "camera_id parameter is required"
+                })
+                await websocket.close()
+                return
 
             if camera_id not in self.cameras:
                 await websocket.send_json({

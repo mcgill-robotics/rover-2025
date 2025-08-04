@@ -18,6 +18,9 @@ interface AvailableCamera {
   host: string;
   last_heartbeat: number;
   status: string;
+  fps?: number;
+  resolution?: [number, number];
+  backend_is_active?: boolean;
 }
 
 interface CameraManagementState {
@@ -164,16 +167,41 @@ const MultiCameraView: React.FC = () => {
     
     try {
       const backendUrl = CAMERA_CONFIG.BACKEND.WEBSOCKET_URL.replace('ws://', 'http://');
-      const response = await fetch(`${backendUrl}/api/cameras/available`);
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Fetch both available cameras and active cameras to get FPS info
+      const [availableResponse, activeCamerasResponse] = await Promise.all([
+        fetch(`${backendUrl}/api/cameras/available`),
+        fetch(`${backendUrl}/api/cameras`)
+      ]);
+      
+      if (!availableResponse.ok) {
+        throw new Error(`HTTP ${availableResponse.status}: ${availableResponse.statusText}`);
       }
       
-      const data = await response.json();
+      const availableData = await availableResponse.json();
+      let activeCamerasData = { cameras: [] };
+      
+      if (activeCamerasResponse.ok) {
+        activeCamerasData = await activeCamerasResponse.json();
+      }
+      
+      // Merge available cameras with active camera data (FPS, resolution)
+      const availableCameras: AvailableCamera[] = availableData.available_cameras || [];
+      const activeCameras: Array<{ camera_id: string; fps?: number; resolution?: [number, number]; is_active?: boolean }> = activeCamerasData.cameras || [];
+      
+      const enrichedCameras = availableCameras.map((availableCamera) => {
+        const activeCamera = activeCameras.find((ac) => ac.camera_id === availableCamera.camera_id);
+        return {
+          ...availableCamera,
+          fps: activeCamera?.fps || 0,
+          resolution: activeCamera?.resolution || [0, 0] as [number, number],
+          backend_is_active: activeCamera?.is_active || false
+        };
+      });
+      
       setCameraManagement(prev => ({
         ...prev,
-        availableCameras: data.available_cameras || [],
+        availableCameras: enrichedCameras,
         loading: false,
       }));
     } catch (err) {
@@ -534,7 +562,6 @@ const MultiCameraView: React.FC = () => {
                       );
                       const streamState = streamStates[availableCamera.camera_id];
                       const isStreaming = streamState?.isReceivingFrames || false;
-                      const fps = streamState?.fps || 0;
                       
                       return (
                         <div key={availableCamera.camera_id} className="flex items-center justify-between text-sm">
@@ -546,7 +573,7 @@ const MultiCameraView: React.FC = () => {
                                 <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
                                   isStreaming ? 'bg-green-400' : 'bg-yellow-400'
                                 }`}></span>
-                                {isStreaming ? 'Live' : 'Active'} • FPS: {fps}
+                                {isStreaming ? 'Live' : 'Active'} • FPS: {availableCamera.fps || 0}
                               </div>
                             )}
                           </div>
@@ -565,15 +592,19 @@ const MultiCameraView: React.FC = () => {
                                   onClick={() => {
                                     if (viewMode === 'single') {
                                       const cameraIndex = allAvailableCameras.findIndex(cam => cam.camera_id === availableCamera.camera_id);
+                                      
                                       if (cameraIndex !== -1) {
                                         setSelectedCameraIndex(cameraIndex);
+                                        connectCamera(availableCamera.camera_id);
                                       }
                                     } else {
                                       const camera = cameras.find(cam => cam.camera_id === availableCamera.camera_id);
+                                      
                                       if (camera && !isAlreadyInSlot) {
                                         addCameraToSlot(camera);
                                       }
                                     }
+                                    
                                     setShowCameraManager(false);
                                   }}
                                   disabled={viewMode === 'multi' && isAlreadyInSlot}

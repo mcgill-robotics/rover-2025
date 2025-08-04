@@ -84,7 +84,7 @@ class MultiCameraStreamer:
                             video_num = int(video_match.group(1))
                             # Only use even-numbered video devices (0, 2, 4, etc.)
                             # Odd numbers are typically metadata streams
-                            if video_num % 2 == 0:
+                            if video_num % 2 == 0 and video_num < 10:
                                 camera_id = f"{self.device_id}-cam{device_counter:02d}"
                                 camera_info = CameraInfo(camera_id, current_name, device_path)
                                 cameras.append(camera_info)
