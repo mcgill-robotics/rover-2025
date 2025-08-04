@@ -83,6 +83,9 @@ class MultiCameraBackend:
         self.udp_sock = None
         self.udp_port = get_backend_config()["UDP_PORT"]
 
+        # Track connected Jetson devices and their command ports
+        self.jetson_devices: Dict[str, dict] = {}  # device_id -> {host, command_port, last_heartbeat}
+
         # Initialize ArUco detector
         self.aruco_detector = None
         if self.enable_aruco:
@@ -111,12 +114,120 @@ class MultiCameraBackend:
     def setup_routes(self):
         @self.app.get("/api/cameras")
         async def get_cameras():
+            """Get currently active cameras."""
             current_time = time.time()
             active_cameras = []
             for camera_id, info in self.cameras.items():
                 if current_time - info.last_frame_time < self.inactive_timeout:
                     active_cameras.append({**info.__dict__})
             return {"cameras": active_cameras}
+
+        @self.app.get("/api/cameras/available")
+        async def get_available_cameras():
+            """Get all available cameras from connected Jetson devices."""
+            available_cameras = []
+            current_time = time.time()
+            
+            for device_id, device_info in self.jetson_devices.items():
+                # Only include devices that have sent recent heartbeats
+                if current_time - device_info['last_heartbeat'] < 30:
+                    # Get camera info from the stored heartbeat data
+                    cameras_data = device_info.get('cameras', {})
+                    
+                    for camera_id, camera_info in cameras_data.items():
+                        available_cameras.append({
+                            "camera_id": camera_id,
+                            "device_id": device_id,
+                            "name": camera_info.get('name', camera_id),
+                            "device_path": camera_info.get('device_path', ''),
+                            "is_active": camera_info.get('is_active', False),
+                            "rtp_port": camera_info.get('rtp_port'),
+                            "host": device_info['host'],
+                            "last_heartbeat": device_info['last_heartbeat'],
+                            "status": "connected"
+                        })
+            
+            return {
+                "available_cameras": available_cameras, 
+                "total_devices": len(self.jetson_devices),
+                "total_cameras": len(available_cameras)
+            }
+
+        @self.app.post("/api/cameras/{camera_id}/start")
+        async def start_camera(camera_id: str):
+            """Request to start a specific camera."""
+            try:
+                # Find which device this camera belongs to
+                device_id = None
+                for cam_id, cam_info in self.cameras.items():
+                    if cam_id == camera_id:
+                        device_id = cam_info.device_id
+                        break
+                
+                # If camera not found in active cameras, try to find it from device info
+                if not device_id:
+                    # Extract device_id from camera_id (assuming format like "jetson-01-cam00")
+                    parts = camera_id.split('-')
+                    if len(parts) >= 2:
+                        potential_device_id = '-'.join(parts[:-1])  # e.g., "jetson-01"
+                        if potential_device_id in self.jetson_devices:
+                            device_id = potential_device_id
+                
+                if not device_id:
+                    return {"error": f"Cannot determine device for camera {camera_id}"}
+                
+                # Send start command to Jetson device
+                command = {
+                    "type": "start_camera",
+                    "camera_id": camera_id
+                }
+                
+                success = self.send_command_to_jetson(device_id, command)
+                
+                if success:
+                    return {"success": True, "message": f"Start command sent for camera {camera_id}"}
+                else:
+                    return {"error": f"Failed to send start command for camera {camera_id}"}
+                    
+            except Exception as e:
+                logger.error(f"Failed to start camera {camera_id}: {e}")
+                return {"error": str(e)}
+
+        @self.app.post("/api/cameras/{camera_id}/stop")
+        async def stop_camera(camera_id: str):
+            """Request to stop a specific camera."""
+            try:
+                # Find which device this camera belongs to
+                device_id = None
+                if camera_id in self.cameras:
+                    device_id = self.cameras[camera_id].device_id
+                else:
+                    # Extract device_id from camera_id (assuming format like "jetson-01-cam00")
+                    parts = camera_id.split('-')
+                    if len(parts) >= 2:
+                        potential_device_id = '-'.join(parts[:-1])  # e.g., "jetson-01"
+                        if potential_device_id in self.jetson_devices:
+                            device_id = potential_device_id
+                
+                if not device_id:
+                    return {"error": f"Cannot determine device for camera {camera_id}"}
+                
+                # Send stop command to Jetson device
+                command = {
+                    "type": "stop_camera",
+                    "camera_id": camera_id
+                }
+                
+                success = self.send_command_to_jetson(device_id, command)
+                
+                if success:
+                    return {"success": True, "message": f"Stop command sent for camera {camera_id}"}
+                else:
+                    return {"error": f"Failed to send stop command for camera {camera_id}"}
+                    
+            except Exception as e:
+                logger.error(f"Failed to stop camera {camera_id}: {e}")
+                return {"error": str(e)}
 
         @self.app.post("/api/cameras/add")
         async def add_camera(camera_data: dict):
@@ -273,24 +384,59 @@ class MultiCameraBackend:
             logger.error(f"Failed to parse UDP packet: {e}")
             return None
 
-    def handle_heartbeat(self, heartbeat_data: dict):
+    def send_command_to_jetson(self, device_id: str, command: dict):
+        """Send command to Jetson device."""
+        try:
+            if device_id not in self.jetson_devices:
+                logger.error(f"Jetson device {device_id} not found")
+                return False
+                
+            device_info = self.jetson_devices[device_id]
+            host = device_info['host']
+            command_port = device_info['command_port']
+            
+            # Send command via UDP
+            command_json = json.dumps(command).encode('utf-8')
+            
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.sendto(command_json, (host, command_port))
+            sock.close()
+            
+            logger.info(f"Sent command to {device_id} at {host}:{command_port}: {command}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to send command to {device_id}: {e}")
+            return False
+
+    def handle_heartbeat(self, heartbeat_data: dict, sender_addr: tuple):
         """Handle heartbeat message from Jetson device."""
         try:
             device_id = heartbeat_data.get('device_id')
             cameras = heartbeat_data.get('cameras', {})
             
+            # Update Jetson device info
+            if device_id:
+                self.jetson_devices[device_id] = {
+                    'host': sender_addr[0],
+                    'command_port': self.udp_port + 1,  # Jetson uses udp_port + 1 for commands
+                    'last_heartbeat': time.time(),
+                    'cameras': cameras  # Store camera information from heartbeat
+                }
+            
             logger.debug(f"Received heartbeat from {device_id} with {len(cameras)} cameras")
             
+            # Only track available cameras, don't automatically start them
             for camera_id, camera_info in cameras.items():
-                rtp_port = camera_info.get('rtp_port')
-                is_active = camera_info.get('is_active', False)
                 name = camera_info.get('name', camera_id)
-                camera_type = camera_info.get('camera_type', 'UNKNOWN')
+                device_path = camera_info.get('device_path', '')
+                is_active = camera_info.get('is_active', False)
+                rtp_port = camera_info.get('rtp_port')
                 
-                if rtp_port and is_active:
-                    # Check if we need to add or update this camera
+                # If camera is active and has RTP port, handle it
+                if is_active and rtp_port:
                     if camera_id not in self.cameras:
-                        # Add new camera
+                        # Add new active camera
                         try:
                             reader = self.camera_readers.add_camera(camera_id, rtp_port)
                             
@@ -315,7 +461,7 @@ class MultiCameraBackend:
                             )
                             thread.start()
                             
-                            logger.info(f"Added camera {camera_id} from heartbeat on RTP port {rtp_port}")
+                            logger.info(f"Added active camera {camera_id} from heartbeat on RTP port {rtp_port}")
                             
                         except Exception as e:
                             logger.error(f"Failed to add camera {camera_id} from heartbeat: {e}")
@@ -356,9 +502,16 @@ class MultiCameraBackend:
                             camera.is_active = True
                 
                 elif camera_id in self.cameras and not is_active:
-                    # Camera became inactive
-                    self.cameras[camera_id].is_active = False
-                    logger.debug(f"Camera {camera_id} marked as inactive")
+                    # Camera became inactive, remove it
+                    logger.info(f"Removing inactive camera {camera_id}")
+                    self.camera_readers.remove_camera(camera_id)
+                    del self.cameras[camera_id]
+                    self.frame_buffers.pop(camera_id, None)
+                    
+                    # Close WebSocket connections
+                    connections = self.websocket_connections.pop(camera_id, set())
+                    for ws in connections:
+                        asyncio.run_coroutine_threadsafe(ws.close(), self.loop)
                     
         except Exception as e:
             logger.error(f"Failed to handle heartbeat: {e}")
@@ -388,7 +541,7 @@ class MultiCameraBackend:
                         try:
                             heartbeat_data = json.loads(packet_info['payload'].decode('utf-8'))
                             logger.info(f"Received heartbeat from {heartbeat_data.get('device_id', 'unknown')} at {addr}")
-                            self.handle_heartbeat(heartbeat_data)
+                            self.handle_heartbeat(heartbeat_data, addr)
                         except Exception as e:
                             logger.error(f"Failed to parse heartbeat JSON: {e}")
                     

@@ -6,8 +6,25 @@ import { useBandwidthStats } from "@/hooks/useBandwidthStats";
 import { CAMERA_CONFIG } from "@/config/camera";
 
 import DPad from "./DPadController";
-import PowerButton from "@/components/ui/PowerButton";
 import ArrowButton from "@/components/ui/ArrowButton";
+
+interface AvailableCamera {
+  camera_id: string;
+  device_id: string;
+  name: string;
+  device_path: string;
+  is_active: boolean;
+  rtp_port: number | null;
+  host: string;
+  last_heartbeat: number;
+  status: string;
+}
+
+interface CameraManagementState {
+  availableCameras: AvailableCamera[];
+  loading: boolean;
+  error: string | null;
+}
 
 type ViewMode = 'single' | 'multi';
 
@@ -19,14 +36,15 @@ interface CameraSlot {
 const MultiCameraView: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('single');
   const [selectedCameraIndex, setSelectedCameraIndex] = useState(0);
-  const [multiCameraSlots, setMultiCameraSlots] = useState<CameraSlot[]>([
-    { camera: null, isActive: false },
-    { camera: null, isActive: false },
-    { camera: null, isActive: false },
-    { camera: null, isActive: false }
-  ]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [availableCameraIndex, setAvailableCameraIndex] = useState(0);
+  const [multiCameraSlots, setMultiCameraSlots] = useState<CameraSlot[]>([]);
+  const [showCameraManager, setShowCameraManager] = useState(false);
+  
+  // Camera management state
+  const [cameraManagement, setCameraManagement] = useState<CameraManagementState>({
+    availableCameras: [],
+    loading: false,
+    error: null,
+  });
 
   const {
     cameras,
@@ -45,33 +63,52 @@ const MultiCameraView: React.FC = () => {
     Object.values(streamStates).some(state => state.isReceivingFrames)
   );
 
-  // Get currently selected camera for single mode
-  const selectedCamera = cameras[selectedCameraIndex] || null;
+  // Get all available cameras from the API
+  const allAvailableCameras = cameraManagement.availableCameras;
+  
+  // Get currently selected camera for single mode (from all available cameras)
+  const selectedAvailableCamera = allAvailableCameras[selectedCameraIndex] || null;
+  const selectedCamera = selectedAvailableCamera ? cameras.find(cam => cam.camera_id === selectedAvailableCamera.camera_id) : null;
 
-  // Get active cameras in multi mode
+  // Get active cameras in multi mode (dynamic slots)
   const activeCameras = multiCameraSlots.filter(slot => slot.camera && slot.isActive);
 
-  // Handle single camera navigation
-  const handleNext = () => {
-    if (cameras.length === 0) return;
-    const nextIndex = (selectedCameraIndex + 1) % cameras.length;
+  // Handle single camera navigation - cycle through ALL available cameras
+  const handleNext = async () => {
+    if (allAvailableCameras.length === 0) return;
+    const nextIndex = (selectedCameraIndex + 1) % allAvailableCameras.length;
     setSelectedCameraIndex(nextIndex);
+    
+    // Auto-start camera if it's not active
+    const nextCamera = allAvailableCameras[nextIndex];
+    if (nextCamera && !nextCamera.is_active) {
+      await startCamera(nextCamera.camera_id);
+    }
   };
 
-  const handlePrevious = () => {
-    if (cameras.length === 0) return;
-    const prevIndex = (selectedCameraIndex - 1 + cameras.length) % cameras.length;
+  const handlePrevious = async () => {
+    if (allAvailableCameras.length === 0) return;
+    const prevIndex = (selectedCameraIndex - 1 + allAvailableCameras.length) % allAvailableCameras.length;
     setSelectedCameraIndex(prevIndex);
+    
+    // Auto-start camera if it's not active
+    const prevCamera = allAvailableCameras[prevIndex];
+    if (prevCamera && !prevCamera.is_active) {
+      await startCamera(prevCamera.camera_id);
+    }
   };
 
-  // Handle multi-camera slot management
+  // Handle multi-camera slot management (dynamic)
   const addCameraToSlot = (camera: CameraInfo) => {
-    const emptySlotIndex = multiCameraSlots.findIndex(slot => !slot.camera);
-    if (emptySlotIndex === -1) return; // No empty slots
+    // Check if camera is already in a slot
+    const isAlreadyInSlot = multiCameraSlots.some(slot => 
+      slot.camera?.camera_id === camera.camera_id
+    );
+    if (isAlreadyInSlot) return;
 
-    const newSlots = [...multiCameraSlots];
-    newSlots[emptySlotIndex] = { camera, isActive: true };
-    setMultiCameraSlots(newSlots);
+    // Add camera to a new slot
+    const newSlot: CameraSlot = { camera, isActive: true };
+    setMultiCameraSlots(prev => [...prev, newSlot]);
     connectCamera(camera.camera_id);
   };
 
@@ -79,85 +116,25 @@ const MultiCameraView: React.FC = () => {
     const slot = multiCameraSlots[slotIndex];
     if (slot.camera) {
       disconnectCamera(slot.camera.camera_id);
-      const newSlots = [...multiCameraSlots];
-      newSlots[slotIndex] = { camera: null, isActive: false };
-      setMultiCameraSlots(newSlots);
+      // Remove the slot entirely (dynamic)
+      setMultiCameraSlots(prev => prev.filter((_, index) => index !== slotIndex));
     }
   };
 
-  // Handle arrow navigation in multi mode
-  const handleMultiModeNext = () => {
-    if (cameras.length === 0) return;
-    const nextIndex = (availableCameraIndex + 1) % cameras.length;
-    setAvailableCameraIndex(nextIndex);
-  };
-
-  const handleMultiModePrevious = () => {
-    if (cameras.length === 0) return;
-    const prevIndex = (availableCameraIndex - 1 + cameras.length) % cameras.length;
-    setAvailableCameraIndex(prevIndex);
-  };
-
-  const addCurrentAvailableCamera = () => {
-    const camera = cameras[availableCameraIndex];
-    if (camera && !multiCameraSlots.some(slot => slot.camera?.camera_id === camera.camera_id)) {
-      addCameraToSlot(camera);
-    }
-  };
-
-  // Start/stop streaming
-  const handleStartStop = () => {
-    if (viewMode === 'single') {
-      if (selectedCamera) {
-        const streamState = streamStates[selectedCamera.camera_id];
-        if (streamState?.isConnected) {
-          disconnectCamera(selectedCamera.camera_id);
-        } else {
-          connectCamera(selectedCamera.camera_id);
-        }
-      }
-    } else {
-      // Multi mode - toggle all active cameras
-      const hasActiveStreams = activeCameras.some(slot => 
-        streamStates[slot.camera!.camera_id]?.isConnected
-      );
-      
-      if (hasActiveStreams) {
-        // Stop all
-        activeCameras.forEach(slot => {
-          if (slot.camera) {
-            disconnectCamera(slot.camera.camera_id);
-          }
-        });
-      } else {
-        // Start all
-        activeCameras.forEach(slot => {
-          if (slot.camera) {
-            connectCamera(slot.camera.camera_id);
-          }
-        });
-      }
-    }
-  };
-
-  // Get grid layout class based on number of active cameras
-  const getGridLayout = (activeCameraCount: number) => {
-    switch (activeCameraCount) {
+  // Get grid layout class based on number of cameras
+  const getGridLayout = (cameraCount: number) => {
+    switch (cameraCount) {
       case 1: return "grid-cols-1 grid-rows-1";
       case 2: return "grid-cols-2 grid-rows-1";
       case 3: return "grid-cols-2 grid-rows-2";
       case 4: return "grid-cols-2 grid-rows-2";
-      default: return "grid-cols-1 grid-rows-1";
+      case 5: return "grid-cols-3 grid-rows-2";
+      case 6: return "grid-cols-3 grid-rows-2";
+      default: return "grid-cols-3 grid-rows-3";
     }
   };
 
-  // Calculate individual camera size for 3-camera layout
-  const getCameraSize = (index: number, total: number) => {
-    if (total === 3) {
-      return index === 0 ? "col-span-2" : "col-span-1";
-    }
-    return "";
-  };
+
 
   // Check if streaming
   const isStreaming = viewMode === 'single' 
@@ -181,78 +158,136 @@ const MultiCameraView: React.FC = () => {
         slot.camera && streamStates[slot.camera.camera_id]?.isReceivingFrames
       );
 
-  // Refresh cameras periodically
+  // Camera management functions
+  const fetchAvailableCameras = async () => {
+    setCameraManagement(prev => ({ ...prev, loading: true, error: null }));
+    
+    try {
+      const backendUrl = CAMERA_CONFIG.BACKEND.WEBSOCKET_URL.replace('ws://', 'http://');
+      const response = await fetch(`${backendUrl}/api/cameras/available`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setCameraManagement(prev => ({
+        ...prev,
+        availableCameras: data.available_cameras || [],
+        loading: false,
+      }));
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch available cameras';
+      setCameraManagement(prev => ({ ...prev, error: errorMessage, loading: false }));
+      console.error('Failed to fetch available cameras:', err);
+    }
+  };
+
+  const startCamera = async (cameraId: string) => {
+    setCameraManagement(prev => ({ ...prev, loading: true, error: null }));
+    
+    try {
+      const backendUrl = CAMERA_CONFIG.BACKEND.WEBSOCKET_URL.replace('ws://', 'http://');
+      const response = await fetch(`${backendUrl}/api/cameras/${cameraId}/start`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to start camera');
+      }
+      
+      console.log(`Camera ${cameraId} start command sent successfully`);
+      
+      // Refresh cameras after a short delay
+      setTimeout(() => {
+        fetchCameras();
+      }, 2000);
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : `Failed to start camera ${cameraId}`;
+      setCameraManagement(prev => ({ ...prev, error: errorMessage }));
+      console.error(`Failed to start camera ${cameraId}:`, err);
+    } finally {
+      setCameraManagement(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const stopCamera = async (cameraId: string) => {
+    setCameraManagement(prev => ({ ...prev, loading: true, error: null }));
+    
+    try {
+      const backendUrl = CAMERA_CONFIG.BACKEND.WEBSOCKET_URL.replace('ws://', 'http://');
+      const response = await fetch(`${backendUrl}/api/cameras/${cameraId}/stop`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to stop camera');
+      }
+      
+      console.log(`Camera ${cameraId} stop command sent successfully`);
+      
+      // Refresh cameras after a short delay
+      setTimeout(() => {
+        fetchCameras();
+      }, 1000);
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : `Failed to stop camera ${cameraId}`;
+      setCameraManagement(prev => ({ ...prev, error: errorMessage }));
+      console.error(`Failed to stop camera ${cameraId}:`, err);
+    } finally {
+      setCameraManagement(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  // Refresh cameras periodically - more frequent to prevent disappearing
   useEffect(() => {
-    const interval = setInterval(fetchCameras, 10000); // Refresh every 10 seconds
+    const interval = setInterval(() => {
+      fetchCameras();
+      fetchAvailableCameras();
+    }, 5000); // Refresh every 5 seconds instead of 10
     return () => clearInterval(interval);
   }, [fetchCameras]);
+
+  // Initial fetch of available cameras
+  useEffect(() => {
+    fetchAvailableCameras();
+    // Also fetch immediately after a short delay to ensure we get the data
+    const timeout = setTimeout(() => {
+      fetchAvailableCameras();
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // Refresh available cameras when the camera manager is opened
+  useEffect(() => {
+    if (showCameraManager) {
+      fetchAvailableCameras();
+    }
+  }, [showCameraManager]);
 
   return (
     <div className="relative w-full h-screen bg-black flex flex-col">
       {/* Top Controls */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-4">
-        {/* View Mode Toggle */}
+        {/* Camera Manager Toggle */}
         <button
-          onClick={() => setViewMode(viewMode === 'single' ? 'multi' : 'single')}
-          className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg backdrop-blur-md transition-colors"
+          onClick={() => setShowCameraManager(!showCameraManager)}
+          className="bg-green-600/50 hover:bg-green-600 text-white px-4 py-2 rounded-lg backdrop-blur-md transition-all duration-300"
         >
-          {viewMode === 'single' ? 'Multi View' : 'Single View'}
+          {showCameraManager ? 'Hide Manager' : 'Manage Cameras'}
         </button>
-
-        {/* Camera Dropdown (Multi Mode) */}
-        {viewMode === 'multi' && (
-          <div className="relative">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg backdrop-blur-md transition-colors min-w-[200px] text-left"
-            >
-              {cameras[availableCameraIndex]?.name || 'No cameras available'}
-              <span className="float-right">▼</span>
-            </button>
-            
-            {isDropdownOpen && (
-              <div className="absolute top-full mt-2 left-0 bg-black/90 backdrop-blur-md rounded-lg border border-white/20 min-w-[200px] max-h-60 overflow-y-auto z-40">
-                {cameras.map((camera, index) => {
-                  const isAlreadySelected = multiCameraSlots.some(slot => 
-                    slot.camera?.camera_id === camera.camera_id
-                  );
-                  
-                  return (
-                    <button
-                      key={camera.camera_id}
-                      onClick={() => {
-                        setAvailableCameraIndex(index);
-                        setIsDropdownOpen(false);
-                        if (!isAlreadySelected) {
-                          addCameraToSlot(camera);
-                        }
-                      }}
-                      disabled={isAlreadySelected}
-                      className={`w-full text-left px-4 py-2 hover:bg-white/10 transition-colors ${
-                        isAlreadySelected ? 'text-gray-500 cursor-not-allowed' : 'text-white'
-                      } ${index === availableCameraIndex ? 'bg-white/10' : ''}`}
-                    >
-                      {camera.name}
-                      {isAlreadySelected && <span className="float-right">✓</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Add Camera Button (Multi Mode) */}
-        {viewMode === 'multi' && cameras[availableCameraIndex] && (
-          <button
-            onClick={addCurrentAvailableCamera}
-            disabled={multiCameraSlots.every(slot => slot.camera) || 
-                     multiCameraSlots.some(slot => slot.camera?.camera_id === cameras[availableCameraIndex]?.camera_id)}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            Add Camera
-          </button>
-        )}
       </div>
 
       {/* Main Content Area */}
@@ -267,12 +302,17 @@ const MultiCameraView: React.FC = () => {
 
             <div className="absolute top-4 left-4 text-white text-base bg-black/50 px-4 py-2 rounded-lg">
               <strong>{selectedCamera.name}</strong><br />
-              <span
-                className={`inline-block w-2.5 h-2.5 rounded-full mr-2 ${
-                  isLive ? "bg-lime-400" : "bg-red-500"
-                }`}
-              ></span>
-              Live
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-block w-2.5 h-2.5 rounded-full ${
+                    isLive ? "bg-lime-400" : "bg-red-500"
+                  }`}
+                ></span>
+                <span>Live</span>
+                <span className="text-sm opacity-75">
+                  ({selectedCameraIndex + 1} of {allAvailableCameras.length})
+                </span>
+              </div>
             </div>
 
             <div className="absolute top-4 right-4 text-white text-sm bg-black/50 px-4 py-2 rounded-lg text-right">
@@ -294,20 +334,26 @@ const MultiCameraView: React.FC = () => {
           </div>
         ) : (
           <div className="absolute inset-0 flex flex-col justify-center items-center bg-black/60 text-white text-center z-10">
-            <p className="bg-white/10 px-6 py-4 rounded-xl font-medium backdrop-blur-md">
+            <div className="bg-white/10 px-6 py-4 rounded-xl font-medium backdrop-blur-md">
               {selectedCamera ? (
                 <>
-                  No stream yet.
-                  <br />
-                  Click <strong>Start</strong> to begin.
+                  <p className="mb-2">No stream yet.</p>
+                  <p className="text-sm opacity-75">
+                    Open <strong>Camera Manager</strong> to start cameras
+                  </p>
                 </>
               ) : (
                 <>
-                  {isLoading ? 'Loading cameras...' : 'No cameras available'}
-                  {error && <><br />Error: {error}</>}
+                  <p className="mb-2">
+                    {isLoading ? 'Loading cameras...' : 'No cameras available'}
+                  </p>
+                  <p className="text-sm opacity-75">
+                    Click <strong>Manage Cameras</strong> to get started
+                  </p>
+                  {error && <p className="text-red-400 text-xs mt-2">Error: {error}</p>}
                 </>
               )}
-            </p>
+            </div>
           </div>
         )
       ) : (
@@ -326,7 +372,7 @@ const MultiCameraView: React.FC = () => {
                 return (
                   <div
                     key={slot.camera.camera_id}
-                    className={`relative bg-gray-900 rounded-lg overflow-hidden ${getCameraSize(index, activeCameras.length)}`}
+                    className="relative bg-gray-900 rounded-lg overflow-hidden"
                   >
                     {isConnected ? (
                       <canvas
@@ -355,10 +401,11 @@ const MultiCameraView: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Remove Camera Button */}
+                    {/* Remove Camera Button - Improved visibility */}
                     <button
                       onClick={() => removeCameraFromSlot(index)}
-                      className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm transition-colors"
+                      className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold transition-colors shadow-lg border-2 border-white/20 hover:border-white/40 z-10"
+                      title={`Remove ${slot.camera.name}`}
                     >
                       ×
                     </button>
@@ -376,55 +423,195 @@ const MultiCameraView: React.FC = () => {
           ) : (
             <div className="flex items-center justify-center h-full text-white text-center">
               <div className="bg-white/10 px-6 py-4 rounded-xl backdrop-blur-md">
-                <p className="font-medium mb-2">No cameras selected</p>
+                <p className="font-medium mb-2">No cameras in multi-view</p>
                 <p className="text-sm opacity-75">
-                  Use the dropdown above to add cameras to the grid
+                  Open <strong>Camera Manager</strong> to start and add cameras
                 </p>
               </div>
             </div>
           )}
-
-          {/* Arrow Navigation for Multi Mode */}
-          {viewMode === 'multi' && (
-            <>
-              <ArrowButton direction="left" onClick={handleMultiModePrevious} />
-              <ArrowButton direction="right" onClick={handleMultiModeNext} />
-            </>
-          )}
         </div>
       )}
 
-      {/* Global Stats (Multi Mode) */}
+      {/* View Mode Toggle - Bottom Left */}
+      <div className="absolute bottom-4 left-4 z-30">
+        <div className="bg-gray-800/90 backdrop-blur-lg rounded-xl p-1.5 border border-gray-600/50 shadow-2xl">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setViewMode('single')}
+              className={`relative px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                viewMode === 'single'
+                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25 scale-105'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50 hover:scale-102'
+              }`}
+            >
+              <span className="relative z-10">Single</span>
+              {viewMode === 'single' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-500 rounded-lg blur-sm opacity-50"></div>
+              )}
+            </button>
+            <button
+              onClick={() => setViewMode('multi')}
+              className={`relative px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                viewMode === 'multi'
+                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25 scale-105'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50 hover:scale-102'
+              }`}
+            >
+              <span className="relative z-10">Multi</span>
+              {viewMode === 'multi' && (
+                <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-500 rounded-lg blur-sm opacity-50"></div>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Global Stats (Multi Mode) - Top Right */}
       {viewMode === 'multi' && activeCameras.length > 0 && (
-        <div className="absolute top-4 right-4 text-white text-sm bg-black/50 px-4 py-2 rounded-lg text-right">
-          Cameras: {activeCameras.length}
-          <br />
-          Total FPS: {overallFPS.toFixed(1)}
-          <br />
-          Bitrate: {bitrateKbps !== "0" ? `${bitrateKbps} kbps` : "N/A"}
+        <div className="absolute top-4 right-4 text-white text-sm bg-gray-800/80 backdrop-blur-md px-4 py-2 rounded-lg text-right border border-gray-600/50">
+          <div className="font-medium text-red-300 mb-1">Multi-View Stats</div>
+          <div>Cameras: {activeCameras.length}</div>
+          <div>Total FPS: {overallFPS.toFixed(1)}</div>
+          <div>Bitrate: {bitrateKbps !== "0" ? `${bitrateKbps} kbps` : "N/A"}</div>
         </div>
       )}
 
-      {/* Power Button */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20">
-        <PowerButton
-          onClick={handleStartStop}
-          size="small"
-          isActive={!!isStreaming}
-          label="Start"
-        />
-      </div>
 
-      {/* Refresh Button */}
-      <div className="absolute bottom-2 right-4 z-20">
-        <button
-          onClick={fetchCameras}
-          disabled={isLoading}
-          className="bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white p-2 rounded-lg backdrop-blur-md transition-colors"
-        >
-          {isLoading ? '⟳' : '↻'}
-        </button>
-      </div>
+      {/* Camera Management Panel */}
+      {showCameraManager && (
+        <div className="absolute top-20 left-4 right-4 bg-gray-800/95 backdrop-blur-md rounded-lg border border-gray-600/50 p-4 z-40 max-h-[60vh] overflow-y-auto shadow-2xl">
+          <div className="text-white">
+            <h3 className="text-lg font-bold mb-4 text-gray-100">Camera Management</h3>
+            
+            {cameraManagement.error && (
+              <div className="bg-red-600/20 border border-red-500/50 text-red-200 p-3 rounded-lg mb-4">
+                {cameraManagement.error}
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Connected Devices */}
+              <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600/30">
+                <h4 className="font-semibold mb-2 text-gray-200">Connected Devices</h4>
+                {cameraManagement.availableCameras.length > 0 ? (
+                  <div className="space-y-2">
+                    {/* Group cameras by device_id to avoid duplicate keys */}
+                    {Array.from(new Set(cameraManagement.availableCameras.map(cam => cam.device_id))).map(deviceId => {
+                      const deviceCameras = cameraManagement.availableCameras.filter(cam => cam.device_id === deviceId);
+                      const firstCamera = deviceCameras[0];
+                      return (
+                        <div key={deviceId} className="flex items-center justify-between text-sm">
+                          <div>
+                            <div className="font-medium text-gray-200">{deviceId}</div>
+                            <div className="text-gray-400">({firstCamera.host}) - {deviceCameras.length} cameras</div>
+                          </div>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            firstCamera.status === 'connected' 
+                              ? 'bg-green-600 text-green-100' 
+                              : 'bg-red-600 text-red-100'
+                          }`}>
+                            {firstCamera.status}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm">No Jetson devices connected</p>
+                )}
+              </div>
+
+              {/* All Cameras (Combined Available + Active) */}
+              <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600/30">
+                <h4 className="font-semibold mb-2 text-gray-200">All Cameras</h4>
+                {allAvailableCameras.length > 0 ? (
+                  <div className="space-y-2">
+                    {allAvailableCameras.map(availableCamera => {
+                      const isActive = availableCamera.is_active;
+                      const isAlreadyInSlot = multiCameraSlots.some(slot => 
+                        slot.camera?.camera_id === availableCamera.camera_id
+                      );
+                      const streamState = streamStates[availableCamera.camera_id];
+                      const isStreaming = streamState?.isReceivingFrames || false;
+                      const fps = streamState?.fps || 0;
+                      
+                      return (
+                        <div key={availableCamera.camera_id} className="flex items-center justify-between text-sm">
+                          <div>
+                            <div className="font-medium text-gray-200">{availableCamera.name}</div>
+                            <div className="font-mono text-xs text-gray-400">{availableCamera.camera_id}</div>
+                            {isActive && (
+                              <div className="text-xs text-gray-400 mt-1">
+                                <span className={`inline-block w-2 h-2 rounded-full mr-1 ${
+                                  isStreaming ? 'bg-green-400' : 'bg-yellow-400'
+                                }`}></span>
+                                {isStreaming ? 'Live' : 'Active'} • FPS: {fps}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            {isActive ? (
+                              <>
+                                <button
+                                  className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs transition-colors"
+                                  onClick={() => stopCamera(availableCamera.camera_id)}
+                                  disabled={cameraManagement.loading}
+                                >
+                                  Stop
+                                </button>
+                                <button
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs transition-colors"
+                                  onClick={() => {
+                                    if (viewMode === 'single') {
+                                      const cameraIndex = allAvailableCameras.findIndex(cam => cam.camera_id === availableCamera.camera_id);
+                                      if (cameraIndex !== -1) {
+                                        setSelectedCameraIndex(cameraIndex);
+                                      }
+                                    } else {
+                                      const camera = cameras.find(cam => cam.camera_id === availableCamera.camera_id);
+                                      if (camera && !isAlreadyInSlot) {
+                                        addCameraToSlot(camera);
+                                      }
+                                    }
+                                    setShowCameraManager(false);
+                                  }}
+                                  disabled={viewMode === 'multi' && isAlreadyInSlot}
+                                >
+                                  {viewMode === 'multi' && isAlreadyInSlot ? 'In Use' : 'View'}
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs transition-colors"
+                                onClick={() => startCamera(availableCamera.camera_id)}
+                                disabled={cameraManagement.loading}
+                              >
+                                Start
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm">No cameras available</p>
+                )}
+              </div>
+            </div>
+            
+            {cameraManagement.loading && (
+              <div className="mt-4 text-center">
+                <div className="inline-flex items-center gap-2 text-blue-400">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                  Processing camera command...
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,7 +3,7 @@
 // Central Backend Server Configuration
 export const MULTI_CAMERA_BACKEND = {
   // Backend server host (where central_backend.py runs)
-  HOST: "192.168.1.100", // Backend server IP (change to match your setup)
+  HOST: "localhost", // Backend server IP (change to match your setup)
   
   // HTTP port for REST API and WebSocket connections
   HTTP_PORT: 8001,

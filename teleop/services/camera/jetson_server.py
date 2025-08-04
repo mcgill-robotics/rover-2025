@@ -55,6 +55,10 @@ class MultiCameraStreamer:
         self.frame_buffer_size = 65536
         self.max_frame_size = 60000
         
+        # Command socket for receiving start/stop commands from backend
+        self.command_sock = None
+        self.command_port = backend_port + 1  # Use backend_port + 1 for commands
+        
     def discover_cameras(self) -> List[CameraInfo]:
         """Discover available cameras using v4l2-ctl, only using even-numbered video devices."""
         cameras = []
@@ -370,6 +374,101 @@ class MultiCameraStreamer:
         for camera_id in list(self.cameras.keys()):
             self.stop_camera(camera_id)
     
+    def setup_command_socket(self):
+        """Setup UDP socket for receiving commands from backend."""
+        try:
+            self.command_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.command_sock.bind(('0.0.0.0', self.command_port))
+            self.command_sock.settimeout(1.0)  # 1 second timeout
+            logger.info(f"Command socket listening on port {self.command_port}")
+        except Exception as e:
+            logger.error(f"Failed to setup command socket: {e}")
+            self.command_sock = None
+
+    def handle_command(self, command_data: dict):
+        """Handle command from backend."""
+        try:
+            command_type = command_data.get('type')
+            camera_id = command_data.get('camera_id')
+            
+            if command_type == 'start_camera':
+                logger.info(f"Received start command for camera {camera_id}")
+                success = self.start_camera(camera_id)
+                response = {
+                    'type': 'command_response',
+                    'command': 'start_camera',
+                    'camera_id': camera_id,
+                    'success': success,
+                    'device_id': self.device_id
+                }
+                self.send_command_response(response)
+                
+            elif command_type == 'stop_camera':
+                logger.info(f"Received stop command for camera {camera_id}")
+                self.stop_camera(camera_id)
+                response = {
+                    'type': 'command_response',
+                    'command': 'stop_camera',
+                    'camera_id': camera_id,
+                    'success': True,
+                    'device_id': self.device_id
+                }
+                self.send_command_response(response)
+                
+            else:
+                logger.warning(f"Unknown command type: {command_type}")
+                
+        except Exception as e:
+            logger.error(f"Failed to handle command: {e}")
+
+    def send_command_response(self, response_data: dict):
+        """Send command response back to backend."""
+        try:
+            response_json = json.dumps(response_data).encode('utf-8')
+            
+            # Send response with special camera_id
+            camera_id_bytes = b'__COMMAND_RESPONSE__'
+            camera_id_len = len(camera_id_bytes)
+            timestamp = int(time.time() * 1000)
+            
+            header = struct.pack('!BHHQ', camera_id_len, 0, 1, timestamp)
+            packet = header + camera_id_bytes + response_json
+            
+            self.sock.sendto(packet, (self.backend_host, self.backend_port))
+            logger.debug(f"Sent command response: {response_data}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send command response: {e}")
+
+    def command_listener_thread(self):
+        """Thread to listen for commands from backend."""
+        logger.info("Starting command listener thread")
+        
+        while self.running:
+            if not self.command_sock:
+                time.sleep(1)
+                continue
+                
+            try:
+                data, addr = self.command_sock.recvfrom(65536)
+                logger.debug(f"Received command from {addr}, size: {len(data)} bytes")
+                
+                try:
+                    command_data = json.loads(data.decode('utf-8'))
+                    self.handle_command(command_data)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse command JSON: {e}")
+                    
+            except socket.timeout:
+                # Normal timeout, continue
+                continue
+            except Exception as e:
+                if self.running:  # Only log if we're supposed to be running
+                    logger.debug(f"Command receive error: {e}")
+                time.sleep(0.1)
+        
+        logger.info("Command listener thread ended")
+
     def send_heartbeat(self):
         """Send periodic heartbeat with camera status including RTP port information."""
         heartbeat_failures = 0
@@ -430,8 +529,9 @@ class MultiCameraStreamer:
     
     def run(self):
         """Main run loop."""
-        logger.info(f"Starting multi-camera GStreamer streamer (device: {self.device_id})")
+        logger.info(f"Starting multi-camera GStreamer streamer service (device: {self.device_id})")
         logger.info(f"Backend: {self.backend_host}:{self.backend_port}")
+        logger.info(f"Command port: {self.command_port}")
         logger.info(f"Video settings: {self.width}x{self.height}@{self.framerate}fps, bitrate={self.bitrate}kbps")
         
         # Setup signal handlers
@@ -444,19 +544,29 @@ class MultiCameraStreamer:
             logger.error("No cameras found!")
             return
             
-        # Add cameras to our registry
+        # Add cameras to our registry (but don't start them yet)
         for camera_info in discovered_cameras:
             self.cameras[camera_info.camera_id] = camera_info
         
+        logger.info(f"Discovered {len(self.cameras)} cameras. Waiting for start commands from backend.")
+        
         self.running = True
+        
+        # Setup command socket
+        self.setup_command_socket()
         
         # Start heartbeat thread
         heartbeat_thread = threading.Thread(target=self.send_heartbeat)
         heartbeat_thread.daemon = True
         heartbeat_thread.start()
         
-        # Start all cameras
-        self.start_all_cameras()
+        # Start command listener thread
+        command_thread = threading.Thread(target=self.command_listener_thread)
+        command_thread.daemon = True
+        command_thread.start()
+        
+        # Don't start cameras automatically - wait for commands from backend
+        logger.info("Jetson camera service ready. Cameras will start when requested by backend.")
         
         try:
             # Keep main thread alive
@@ -468,6 +578,8 @@ class MultiCameraStreamer:
             logger.info("Shutting down...")
             self.running = False
             self.stop_all_cameras()
+            if self.command_sock:
+                self.command_sock.close()
             self.sock.close()
 
 def main():
