@@ -103,8 +103,10 @@ class arm_control_node(Node):
         if gamepad_input.start_button:
             if self.current_schema == IK_CONTROL:
                 self.current_schema = JOINT_CONTROL
+                print("Joint Control Activated")
             else:
                 self.current_schema = IK_CONTROL
+                print("IK Mode Activated")
 
         msg = Float32MultiArray()
         msg.data = new_angles
@@ -118,8 +120,8 @@ class arm_control_node(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    arm_control_node = arm_control_node()
-    rclpy.spin(arm_control_node)
+    arm_control_ins = arm_control_node()
+    rclpy.spin(arm_control_ins)
 
 if __name__ == "__main__":
     main()

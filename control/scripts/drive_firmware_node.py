@@ -17,6 +17,7 @@ class drive_firmware(Node):
         super().__init__("drive_firmware_node")
 
         self.drive_speed_input_subscriber     = self.create_subscription(Float32MultiArray, "drive_speed_input",   self.broadcast_speeds,   10)
+        self.drive_steering_input_subscriber  = self.create_subscription(Float32MultiArray, "drive_steering_input",   self.broadcast_steering_angles,   10)
         self.fault_acknowledgement_subscriber = self.create_subscription(Bool, "acknowledge_faults", self.clear_motor_faults, 10)
         self.drive_motors_info_publisher   = self.create_publisher(DriveMotorDiagnostic, "drive_motors_info", 10) 
         self.drive_motors_speeds_publisher = self.create_publisher(Float32MultiArray,    "drive_speeds_info", 10)
@@ -27,13 +28,10 @@ class drive_firmware(Node):
         self.drive_interface = dCAN.DriveInterface(esc_interface)
         self.nodes           = [dCAN.NodeID.RF_DRIVE, dCAN.NodeID.RB_DRIVE, dCAN.NodeID.LB_DRIVE, dCAN.NodeID.LF_DRIVE] #Steering motors should be appended
 
-        self.motor_info = {"RF": {"Voltage": 0, "Current": 0, "State": 0, "Temperature": 0},
-                           "RB": {"Voltage": 0, "Current": 0, "State": 0, "Temperature": 0},
-                           "LB": {"Voltage": 0, "Current": 0, "State": 0, "Temperature": 0},
-                           "LF": {"Voltage": 0, "Current": 0, "State": 0, "Temperature": 0}}
+        self.motor_info = {node: {"Voltage": -1.0, "Current": -1.0, "State": -1.0, "Temperature": -1.0} for node in ["RF", "RB", "LB", "LF"]}
         #Steering motors should be appended to this dict.
 
-        self.drive_speed_info = [0,0,0,0] #List entries corresponding to [RF, RB, LB, LF]
+        self.drive_speed_info = [0.0, 0.0, 0.0, 0.0] #List entries corresponding to [RF, RB, LB, LF]
         self.motors = list(self.motor_info.keys())
         self.pub_count = 0
 
@@ -45,16 +43,17 @@ class drive_firmware(Node):
         self.timer = self.create_timer(timer_period, self.run)
 
     def run(self):
-        self.update_speed_info()
-        speeds_msg = Float32MultiArray()
-        speeds_msg.data = self.drive_speed_info
-        self.drive_motors_speeds_publisher.publish(speeds_msg)
+        # self.update_speed_info()
+        # speeds_msg = Float32MultiArray()
+        # speeds_msg.data = self.drive_speed_info
+        # self.drive_motors_speeds_publisher.publish(speeds_msg)
 
-        if (self.pub_count % 5) == 0:
-            self.publish_motor_info()
-            self.pub_count = 0
+        # if (self.pub_count % 5) == 0:
+        #     self.publish_motor_info()
+        #     self.pub_count = 0
 
-        self.pub_count += 1
+        # self.pub_count += 1
+        pass
 
 
     def clear_motor_faults(self, acknowledge_faults: Bool):
@@ -68,22 +67,35 @@ class drive_firmware(Node):
 
         for ind in range(len(self.nodes)):
             if states[ind]:
-                self.motor_info[self.motors[ind]]["Voltage"] = self.drive_interface.read_voltage(self.nodes[ind])
-                self.drive_interface.esc.station.recv_msg(timeout=0.25)
+                try:
+                    info = "Voltage" 
+                    self.drive_interface.read_voltage(self.nodes[ind])
+                    self.motor_info[self.motors[ind]]["Voltage"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
 
-                self.motor_info[self.motors[ind]]["Current"] = self.drive_interface.read_current(self.nodes[ind])
-                self.drive_interface.esc.station.recv_msg(timeout=0.25)
+                    info = "Current"
+                    self.drive_interface.read_current(self.nodes[ind])
+                    self.motor_info[self.motors[ind]]["Current"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
 
-                self.motor_info[self.motors[ind]]["State"] = self.drive_interface.read_state(self.nodes[ind])
-                self.drive_interface.esc.station.recv_msg(timeout=0.25)
+                    info = "State"
+                    self.drive_interface.read_state(self.nodes[ind])
+                    self.motor_info[self.motors[ind]]["State"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
 
-                self.motor_info[self.motors[ind]]["Temperature"] = self.drive_interface.read_temperature(self.nodes[ind])
-                self.drive_interface.esc.station.recv_msg(timeout=0.25)
+                    #Uncomment when able to get temperature readings (July. 28 2025)
+                    #info = "Temperature"
+                    #self.drive_interface.read_temperature(self.nodes[ind])
+                    #self.motor_info[self.motors[ind]]["Temperature"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
+
+                except:
+                    print("Unable to get " + info + " on " + self.motors[ind])
+                    self.motor_info[self.motors[ind]]["Voltage"] = -1.0
+                    self.motor_info[self.motors[ind]]["Current"] = -1.0
+                    self.motor_info[self.motors[ind]]["State"] = -1.0
+                    self.motor_info[self.motors[ind]]["Temperature"] = -1.0
             else:
-                self.motor_info[self.motors[ind]]["Voltage"] = 0.0
-                self.motor_info[self.motors[ind]]["Current"] = 0.0
-                self.motor_info[self.motors[ind]]["State"] = 0.0
-                self.motor_info[self.motors[ind]]["Temperature"] = 0.0
+                self.motor_info[self.motors[ind]]["Voltage"] = -1.0
+                self.motor_info[self.motors[ind]]["Current"] = -1.0
+                self.motor_info[self.motors[ind]]["State"] = -1.0
+                self.motor_info[self.motors[ind]]["Temperature"] = -1.0
 
     def publish_motor_info(self):
         self.update_motor_info()
@@ -120,15 +132,24 @@ class drive_firmware(Node):
         states = self.drive_interface.getAllMotorStatus()
         for ind in range(len(self.nodes)):
             if states[ind]:
-                self.drive_speed_info[ind] = self.drive_interface.read_speed(self.nodes[ind])
-                self.drive_interface.esc.station.recv_msg(timeout=0.25)
+                try:
+                    self.drive_interface.read_speed(self.nodes[ind])
+                    self.drive_speed_info[ind] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
+                
+                except:
+                    print("Unable to get Speed on " + self.motors[ind])
+                    self.drive_speed_info[ind] = -1.0
             else:
-                self.drive_speed_info[ind] = 0.0
+                self.drive_speed_info[ind] = -1.0
 
     
     def broadcast_speeds(self, speeds: Float32MultiArray):
-        inp = speeds.data
+        inp = [speeds.data[0], speeds.data[1], -speeds.data[2], -speeds.data[3]] # RF, LF, LB, RB
         self.drive_interface.broadcast_multi_motor_speeds(inp)
+
+    def broadcast_steering_angles(self, steering_angles: Float32MultiArray):
+        inp = steering_angles.data[0]
+        self.drive_interface.run_steer_motor_position(dCAN.NodeID.RF_STEER, inp)
 
 
     '''request: contains the request data

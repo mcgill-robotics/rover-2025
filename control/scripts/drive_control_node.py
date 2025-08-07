@@ -36,6 +36,7 @@ class drive_controller(Node):
        
         self.gamepad_subscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.controller_callback, 10)
         self.speed_input_publisher = self.create_publisher(Float32MultiArray, "drive_speed_input", 10)
+        self.steering_input_publisher = self.create_publisher(Float32MultiArray, "drive_steering_input", 10)
         self.acknowledgement_publisher = self.create_publisher(Bool, "acknowledge_faults", 10)
 
         # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
@@ -58,7 +59,11 @@ class drive_controller(Node):
         #Speed given button input
         speed = self.steering.speed_controller.update_speed(self.gamepad_input.x_button, self.gamepad_input.o_button)
         speed = [speed for _ in range(4)]
-        msg = Float32MultiArray()
+
+        #Check whether gears change
+        if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
+            self.steering.speed_controller.shift_gear(self.gamepad_input.r2_button, self.gamepad_input.l2_button)
+
         
         #Check whether there is an input value for rover rotation
         if self.gamepad_input.r1_button or self.gamepad_input.l1_button:
@@ -91,15 +96,12 @@ class drive_controller(Node):
             else:
                 right_speed_wheels = [0, 0]
                 
-            speed = [left_speed_wheels[0], right_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
-            msg.Float32MultiArray()
+            speed = [right_speed_wheels[0], left_speed_wheels[0], left_speed_wheels[1], right_speed_wheels[1]]
+            msg = Float32MultiArray()
             msg.data = [float(s) for s in speed]
+            print(msg.data)
             self.speed_input_publisher.publish(msg)
             return
-
-        #Check whether gears change
-        if self.gamepad_input.r2_button or self.gamepad_input.l2_button:
-            self.steering.speed_controller.shift_gear(self.gamepad_input.r2_button, self.gamepad_input.l2_button)
 
         #Check whether joystick position changes
         if self.not_in_deadzone_check(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y):
@@ -107,8 +109,13 @@ class drive_controller(Node):
             self.wheel_angles = self.steering.wheel_orientation_rot(self.gamepad_input.l_stick_x, self.gamepad_input.l_stick_y, self.wheel_angles[0])
 
             # TODO: Send new orientation to wheels
+            msg = Float32MultiArray()
+            msg.data = [float(angle) for angle in self.wheel_angles]
+            self.steering_input_publisher.publish(msg)
+            
 
         # TODO: Use API to send input values for speed, orientation and rotation.
+        msg = Float32MultiArray()
         msg.data = [float(s) for s in speed]
         self.speed_input_publisher.publish(msg)
         
