@@ -11,7 +11,7 @@ The GPS Services provide GPS data collection, offline mapping capabilities, and 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   GPS Device    │    │   GPS Service   │    │   React UI      │
-│   (Hardware)    │───►│   (Flask API)   │───►│   (Frontend)    │
+│   (Hardware)    │───►│   (ROS/Flask)   │───►│   (Frontend)    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
@@ -21,18 +21,76 @@ The GPS Services provide GPS data collection, offline mapping capabilities, and 
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
+## Quick Setup
+
+### 1. Environment Setup
+```bash
+# Navigate to the teleop directory
+cd rover-2025/teleop
+
+# Setup complete environment
+./setup_env.sh
+
+# Activate environment
+source activate_env.sh
+```
+
+### 2. Download Offline Map Tiles
+```bash
+# Navigate to download scripts
+cd services/gps/download-scripts
+
+# McGill campus (quick setup)
+./download-mcgill-basic.sh
+
+# Drumheller Badlands (desert testing)
+./download-drumheller-tiles.sh
+
+# Any custom area
+./download-custom-area.sh --bounds "45.5,-73.6,45.6,-73.5" --name "montreal"
+```
+
+### 3. Start Complete System
+```bash
+# Start everything with one command
+cd ../../..
+./start-teleop-system.sh
+```
+
+This will start:
+- TileServer-GL (Port 8080)
+- GPS Service (Port 5001)
+- React UI (Port 3000)
+
+## Available Map Areas
+
+### 🏫 McGill University Campus
+- **Basic**: `download-mcgill-basic.sh` - Quick setup for campus testing
+- **Complete**: `download-mcgill-complete.sh` - Full campus coverage with real tiles
+- **Coverage**: Montreal downtown area, McGill campus, surrounding streets
+
+### 🏜️ Drumheller Badlands (Desert Testing)
+- **Basic**: `download-drumheller-tiles.sh` - Quick setup for desert testing
+- **Complete**: `download-drumheller-complete.sh` - Full badlands coverage
+- **Coverage**: Canadian Badlands, Dinosaur Provincial Park, Red Deer River
+
+### 🌍 Custom Areas
+- **Generic**: `download-custom-area.sh` - Download any area worldwide
+- **Usage**: `./download-custom-area.sh --bounds "lat1,lon1,lat2,lon2" --name "area_name"`
+
 ## Key Components
 
 ### Core Files
-- **`gps_service.py`** - Main GPS data service
+- **`gps_service.py`** - Main GPS data service (ROS integration)
 - **`gps_api.py`** - Flask API for GPS data
-- **`download-map-tiles.sh`** - Map tile downloader
 - **`docker-compose.tileserver.yml`** - TileServer-GL setup
-- **`OFFLINE_MAPPING_README.md`** - Detailed mapping documentation
 
-### Configuration
-- **`service_config.yml`** - Service configuration (in parent `services/` folder)
-- **TileServer-GL** - Offline map tile serving
+### Download Scripts (`download-scripts/`)
+- **`download-mcgill-basic.sh`** - Basic McGill campus tiles (quick setup)
+- **`download-mcgill-complete.sh`** - Complete McGill campus coverage
+- **`download-drumheller-tiles.sh`** - Basic Drumheller Badlands tiles
+- **`download-drumheller-complete.sh`** - Complete Drumheller coverage
+- **`download-custom-area.sh`** - Download tiles for any custom area
 
 ## Features
 
@@ -89,88 +147,108 @@ gps_service:
     gps:
       update_interval: 1.0
       coordinate_precision: 6
-```
 
-### TileServer Configuration
-```yaml
 tileserver:
   port: 8080
   enabled: true
   docker_compose_file: "gps/docker-compose.tileserver.yml"
-  config:
-    options:
-      paths:
-        root: "/usr/src/app"
-        mbtiles: "mbtiles"
-    styles:
-      osm-bright:
-        style: "osm-bright/style.json"
-    data:
-      v3:
-        mbtiles: "v3.mbtiles"
+```
+
+### GPS Topics Configuration
+Edit `gps_service.py` to match your ROS topic names:
+
+```python
+# Default topic names
+self.gps_subscription = self.create_subscription(
+    NavSatFix,
+    '/gps/fix',  # Change this to your GPS topic
+    10
+)
+
+self.imu_subscription = self.create_subscription(
+    Imu,
+    '/imu/data',  # Change this to your IMU topic
+    10
+)
 ```
 
 ## API Endpoints
 
 ### REST Endpoints
 - **`GET /api/health`** - Service health check
-- **`GET /api/gps/current`** - Current GPS coordinates
-- **`GET /api/gps/history`** - GPS history data
+- **`GET /api/gps/data`** - Current GPS coordinates
 - **`GET /api/gps/status`** - GPS device status
+- **`GET /api/config`** - Get GPS configuration
 
 ### Server-Sent Events
 - **`/api/gps/stream`** - Real-time GPS data stream
-- **`/api/imu/stream`** - Real-time IMU data stream
+
+### Example GPS Data Response
+```json
+{
+  "latitude": 45.5048,
+  "longitude": -73.5772,
+  "heading": 180.5,
+  "accuracy": 5.2,
+  "timestamp": 1640995200000,
+  "fix_quality": 1,
+  "satellites": 8
+}
+```
 
 ## Usage
 
-### Starting the Service
-```bash
-# Via service manager (recommended)
-cd services
-./start_services.sh --mode mapping
+### Accessing the Mapping Interface
+1. Open your browser and navigate to `http://localhost:3000`
+2. Click on "Navigation" in the navigation bar
+3. The map will load with offline tiles
 
-# Direct startup
-python3 gps/gps_service.py
-```
+### GPS Features
+- **Real-time Position**: Blue dot shows current rover position
+- **Heading Indicator**: White line on the blue dot shows rover direction
+- **Accuracy Circle**: Blue circle shows GPS accuracy radius
+- **Status Display**: Shows GPS signal quality and satellite count
 
-### Downloading Map Tiles
-```bash
-# Download tiles for specific area
-cd services/gps
-./download-map-tiles.sh --bounds "45.5,-73.6,45.6,-73.5" --zoom "10-15"
+### Navigation Features
+- **Distance Calculation**: Shows distance to selected waypoint
+- **Bearing Calculation**: Shows direction to selected waypoint
+- **Closest Waypoint**: Automatically identifies nearest waypoint
 
-# Download tiles for Montreal area
-./download-map-tiles.sh --city "Montreal" --zoom "10-15"
-```
+### Waypoint Management
+- **Add Waypoints**: Click anywhere on the map to add a waypoint
+- **Edit Waypoints**: Click on a waypoint to select it (turns red)
+- **Export/Import**: Download/upload waypoints as JSON files
+- **Data Management**: Use the sidebar to manage waypoints
 
-### Starting TileServer
-```bash
-# Start TileServer-GL
-cd services/gps
-docker-compose -f docker-compose.tileserver.yml up -d
+## Map Features
+- ✅ **Offline Operation** - No internet required
+- ✅ **Multiple Styles** - OSM, Satellite, Terrain views
+- ✅ **GPS Tracking** - Real-time position on offline maps
+- ✅ **Waypoint Management** - Mark and navigate to points
+- ✅ **Route Planning** - Plan routes on offline maps
+- ✅ **High Detail** - Configurable zoom levels (10-18)
 
-# Check TileServer status
-curl http://localhost:8080/
-```
-
-### Integration with UI
-The React UI automatically connects to the GPS service and displays:
-- Real-time GPS coordinates
-- Offline map tiles
-- Waypoint management
-- Route planning
+## File Sizes and Times
+| Area Type | Zoom Levels | Size | Time |
+|-----------|-------------|------|------|
+| Small campus | 12-16 | ~500MB | 10-20 min |
+| Medium city | 10-16 | ~2GB | 20-40 min |
+| Large area | 10-18 | ~5GB | 30-60 min |
 
 ## File Structure
 
 ```
 services/gps/
-├── gps_service.py              # Main GPS service
+├── gps_service.py              # Main GPS service (ROS integration)
 ├── gps_api.py                  # Flask API
-├── download-map-tiles.sh       # Map tile downloader
 ├── docker-compose.tileserver.yml # TileServer setup
-├── OFFLINE_MAPPING_README.md   # Detailed mapping docs
-└── README.md                   # This documentation
+├── README.md                   # This documentation
+└── download-scripts/           # Map tile downloaders
+    ├── download-mcgill-basic.sh      # Basic McGill campus tiles
+    ├── download-mcgill-complete.sh   # Complete McGill coverage
+    ├── download-drumheller-tiles.sh  # Basic Drumheller tiles
+    ├── download-drumheller-complete.sh # Complete Drumheller coverage
+    └── download-custom-area.sh       # Custom area downloader
 ```
 
 ## Dependencies
@@ -179,26 +257,12 @@ services/gps/
 - **Docker** - For TileServer-GL
 - **ROS2** - For GPS data collection
 - **Flask** - Web API framework
-- **GPSD** - GPS device interface
 
 ### Python Dependencies
 - **flask** - Web framework
 - **flask-cors** - Cross-origin support
 - **rclpy** - ROS2 Python client
 - **sensor_msgs** - ROS2 sensor messages
-
-## Map Data
-
-### Supported Map Styles
-- **OSM Bright** - Street map with buildings
-- **Satellite** - Aerial imagery
-- **Terrain** - Topographic maps
-- **Custom** - User-defined styles
-
-### Tile Formats
-- **MBTiles** - SQLite-based tile storage
-- **PNG/JPEG** - Raster tile formats
-- **Vector Tiles** - PBF format support
 
 ## Troubleshooting
 
@@ -224,6 +288,31 @@ ros2 topic list | grep gps
 ros2 topic echo /gps/fix
 ```
 
+### Performance Issues
+1. Use basic download scripts instead of complete ones
+2. Reduce map zoom levels in custom area scripts
+3. Limit the map area bounds
+4. Use lower quality tile formats
+
+## Development
+
+### Adding New Map Styles
+1. Create a new style file in `styles/`
+2. Update TileServer configuration in `service_config.yml`
+3. Add the style to the UI map style selector
+
+### Extending GPS Features
+1. Modify `gps_service.py` to add new GPS data fields
+2. Update the API endpoints in `gps_api.py`
+3. Extend the React hooks in `useGPSData.ts`
+4. Update the UI components to display new data
+
+### Custom Waypoint Features
+1. Add new waypoint properties in the TypeScript interfaces
+2. Extend the waypoint management components
+3. Update the export/import functionality
+4. Add new navigation features
+
 ## Integration Notes
 
 This GPS service is designed to work seamlessly with:
@@ -233,6 +322,10 @@ This GPS service is designed to work seamlessly with:
 
 The service provides both real-time GPS data and offline mapping capabilities for the teleop system.
 
----
+## License
 
-**Note**: This is the GPS and mapping component of the teleop system. For detailed mapping setup, see `OFFLINE_MAPPING_README.md`. 
+This offline mapping implementation uses:
+- MapLibre GL JS (Apache 2.0)
+- TileServer-GL (BSD 3-Clause)
+- OpenStreetMap (ODbL)
+- Flask (BSD 3-Clause) 

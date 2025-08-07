@@ -61,9 +61,14 @@ teleop/
 │   ├── gps/                   # GPS & offline mapping services
 │   │   ├── gps_service.py     # Standalone GPS service (for mapping)
 │   │   ├── gps_api.py         # Flask GPS API
-│   │   ├── download-map-tiles.sh
 │   │   ├── docker-compose.tileserver.yml
-│   │   └── OFFLINE_MAPPING_README.md
+│   │   ├── README.md          # Comprehensive GPS documentation
+│   │   └── download-scripts/  # Map tile downloaders
+│   │       ├── download-mcgill-basic.sh      # Basic McGill campus
+│   │       ├── download-mcgill-complete.sh   # Complete McGill coverage
+│   │       ├── download-drumheller-tiles.sh  # Basic Drumheller
+│   │       ├── download-drumheller-complete.sh # Complete Drumheller
+│   │       └── download-custom-area.sh       # Any custom area
 │   └── camera/                # Camera backend service
 │       ├── camera_service.py  # Multi-camera backend (renamed)
 │       ├── aruco_detector.py  # ArUco marker detection
@@ -199,6 +204,7 @@ The system has two GPS services serving different purposes:
 - **Topics**: `/gps/fix`, `/imu/data`, `/cmd_vel`
 - **Integration**: Flask API for mapping frontend
 - **Use Case**: Offline mapping, waypoint management, GPS visualization
+- **Documentation**: See `services/gps/README.md` for comprehensive setup and technical details
 
 ## 🧹 ROS Services Organization
 
@@ -272,6 +278,60 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 # Logging
 export ROS_LOG_LEVEL=INFO
 ```
+
+## 🗺️ Offline Mapping
+
+The system includes comprehensive offline mapping capabilities with pre-configured scripts for common areas. For detailed technical documentation, see `services/gps/README.md`.
+
+### Quick Setup
+
+```bash
+# Navigate to download scripts
+cd services/gps/download-scripts
+
+# McGill campus (quick setup)
+./download-mcgill-basic.sh
+
+# Drumheller Badlands (desert testing)
+./download-drumheller-tiles.sh
+
+# Any custom area
+./download-custom-area.sh --bounds "45.5,-73.6,45.6,-73.5" --name "montreal"
+```
+
+### Available Areas
+
+#### 🏫 McGill University Campus
+- **Basic**: `download-mcgill-basic.sh` - Quick setup for campus testing
+- **Complete**: `download-mcgill-complete.sh` - Full campus coverage with real tiles
+- **Coverage**: Montreal downtown area, McGill campus, surrounding streets
+- **Use Case**: Urban campus navigation and testing
+
+#### 🏜️ Drumheller Badlands (Desert Testing)
+- **Basic**: `download-drumheller-tiles.sh` - Quick setup for desert testing
+- **Complete**: `download-drumheller-complete.sh` - Full badlands coverage
+- **Coverage**: Canadian Badlands, Dinosaur Provincial Park, Red Deer River
+- **Use Case**: Off-road desert navigation without WiFi
+
+#### 🌍 Custom Areas
+- **Generic**: `download-custom-area.sh` - Download any area worldwide
+- **Usage**: `./download-custom-area.sh --bounds "lat1,lon1,lat2,lon2" --name "area_name"`
+- **Examples**: Montreal, NYC, Toronto, Vancouver, any custom location
+
+### Map Features
+- ✅ **Offline Operation** - No internet required
+- ✅ **Multiple Styles** - OSM, Satellite, Terrain views
+- ✅ **GPS Tracking** - Real-time position on offline maps
+- ✅ **Waypoint Management** - Mark and navigate to points
+- ✅ **Route Planning** - Plan routes on offline maps
+- ✅ **High Detail** - Configurable zoom levels (10-18)
+
+### File Sizes
+| Area Type | Zoom Levels | Size | Time |
+|-----------|-------------|------|------|
+| Small campus | 12-16 | ~500MB | 10-20 min |
+| Medium city | 10-16 | ~2GB | 20-40 min |
+| Large area | 10-18 | ~5GB | 30-60 min |
 
 ## 🧪 Testing
 
@@ -490,8 +550,10 @@ This project uses the same license as the main Rover 2025 project.
 
 ## 🔗 Related Documentation
 
-- [Detailed Offline Mapping Documentation](services/gps/OFFLINE_MAPPING_README.md)
+- [GPS Services Documentation](services/gps/README.md) - Comprehensive GPS and offline mapping documentation
 - [ROS Integration](services/ros/README.md)
+- [Camera Services](services/camera/README.md)
+- [Vision System](../vision/README.md) - Jetson/Pi vision processing
 
 ---
 

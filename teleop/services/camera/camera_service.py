@@ -43,7 +43,6 @@ def get_backend_config():
             "HEARTBEAT_TIMEOUT": 15.0,
             "FRAME_BUFFER_SIZE": camera_config["frame_buffer_size"],
             "MAX_UDP_PACKET_SIZE": 65507,
-            "PORT_RANGE": camera_config["port_range"],
             "CAMERA_DISCOVERY": camera_config["camera_discovery"],
             "GSTREAMER_CONFIG": camera_config["gstreamer_config"],
             "ARUCO_CONFIG": camera_config["aruco_config"],
