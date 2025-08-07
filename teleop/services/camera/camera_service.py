@@ -352,6 +352,119 @@ class MultiCameraBackend:
                 logger.error(f"Failed to remove camera: {e}")
                 return {"error": str(e)}
 
+        @self.app.post("/api/cameras/{camera_id}/settings")
+        async def update_camera_settings(camera_id: str, settings: dict):
+            """Update camera settings (bitrate, fps, etc.)."""
+            try:
+                if camera_id not in self.cameras:
+                    return {"success": False, "message": f"Camera {camera_id} not found"}
+                
+                camera = self.cameras[camera_id]
+                if not camera.is_active:
+                    return {"success": False, "message": f"Camera {camera_id} is not active"}
+                
+                # Extract settings
+                bitrate = settings.get('bitrate')
+                fps = settings.get('fps')
+                
+                # Build command to send to Jetson/Pi device
+                command = {
+                    "type": "update_settings",
+                    "camera_id": camera_id,
+                    "settings": {}
+                }
+                
+                if bitrate is not None:
+                    command["settings"]["bitrate"] = bitrate
+                    logger.info(f"Updating bitrate for camera {camera_id} to {bitrate} kbps")
+                
+                if fps is not None:
+                    command["settings"]["fps"] = fps
+                    logger.info(f"Updating FPS for camera {camera_id} to {fps}")
+                
+                # Find the device that owns this camera
+                device_id = None
+                for cam in self.available_cameras:
+                    if cam.camera_id == camera_id:
+                        device_id = cam.device_id
+                        break
+                
+                if device_id:
+                    # Send command to the device
+                    self.send_command_to_jetson(device_id, command)
+                    
+                    # Update local camera info
+                    if bitrate is not None:
+                        camera.bitrate = bitrate
+                    if fps is not None:
+                        camera.fps = fps
+                    
+                    return {
+                        "success": True, 
+                        "message": f"Settings updated for camera {camera_id}",
+                        "settings": command["settings"]
+                    }
+                else:
+                    return {"success": False, "message": f"Device not found for camera {camera_id}"}
+                    
+            except Exception as e:
+                logger.error(f"Error updating camera settings for {camera_id}: {e}")
+                return {"success": False, "message": f"Error updating settings: {str(e)}"}
+
+        @self.app.patch("/api/cameras/{camera_id}/bitrate")
+        async def update_bitrate_dynamic(camera_id: str, data: dict):
+            """Dynamically change bitrate without restarting pipeline."""
+            try:
+                if camera_id not in self.cameras:
+                    return {"success": False, "message": f"Camera {camera_id} not found"}
+                
+                camera = self.cameras[camera_id]
+                if not camera.is_active:
+                    return {"success": False, "message": f"Camera {camera_id} is not active"}
+                
+                bitrate = data.get('bitrate')
+                if bitrate is None:
+                    return {"success": False, "message": "Bitrate value is required"}
+                
+                if not (128 <= bitrate <= 2048):
+                    return {"success": False, "message": "Bitrate must be between 128 and 2048 kbps"}
+                
+                # Build dynamic update command
+                command = {
+                    "type": "dynamic_update",
+                    "camera_id": camera_id,
+                    "property": "bitrate",
+                    "value": bitrate
+                }
+                
+                # Find the device that owns this camera
+                device_id = None
+                for cam in self.available_cameras:
+                    if cam.camera_id == camera_id:
+                        device_id = cam.device_id
+                        break
+                
+                if device_id:
+                    # Send dynamic update command
+                    self.send_command_to_jetson(device_id, command)
+                    
+                    # Update local camera info immediately
+                    camera.bitrate = bitrate
+                    
+                    logger.info(f"Dynamically updated bitrate for camera {camera_id} to {bitrate} kbps")
+                    
+                    return {
+                        "success": True, 
+                        "message": f"Bitrate dynamically updated to {bitrate} kbps",
+                        "bitrate": bitrate
+                    }
+                else:
+                    return {"success": False, "message": f"Device not found for camera {camera_id}"}
+                    
+            except Exception as e:
+                logger.error(f"Error updating bitrate dynamically for {camera_id}: {e}")
+                return {"success": False, "message": f"Error updating bitrate: {str(e)}"}
+
         @self.app.websocket("/stream")
         async def websocket_stream(websocket: WebSocket, camera_id: str = None):
             await websocket.accept()

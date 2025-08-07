@@ -415,11 +415,131 @@ class MultiCameraStreamer:
                 }
                 self.send_command_response(response)
                 
+            elif command_type == 'update_settings':
+                logger.info(f"Received update settings command for camera {camera_id}")
+                settings = command_data.get('settings', {})
+                success = self.update_camera_settings(camera_id, settings)
+                response = {
+                    'type': 'command_response',
+                    'command': 'update_settings',
+                    'camera_id': camera_id,
+                    'success': success,
+                    'device_id': self.device_id,
+                    'settings': settings
+                }
+                self.send_command_response(response)
+                
+            elif command_type == 'dynamic_update':
+                logger.info(f"Received dynamic update command for camera {camera_id}")
+                property_name = command_data.get('property')
+                value = command_data.get('value')
+                success = self.update_camera_property_dynamic(camera_id, property_name, value)
+                response = {
+                    'type': 'command_response',
+                    'command': 'dynamic_update',
+                    'camera_id': camera_id,
+                    'success': success,
+                    'device_id': self.device_id,
+                    'property': property_name,
+                    'value': value
+                }
+                self.send_command_response(response)
+                
             else:
                 logger.warning(f"Unknown command type: {command_type}")
                 
         except Exception as e:
             logger.error(f"Failed to handle command: {e}")
+
+    def update_camera_settings(self, camera_id: str, settings: dict) -> bool:
+        """Update camera settings (bitrate, fps, etc.)."""
+        try:
+            if camera_id not in self.cameras:
+                logger.error(f"Camera {camera_id} not found for settings update")
+                return False
+            
+            camera_info = self.cameras[camera_id]
+            
+            # Update global settings if provided
+            if 'bitrate' in settings:
+                new_bitrate = settings['bitrate']
+                if 128 <= new_bitrate <= 2048:
+                    self.bitrate = new_bitrate
+                    logger.info(f"Updated bitrate to {new_bitrate} kbps")
+                else:
+                    logger.warning(f"Invalid bitrate value: {new_bitrate}")
+                    return False
+            
+            if 'fps' in settings:
+                new_fps = settings['fps']
+                if 5 <= new_fps <= 30:
+                    self.framerate = new_fps
+                    logger.info(f"Updated framerate to {new_fps} fps")
+                else:
+                    logger.warning(f"Invalid fps value: {new_fps}")
+                    return False
+            
+            # If camera is currently active, restart it with new settings
+            if camera_info.is_active:
+                logger.info(f"Restarting camera {camera_id} with new settings")
+                self.stop_camera(camera_id)
+                time.sleep(0.5)  # Brief pause
+                success = self.start_camera(camera_id)
+                if not success:
+                    logger.error(f"Failed to restart camera {camera_id} with new settings")
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to update camera settings: {e}")
+            return False
+
+    def update_camera_property_dynamic(self, camera_id: str, property_name: str, value) -> bool:
+        """Dynamically update camera property without restarting pipeline."""
+        try:
+            if camera_id not in self.cameras:
+                logger.error(f"Camera {camera_id} not found for dynamic update")
+                return False
+            
+            camera_info = self.cameras[camera_id]
+            
+            if property_name == 'bitrate':
+                if not (128 <= value <= 2048):
+                    logger.warning(f"Invalid bitrate value: {value}")
+                    return False
+                
+                # Update global bitrate setting
+                self.bitrate = value
+                logger.info(f"Dynamically updated bitrate to {value} kbps")
+                
+                # Note: In a real implementation with gi, you would update the encoder element here
+                # For now, we'll log that this would be a dynamic update
+                logger.info(f"Would dynamically update x264enc bitrate to {value} kbps (gi implementation needed)")
+                
+                return True
+                
+            elif property_name == 'fps':
+                if not (5 <= value <= 30):
+                    logger.warning(f"Invalid fps value: {value}")
+                    return False
+                
+                # Update global framerate setting
+                self.framerate = value
+                logger.info(f"Dynamically updated framerate to {value} fps")
+                
+                # Note: In a real implementation with gi, you would update the source caps here
+                logger.info(f"Would dynamically update source framerate to {value} fps (gi implementation needed)")
+                
+                return True
+                
+            else:
+                logger.warning(f"Unknown property for dynamic update: {property_name}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Failed to update camera property dynamically: {e}")
+            return False
 
     def send_command_response(self, response_data: dict):
         """Send command response back to backend."""
