@@ -1,4 +1,4 @@
-from ..src import human_arm_control
+from ..arm_control import human_arm_control
 import rclpy
 from rclpy.node import Node
 import math
