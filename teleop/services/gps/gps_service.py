@@ -5,9 +5,8 @@ from rclpy.node import Node
 from sensor_msgs.msg import NavSatFix, Imu
 from geometry_msgs.msg import TwistStamped
 import math
-import json
 import time
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
 class GPSService(Node):
     """

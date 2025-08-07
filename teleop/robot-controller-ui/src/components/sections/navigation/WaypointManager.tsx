@@ -1,120 +1,62 @@
 'use client';
 
-import React, { useState } from 'react';
-import { MapPin, Trash2, Navigation, Edit3, Plus, Target } from 'lucide-react';
-
-interface GPSData {
-  latitude: number;
-  longitude: number;
-  heading: number;
-  accuracy: number;
-  timestamp: number;
-}
-
-interface Waypoint {
-  id: string;
-  latitude: number;
-  longitude: number;
-  name: string;
-  description?: string;
-}
+import React, { useState, useMemo } from 'react';
+import { MapPin, Trash2, Navigation, Edit3, Target } from 'lucide-react';
+import { GPSData, Waypoint, WaypointEdit } from '@/types/navigation';
+import { calculateDistance, calculateBearing, findClosestWaypoint } from '@/utils/navigation';
 
 interface WaypointManagerProps {
   waypoints: Waypoint[];
   selectedWaypoint: Waypoint | null;
   onWaypointSelect: (waypoint: Waypoint | null) => void;
   onDeleteWaypoint: (id: string) => void;
+  onUpdateWaypoint: (waypoint: Waypoint) => void;
   gpsData: GPSData | null;
 }
 
-const WaypointManager: React.FC<WaypointManagerProps> = ({
+export const WaypointManager: React.FC<WaypointManagerProps> = ({
   waypoints,
   selectedWaypoint,
   onWaypointSelect,
   onDeleteWaypoint,
+  onUpdateWaypoint,
   gpsData
 }) => {
-  const [editingWaypoint, setEditingWaypoint] = useState<Waypoint | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editDescription, setEditDescription] = useState('');
+  // State
+  const [editingWaypoint, setEditingWaypoint] = useState<WaypointEdit | null>(null);
 
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+  // Find closest waypoint
+  const closestWaypoint = useMemo(() => 
+    findClosestWaypoint(gpsData, waypoints),
+    [gpsData, waypoints]
+  );
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  };
-
-  const calculateBearing = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-    const y = Math.sin(Δλ) * Math.cos(φ2);
-    const x = Math.cos(φ1) * Math.sin(φ2) -
-              Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-    
-    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-  };
-
+  // Handlers
   const handleEditWaypoint = (waypoint: Waypoint) => {
-    setEditingWaypoint(waypoint);
-    setEditName(waypoint.name);
-    setEditDescription(waypoint.description || '');
+    setEditingWaypoint({
+      id: waypoint.id,
+      name: waypoint.name,
+      description: waypoint.description || ''
+    });
   };
 
   const handleSaveEdit = () => {
     if (editingWaypoint) {
-      const updatedWaypoint = {
-        ...editingWaypoint,
-        name: editName,
-        description: editDescription
-      };
-      
-      // Update the waypoint in the list
-      const updatedWaypoints = waypoints.map(wp => 
-        wp.id === editingWaypoint.id ? updatedWaypoint : wp
-      );
-      
-      // This would need to be handled by the parent component
-      // For now, we'll just close the edit mode
+      const waypoint = waypoints.find(wp => wp.id === editingWaypoint.id);
+      if (waypoint) {
+        onUpdateWaypoint({
+          ...waypoint,
+          name: editingWaypoint.name,
+          description: editingWaypoint.description
+        });
+      }
       setEditingWaypoint(null);
-      setEditName('');
-      setEditDescription('');
     }
   };
 
   const handleCancelEdit = () => {
     setEditingWaypoint(null);
-    setEditName('');
-    setEditDescription('');
   };
-
-  const getClosestWaypoint = () => {
-    if (!gpsData || waypoints.length === 0) return null;
-    
-    return waypoints.reduce((closest, waypoint) => {
-      const distance = calculateDistance(
-        gpsData.latitude, gpsData.longitude,
-        waypoint.latitude, waypoint.longitude
-      );
-      
-      if (!closest || distance < closest.distance) {
-        return { waypoint, distance };
-      }
-      return closest;
-    }, null as { waypoint: Waypoint; distance: number } | null);
-  };
-
-  const closestWaypoint = getClosestWaypoint();
 
   return (
     <div className="space-y-4">
@@ -174,36 +116,36 @@ const WaypointManager: React.FC<WaypointManagerProps> = ({
                 onClick={() => onWaypointSelect(waypoint)}
               >
                 {isEditing ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2" onClick={e => e.stopPropagation()}>
                     <input
                       type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
+                      value={editingWaypoint.name}
+                      onChange={(e) => setEditingWaypoint({
+                        ...editingWaypoint,
+                        name: e.target.value
+                      })}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
                       placeholder="Waypoint name"
                     />
                     <textarea
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
+                      value={editingWaypoint.description}
+                      onChange={(e) => setEditingWaypoint({
+                        ...editingWaypoint,
+                        description: e.target.value
+                      })}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
                       placeholder="Description (optional)"
                       rows={2}
                     />
                     <div className="flex space-x-2">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSaveEdit();
-                        }}
+                        onClick={handleSaveEdit}
                         className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                       >
                         Save
                       </button>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCancelEdit();
-                        }}
+                        onClick={handleCancelEdit}
                         className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
                       >
                         Cancel
@@ -286,4 +228,4 @@ const WaypointManager: React.FC<WaypointManagerProps> = ({
   );
 };
 
-export default WaypointManager; 
+export default WaypointManager;

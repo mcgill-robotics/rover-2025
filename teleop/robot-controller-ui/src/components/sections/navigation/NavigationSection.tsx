@@ -1,37 +1,24 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { MapPin, Navigation, Target, Layers, Download, Upload } from 'lucide-react';
-import OfflineMap from './OfflineMap';
-import GPSDisplay from './GPSDisplay';
-import WaypointManager from './WaypointManager';
+import React, { useState } from 'react';
+import { MapPin, Download, Upload } from 'lucide-react';
 import { useGPSData } from '@/hooks/useGPSData';
+import { Waypoint, MapStyle } from '@/types/navigation';
+import { OfflineMap } from './OfflineMap';
+import { GPSDisplay } from './GPSDisplay';
+import { WaypointManager } from './WaypointManager';
 
-interface GPSData {
-  latitude: number;
-  longitude: number;
-  heading: number;
-  accuracy: number;
-  timestamp: number;
-}
-
-interface Waypoint {
-  id: string;
-  latitude: number;
-  longitude: number;
-  name: string;
-  description?: string;
-}
-
-const MappingSection: React.FC = () => {
+const NavigationSection: React.FC = () => {
+  // State
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [selectedWaypoint, setSelectedWaypoint] = useState<Waypoint | null>(null);
-  const [mapStyle, setMapStyle] = useState<'satellite' | 'street' | 'terrain'>('street');
+  const [mapStyle, setMapStyle] = useState<MapStyle>('street');
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
   // Use real GPS data from the GPS service
   const { gpsData, gpsStatus, isLoading: gpsLoading, error: gpsError } = useGPSData();
 
+  // Waypoint handlers
   const handleAddWaypoint = (lat: number, lng: number) => {
     const newWaypoint: Waypoint = {
       id: `wp_${Date.now()}`,
@@ -47,6 +34,15 @@ const MappingSection: React.FC = () => {
     setWaypoints(waypoints.filter(wp => wp.id !== id));
     if (selectedWaypoint?.id === id) {
       setSelectedWaypoint(null);
+    }
+  };
+
+  const handleUpdateWaypoint = (updatedWaypoint: Waypoint) => {
+    setWaypoints(waypoints.map(wp => 
+      wp.id === updatedWaypoint.id ? updatedWaypoint : wp
+    ));
+    if (selectedWaypoint?.id === updatedWaypoint.id) {
+      setSelectedWaypoint(updatedWaypoint);
     }
   };
 
@@ -68,7 +64,11 @@ const MappingSection: React.FC = () => {
       reader.onload = (e) => {
         try {
           const importedWaypoints = JSON.parse(e.target?.result as string);
-          setWaypoints(importedWaypoints);
+          if (Array.isArray(importedWaypoints) && importedWaypoints.every(isValidWaypoint)) {
+            setWaypoints(importedWaypoints);
+          } else {
+            throw new Error('Invalid waypoint format');
+          }
         } catch (error) {
           console.error('Error importing waypoints:', error);
           alert('Error importing waypoints. Please check the file format.');
@@ -76,6 +76,16 @@ const MappingSection: React.FC = () => {
       };
       reader.readAsText(file);
     }
+  };
+
+  // Validation helper
+  const isValidWaypoint = (wp: any): wp is Waypoint => {
+    return typeof wp === 'object' &&
+           typeof wp.id === 'string' &&
+           typeof wp.latitude === 'number' &&
+           typeof wp.longitude === 'number' &&
+           typeof wp.name === 'string' &&
+           (wp.description === undefined || typeof wp.description === 'string');
   };
 
   return (
@@ -90,12 +100,15 @@ const MappingSection: React.FC = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={handleExportWaypoints}
-              className="flex items-center space-x-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              disabled={waypoints.length === 0}
+              className="flex items-center space-x-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="w-4 h-4" />
               <span>Export</span>
             </button>
-            <label className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+            <label className={`flex items-center space-x-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg transition-colors ${
+              waypoints.length > 0 ? 'hover:bg-blue-700 cursor-pointer' : 'opacity-50 cursor-not-allowed'
+            }`}>
               <Upload className="w-4 h-4" />
               <span>Import</span>
               <input
@@ -103,6 +116,7 @@ const MappingSection: React.FC = () => {
                 accept=".json"
                 onChange={handleImportWaypoints}
                 className="hidden"
+                disabled={waypoints.length === 0}
               />
             </label>
           </div>
@@ -126,30 +140,30 @@ const MappingSection: React.FC = () => {
           {/* Map Controls Overlay */}
           <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-2">
             <div className="flex flex-col space-y-2">
-              <button
-                onClick={() => setMapStyle('street')}
-                className={`px-3 py-2 text-sm rounded ${mapStyle === 'street' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              >
-                Street
-              </button>
-              <button
-                onClick={() => setMapStyle('satellite')}
-                className={`px-3 py-2 text-sm rounded ${mapStyle === 'satellite' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              >
-                Satellite
-              </button>
-              <button
-                onClick={() => setMapStyle('terrain')}
-                className={`px-3 py-2 text-sm rounded ${mapStyle === 'terrain' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              >
-                Terrain
-              </button>
+              {(['street', 'satellite', 'terrain'] as const).map((style) => (
+                <button
+                  key={style}
+                  onClick={() => setMapStyle(style)}
+                  className={`px-3 py-2 text-sm rounded capitalize ${
+                    mapStyle === style
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {style}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* GPS Status Indicator */}
           <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-3">
-            <GPSDisplay gpsData={gpsData} isMapLoaded={isMapLoaded} />
+            <GPSDisplay
+              gpsData={gpsData}
+              isMapLoaded={isMapLoaded}
+              isLoading={gpsLoading}
+              error={gpsError}
+            />
           </div>
         </div>
 
@@ -160,6 +174,7 @@ const MappingSection: React.FC = () => {
             selectedWaypoint={selectedWaypoint}
             onWaypointSelect={setSelectedWaypoint}
             onDeleteWaypoint={handleDeleteWaypoint}
+            onUpdateWaypoint={handleUpdateWaypoint}
             gpsData={gpsData}
           />
         </div>
@@ -168,4 +183,4 @@ const MappingSection: React.FC = () => {
   );
 };
 
-export default MappingSection; 
+export default NavigationSection;

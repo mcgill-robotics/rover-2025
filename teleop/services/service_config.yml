@@ -91,7 +91,13 @@ services:
         auto_connect: true
         # Jetson server chooses any available port dynamically
       gstreamer_config:
+        # Network settings
+        max_udp_packet_size: 65507  # Maximum UDP packet size
+        udp_buffer_size: 1048576  # 1MB UDP buffer size
+        rtp_buffer_size: 1048576  # 1MB RTP buffer size
         rtp_caps: "application/x-rtp,media=video,clock-rate=90000,encoding-name=H264,payload=96"
+        
+        # Pipeline settings
         pipeline_elements:
           - "rtph264depay"
           - "h264parse"
@@ -101,6 +107,26 @@ services:
           - "appsink drop=true max-buffers=2"
         buffer_size: 1
         drop_frames: true
+        
+        # H.264 encoding settings
+        h264_bitrate: 2048  # Default bitrate in kbps
+        h264_tune: "zerolatency"  # Tuning preset for low latency
+        h264_profile: "baseline"  # H.264 profile
+        h264_level: "4.1"  # H.264 level
+        h264_key_int_max: 60  # Maximum keyframe interval
+        h264_bframes: 0  # Disable B-frames for lower latency
+        
+        # Frame settings
+        max_frame_size: 1920x1080  # Maximum frame dimensions
+        frame_buffer_size: 10  # Number of frames to buffer
+        default_fps: 30  # Default framerate
+        min_fps: 5  # Minimum allowed framerate
+        max_fps: 60  # Maximum allowed framerate
+        
+        # Error handling
+        max_retries: 3  # Maximum reconnection attempts
+        retry_delay: 5  # Seconds between retries
+        connection_timeout: 10  # Connection timeout in seconds
       aruco_config:
         dictionary: "DICT_4X4_100"
         marker_border_color: [0, 255, 0]

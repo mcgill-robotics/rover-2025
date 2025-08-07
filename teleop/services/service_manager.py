@@ -6,14 +6,13 @@ Manages all ROS services, GPS service, and web APIs in a single process.
 """
 
 import asyncio
-import json
 import logging
 import signal
 import sys
 import os
 import threading
 import time
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from contextlib import asynccontextmanager
 
@@ -305,6 +304,20 @@ class ServiceManager:
                 # Note: GPS service runs in a thread, so we need to handle this differently
                 logger.warning("GPS service restart not implemented (runs in thread)")
                 return False
+                
+            elif service_name == 'tileserver':
+                # Restart TileServer
+                await self._stop_tileserver()
+                await asyncio.sleep(2)  # Wait for cleanup
+                await self._start_tileserver()
+                return True
+                
+            elif service_name == 'camera_service':
+                # Restart Camera Service
+                await self._stop_camera_service()
+                await asyncio.sleep(2)  # Wait for cleanup
+                await self._start_camera_service()
+                return True
             
             logger.info(f"Service {service_name} restarted successfully")
             return True

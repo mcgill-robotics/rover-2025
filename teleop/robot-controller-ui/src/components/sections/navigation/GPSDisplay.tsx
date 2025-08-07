@@ -2,47 +2,41 @@
 
 import React from 'react';
 import { Navigation, Satellite, Clock, Target } from 'lucide-react';
-
-interface GPSData {
-  latitude: number;
-  longitude: number;
-  heading: number;
-  accuracy: number;
-  timestamp: number;
-}
+import { GPSData } from '@/types/navigation';
+import { formatCoordinate, formatHeading, getGPSStatus } from '@/utils/navigation';
 
 interface GPSDisplayProps {
   gpsData: GPSData | null;
   isMapLoaded: boolean;
+  isLoading: boolean;
+  error: Error | null;
 }
 
-const GPSDisplay: React.FC<GPSDisplayProps> = ({ gpsData, isMapLoaded }) => {
-  const formatCoordinate = (coord: number, isLatitude: boolean) => {
-    const direction = isLatitude 
-      ? (coord >= 0 ? 'N' : 'S')
-      : (coord >= 0 ? 'E' : 'W');
-    
-    const absCoord = Math.abs(coord);
-    const degrees = Math.floor(absCoord);
-    const minutes = (absCoord - degrees) * 60;
-    
-    return `${degrees}° ${minutes.toFixed(4)}' ${direction}`;
-  };
+const GPSDisplay: React.FC<GPSDisplayProps> = ({
+  gpsData,
+  isMapLoaded,
+  isLoading,
+  error
+}) => {
+  const gpsStatus = getGPSStatus(gpsData);
 
-  const formatHeading = (heading: number) => {
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const index = Math.round(heading / 45) % 8;
-    return `${Math.round(heading)}° ${directions[index]}`;
-  };
+  if (error) {
+    return (
+      <div className="text-red-500 text-sm">
+        <Satellite className="w-4 h-4 mb-1" />
+        <span>GPS Error: {error.message}</span>
+      </div>
+    );
+  }
 
-  const getGPSStatus = () => {
-    if (!gpsData) return { status: 'No GPS', color: 'text-red-500', icon: 'disconnected' };
-    if (gpsData.accuracy > 20) return { status: 'Poor Signal', color: 'text-yellow-500', icon: 'weak' };
-    if (gpsData.accuracy > 10) return { status: 'Fair Signal', color: 'text-orange-500', icon: 'fair' };
-    return { status: 'Good Signal', color: 'text-green-500', icon: 'good' };
-  };
-
-  const gpsStatus = getGPSStatus();
+  if (isLoading) {
+    return (
+      <div className="text-blue-500 text-sm animate-pulse">
+        <Satellite className="w-4 h-4 mb-1" />
+        <span>Loading GPS data...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -103,4 +97,4 @@ const GPSDisplay: React.FC<GPSDisplayProps> = ({ gpsData, isMapLoaded }) => {
   );
 };
 
-export default GPSDisplay; 
+export default GPSDisplay;

@@ -33,7 +33,6 @@ A comprehensive teleoperation system for the Rover 2025 project, featuring a mod
 teleop/
 ├── README.md                    # This file - Central documentation
 ├── setup_env.sh                # Environment setup script
-├── setup_env.sh                # Environment setup script
 ├── activate_env.sh             # Environment activation script
 ├── start-teleop-system.sh      # Complete system startup
 ├── venv/                       # Python virtual environment
@@ -85,11 +84,11 @@ teleop/
 **Note**: Jetson/vision processing components have been moved to `rover-2025/vision/`:
 ```
 rover-2025/vision/            # Jetson/vision processing
-├── jetson_server.py          # Multi-camera Jetson server
-├── run_jetson.sh             # Jetson startup script
-├── config.py                 # Jetson configuration loader
-├── config.yml                # Jetson configuration (YAML)
-├── setup_env.sh             # Environment setup script
+├── vision_server.py          # Multi-camera vision server (renamed)
+├── gstreamer_pipeline.py     # GStreamer pipeline manager with Python bindings
+├── config.py                 # Configuration loader
+├── config.yml                # Vision configuration (YAML)
+├── setup_env.sh             # Lightweight environment setup
 └── README.md                 # Vision system documentation
 ```
 
@@ -133,8 +132,6 @@ This comprehensive script will:
 - ✅ Start React UI (Port 3000)
 - ✅ Provide graceful shutdown with Ctrl+C
 
-**Note**: This script was renamed from `start-offline-mapping.sh` to better reflect that it starts the complete teleop system, not just the mapping functionality.
-
 ### 3. Individual Service Testing
 ```bash
 # Start specific services for testing
@@ -163,8 +160,7 @@ cd ros && ./start_ros_manager.sh
 - **Main UI**: http://localhost:3000
 - **Drive Control**: http://localhost:3000/drive
 - **Arm Control**: http://localhost:3000/arm
-- **Offline Mapping**: http://localhost:3000/mapping
-- **System Status**: http://localhost:3000/status
+- **Offline Navigation**: http://localhost:3000/navigation
 
 ## 🎮 Features
 
@@ -231,34 +227,74 @@ The ROS services are organized with consistent structure:
 - Performance metrics and logging
 - Error handling and recovery
 
+### Vision System
+
+The vision system has been significantly improved with native GStreamer Python bindings:
+
+#### GStreamer Pipeline Manager
+- Native Python bindings (gi) for better performance
+- Dynamic property updates (bitrate, FPS) without pipeline restart
+- Automatic camera format detection (MJPG, YUYV, RAW)
+- Robust error handling and recovery
+- Proper resource cleanup
+
+#### Multi-Dictionary ArUco Detection
+- Support for multiple marker dictionaries (4x4, 5x5, 6x6)
+- Color-coded visualization by marker size
+- Improved marker tracking and identification
+- Enhanced overlay with size and ID information
+
+#### Camera Service API
+- Dedicated FastAPI endpoints for camera control
+- Dynamic bitrate adjustment via UI slider
+- Improved error handling and status reporting
+- Clean separation of API and core logic
+
+#### Configuration
+All camera and vision settings are now in YAML:
+```yaml
+gstreamer_config:
+  # Network settings
+  max_udp_packet_size: 65507
+  udp_buffer_size: 1048576
+  rtp_buffer_size: 1048576
+  
+  # H.264 encoding
+  h264_bitrate: 2048
+  h264_tune: "zerolatency"
+  h264_profile: "baseline"
+  h264_level: "4.1"
+  
+  # Frame settings
+  max_frame_size: 1920x1080
+  frame_buffer_size: 10
+  default_fps: 30
+  min_fps: 5
+  max_fps: 60
+```
+
 ## 🔧 Configuration
 
 ### Service Configuration
 
-Edit `services/service_config.json` to customize services:
+Edit `services/service_config.yml` to customize services:
 
-```json
-{
-  "services": {
-    "ros_manager": {
-      "port": 8082,
-      "enabled": true
-    },
-    "gps_service": {
-      "port": 5001,
-      "enabled": true
-    },
-    "tileserver": {
-      "port": 8080,
-      "enabled": true,
-      "docker_compose_file": "gps/docker-compose.tileserver.yml",
-      "config": {
-        "options": { /* TileServer options */ },
-        "styles": { /* Map styles */ },
-        "data": { /* Map data sources */ }
-      }
-    }
-  },
+```yml
+services:
+  ros_manager:
+    port: 8082
+    enabled: true
+  gps_service:
+    port: 5001
+    enabled: true
+  tileserver:
+    port: 8080
+    enabled: true
+    docker_compose_file: "gps/docker-compose.tileserver.yml"
+    config:
+      options: // TileServer options
+      styles: // Map styles
+      data: Map data sources
   "monitoring": {
     "health_check_interval": 30,
     "restart_failed_services": true
