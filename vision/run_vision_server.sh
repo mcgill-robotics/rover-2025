@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run script for GStreamer-based Jetson/Pi camera server
+# Run script for GStreamer-based Vision Server (Jetson/Pi)
 
 # Load default values from config.py
 eval $(python3 -c "
@@ -56,7 +56,7 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo ""
-            echo "GStreamer-based Multi-Camera Jetson/Pi Server"
+            echo "GStreamer-based Multi-Camera Vision Server"
             echo "Captures video from cameras and sends RTP/H.264 streams to backend"
             echo ""
             echo "Options:"
@@ -134,7 +134,7 @@ echo "Discovering cameras..."
 v4l2-ctl --list-devices 2>/dev/null | grep -E "(video|Camera)" || echo "No cameras found or v4l2-ctl failed"
 
 echo "=============================================="
-echo "GStreamer Multi-Camera Jetson/Pi Server"
+echo "GStreamer Multi-Camera Vision Server"
 echo "=============================================="
 echo "Backend: $BACKEND_HOST:$BACKEND_PORT (heartbeat)"
 echo "Device ID: $DEVICE_ID"
@@ -156,7 +156,7 @@ echo "Press Ctrl+C to stop"
 echo "=============================================="
 
 # Run the server
-python3 jetson_server.py \
+python3 vision_server.py \
     --backend-host "$BACKEND_HOST" \
     --backend-port "$BACKEND_PORT" \
     --device-id "$DEVICE_ID" \

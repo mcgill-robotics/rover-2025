@@ -17,9 +17,11 @@ import time
 # Add local modules to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'drive', 'subscriber'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'gps', 'subscriber'))
 
 from ros_bridge import ROSBridge, DataCollector
 from drive_data_subscriber import create_drive_subscriber
+from gps_data_subscriber import create_gps_subscriber
 
 # Configure logging
 logging.basicConfig(
@@ -44,6 +46,7 @@ class ROSManager:
         
         # ROS nodes
         self.drive_subscriber = None
+        self.gps_subscriber = None
         
     async def initialize(self):
         """Initialize the ROS manager and all components."""
@@ -55,6 +58,9 @@ class ROSManager:
             self.drive_subscriber = create_drive_subscriber(self.data_collector)
             self.ros_bridge.add_node('drive_subscriber', self.drive_subscriber)
             
+            self.gps_subscriber = create_gps_subscriber(self.data_collector)
+            self.ros_bridge.add_node('gps_subscriber', self.gps_subscriber)
+            
             # Setup web application
             self.setup_web_app()
             
@@ -62,6 +68,8 @@ class ROSManager:
             self.data_collector.register_callback('drive_diagnostics', self.broadcast_data)
             self.data_collector.register_callback('drive_speeds', self.broadcast_data)
             self.data_collector.register_callback('drive_status', self.broadcast_data)
+            self.data_collector.register_callback('gps_coordinates', self.broadcast_data)
+            self.data_collector.register_callback('imu_data', self.broadcast_data)
             
             self.is_running = True
             logger.info("ROS Manager initialized successfully")
@@ -89,6 +97,9 @@ class ROSManager:
         self.app.router.add_get('/api/drive/speeds', self.get_drive_speeds)
         self.app.router.add_get('/api/drive/status', self.get_drive_status)
         self.app.router.add_get('/api/drive/summary', self.get_drive_summary)
+        self.app.router.add_get('/api/gps/coordinates', self.get_gps_coordinates)
+        self.app.router.add_get('/api/gps/imu', self.get_imu_data)
+        self.app.router.add_get('/api/gps/summary', self.get_gps_summary)
         self.app.router.add_get('/api/health', self.health_check)
         self.app.router.add_get('/ws', self.websocket_handler)
         
@@ -183,6 +194,71 @@ class ROSManager:
                 'error': str(e)
             }, status=500)
     
+    async def get_gps_coordinates(self, request):
+        """Get current GPS coordinates."""
+        try:
+            data = self.data_collector.get_data('gps_coordinates')
+            if data:
+                return web.json_response({
+                    'success': True,
+                    'data': data['data'],
+                    'timestamp': data['timestamp']
+                })
+            else:
+                return web.json_response({
+                    'success': False,
+                    'error': 'No GPS data available'
+                }, status=404)
+        except Exception as e:
+            logger.error(f"Error getting GPS coordinates: {e}")
+            return web.json_response({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    
+    async def get_imu_data(self, request):
+        """Get current IMU data."""
+        try:
+            data = self.data_collector.get_data('imu_data')
+            if data:
+                return web.json_response({
+                    'success': True,
+                    'data': data['data'],
+                    'timestamp': data['timestamp']
+                })
+            else:
+                return web.json_response({
+                    'success': False,
+                    'error': 'No IMU data available'
+                }, status=404)
+        except Exception as e:
+            logger.error(f"Error getting IMU data: {e}")
+            return web.json_response({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    
+    async def get_gps_summary(self, request):
+        """Get a summary of all GPS and IMU data."""
+        try:
+            if self.gps_subscriber:
+                summary = self.gps_subscriber.get_summary_data()
+                return web.json_response({
+                    'success': True,
+                    'data': summary
+                })
+            else:
+                return web.json_response({
+                    'success': False,
+                    'error': 'GPS subscriber not available'
+                }, status=503)
+        except Exception as e:
+            logger.error(f"Error getting GPS summary: {e}")
+            return web.json_response({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+    
     async def health_check(self, request):
         """Health check endpoint."""
         try:
@@ -240,12 +316,20 @@ class ROSManager:
     async def send_initial_data(self, ws):
         """Send initial data to newly connected WebSocket."""
         try:
+            initial_data = {}
+            
             if self.drive_subscriber:
-                summary = self.drive_subscriber.get_summary_data()
-                await ws.send_str(json.dumps({
-                    'type': 'initial_data',
-                    'data': summary
-                }))
+                drive_summary = self.drive_subscriber.get_summary_data()
+                initial_data['drive'] = drive_summary
+            
+            if self.gps_subscriber:
+                gps_summary = self.gps_subscriber.get_summary_data()
+                initial_data['gps'] = gps_summary
+            
+            await ws.send_str(json.dumps({
+                'type': 'initial_data',
+                'data': initial_data
+            }))
         except Exception as e:
             logger.error(f"Error sending initial data: {e}")
     

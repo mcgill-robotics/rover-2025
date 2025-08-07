@@ -1,0 +1,145 @@
+# Rover 2025 Service Configuration
+# Central configuration for all teleop backend services
+
+# Service configurations
+services:
+  # ROS Manager - Handles ROS2 communication and web API
+  ros_manager:
+    port: 8082
+    enabled: true
+    health_check_url: "/api/health"
+    description: "ROS Manager - ROS2 communication and web API"
+    config:
+      ros_topics:
+        gps: "/gps/fix"
+        imu: "/imu/data"
+        drive: "/drive/cmd_vel"
+        arm: "/arm/cmd_vel"
+      web_api:
+        cors_origins: ["*"]
+        max_connections: 100
+
+  # GPS Service - Standalone GPS data service for mapping
+  gps_service:
+    port: 5001
+    enabled: true
+    health_check_url: "/api/health"
+    description: "GPS Service - Standalone GPS data for mapping"
+    config:
+      flask:
+        host: "0.0.0.0"
+        debug: false
+        threaded: true
+      sse:
+        retry_timeout: 30000
+        keep_alive_interval: 30
+      gps:
+        update_interval: 1.0
+        coordinate_precision: 6
+
+  # TileServer-GL - Serves offline map tiles
+  tileserver:
+    port: 8080
+    enabled: true
+    health_check_url: "/"
+    description: "TileServer-GL - Serves offline map tiles"
+    docker_compose_file: "gps/docker-compose.tileserver.yml"
+    config:
+      options:
+        paths:
+          root: "/usr/src/app"
+          fonts: "fonts"
+          styles: "styles"
+          mbtiles: "mbtiles"
+        serveAllFonts: true
+        formatQuality:
+          jpeg: 80
+          webp: 90
+        maxSize: 2048
+        pbfAlias: "pbf"
+      styles:
+        osm-bright:
+          style: "osm-bright/style.json"
+          tilejson:
+            bounds: [-180, -85.051129, 180, 85.051129]
+        satellite:
+          style: "satellite/style.json"
+          tilejson:
+            bounds: [-180, -85.051129, 180, 85.051129]
+        terrain:
+          style: "terrain/style.json"
+          tilejson:
+            bounds: [-180, -85.051129, 180, 85.051129]
+      data:
+        v3:
+          mbtiles: "v3.mbtiles"
+
+  # Camera Service - Multi-camera backend with RTP streaming
+  camera_service:
+    port: 8001
+    enabled: false
+    health_check_url: "/api/health"
+    description: "Camera Service - Multi-camera backend with RTP streaming"
+    config:
+      host: "0.0.0.0"
+      inactive_timeout: 30.0
+      frame_buffer_size: 10
+      # Dynamic camera configuration - no port restrictions
+      camera_discovery:
+        enabled: true
+        scan_interval: 5.0  # seconds
+        auto_connect: true
+        # Jetson server chooses any available port dynamically
+      gstreamer_config:
+        rtp_caps: "application/x-rtp,media=video,clock-rate=90000,encoding-name=H264,payload=96"
+        pipeline_elements:
+          - "rtph264depay"
+          - "h264parse"
+          - "avdec_h264"
+          - "videoconvert"
+          - "video/x-raw,format=BGR"
+          - "appsink drop=true max-buffers=2"
+        buffer_size: 1
+        drop_frames: true
+      aruco_config:
+        dictionary: "DICT_4X4_100"
+        marker_border_color: [0, 255, 0]
+        marker_border_thickness: 2
+        text_color: [255, 255, 255]
+        text_thickness: 2
+        text_font: "FONT_HERSHEY_SIMPLEX"
+        text_scale: 0.7
+      jpeg_config:
+        quality: 85
+        optimize: true
+
+# Monitoring configuration
+monitoring:
+  health_check_interval: 30  # seconds
+  service_timeout: 60  # seconds
+  max_retries: 3
+  log_level: "INFO"
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+  file: "logs/service_manager.log"
+  max_size: "10MB"
+  backup_count: 5
+
+# API configuration
+api:
+  host: "0.0.0.0"
+  port: 8083
+  cors_origins: ["*"]
+  max_connections: 100
+  timeout: 30
+
+# Development configuration
+development:
+  debug: false
+  reload_on_change: true
+  profile_performance: false
+  enable_metrics: true 
