@@ -25,7 +25,7 @@ class PipelineElements:
     pipeline: Gst.Pipeline
     src: Gst.Element
     capsfilter: Gst.Element
-    converter: Gst.Element
+    intermediate_elements: List[Gst.Element]
     encoder: Gst.Element
     payloader: Gst.Element
     sink: Gst.Element
@@ -103,10 +103,21 @@ class GStreamerPipeline:
             caps = Gst.Caps.from_string(caps_str)
             capsfilter.set_property('caps', caps)
             
+            # Create intermediate elements based on camera format
+            intermediate_elements = []
+            
+            if self.camera_type == 'mjpg':
+                # For MJPEG cameras, we need jpegdec before videoconvert
+                jpegdec = Gst.ElementFactory.make('jpegdec')
+                if not jpegdec:
+                    raise RuntimeError("Failed to create jpegdec element")
+                intermediate_elements.append(jpegdec)
+            
             # Create converter
             converter = Gst.ElementFactory.make('videoconvert')
             if not converter:
                 raise RuntimeError("Failed to create videoconvert element")
+            intermediate_elements.append(converter)
             
             # Create encoder
             encoder = Gst.ElementFactory.make('x264enc')
@@ -130,17 +141,24 @@ class GStreamerPipeline:
             sink.set_property('port', self.port)
             
             # Add elements to pipeline
-            elements = [src, capsfilter, converter, encoder, payloader, sink]
+            elements = [src, capsfilter] + intermediate_elements + [encoder, payloader, sink]
             for element in elements:
                 pipeline.add(element)
             
             # Link elements one by one
             if not src.link(capsfilter):
                 raise RuntimeError("Failed to link src to capsfilter")
-            if not capsfilter.link(converter):
-                raise RuntimeError("Failed to link capsfilter to converter")
-            if not converter.link(encoder):
-                raise RuntimeError("Failed to link converter to encoder")
+            
+            # Link intermediate elements
+            current_element = capsfilter
+            for element in intermediate_elements:
+                if not current_element.link(element):
+                    raise RuntimeError(f"Failed to link {current_element.get_name()} to {element.get_name()}")
+                current_element = element
+            
+            # Link remaining elements
+            if not current_element.link(encoder):
+                raise RuntimeError(f"Failed to link {current_element.get_name()} to encoder")
             if not encoder.link(payloader):
                 raise RuntimeError("Failed to link encoder to payloader")
             if not payloader.link(sink):
@@ -156,7 +174,7 @@ class GStreamerPipeline:
                 pipeline=pipeline,
                 src=src,
                 capsfilter=capsfilter,
-                converter=converter,
+                intermediate_elements=intermediate_elements,
                 encoder=encoder,
                 payloader=payloader,
                 sink=sink,
