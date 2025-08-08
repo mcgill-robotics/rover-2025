@@ -16,16 +16,11 @@ from std_msgs.msg import Bool
 class arm_firmware(Node):
     def __init__(self):
         super().__init__("arm_firmware_node")
-        self.position_subscriber = self.create_subscription(
-            Float32MultiArray, "arm_position_cmd", self.broadcast_pos, 10
-        )  # Returns a list of wais,t shoulder, elbow, wrist, hand
-        self.faults_subscriber = self.create_subscription(
-            Bool, "acknowledge_arm_faults", self.clear_motor_faults, 10
-        )
+        # Returns a list of wais,t shoulder, elbow, wrist, hand
+        self.position_subscriber = self.create_subscription(Float32MultiArray, "arm_position_cmd", self.broadcast_pos, 10)  
+        self.faults_subscriber   = self.create_subscription(Bool, "acknowledge_arm_faults", self.clear_motor_faults, 10)
 
-        station = aCAN.CANStation(
-            interface="slcan", channel="/dev/ttyACM0", bitrate=500000
-        )
+        station = aCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
         esc_interface = aCAN.ESCInterface(station)
         self.arm_interface = aCAN.SystemInterface(esc_interface, aCAN.MotorType.STEER)
         self.nodes = [aCAN.NodeID.WAIST, aCAN.NodeID.SHOULDER, aCAN.NodeID.ELBOW]
