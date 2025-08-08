@@ -9,9 +9,7 @@ def main():
     while not client.wait_for_service(timeout_sec=1.0):
         print("waiting for service")
     req = Trigger.Request()
-    print('hello')
     future = client.call(req)
-    print('hellooo')
     rclpy.spin_until_future_complete(node, future)
     if future.result():
         print(future.result().success)

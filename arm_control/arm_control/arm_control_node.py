@@ -44,10 +44,8 @@ class arm_control_node(Node):
 
         self.calibration_client = self.create_client(Trigger, "calibration_service")
 
+        # self.init_calibration()
         self.going_to_preset = False
-
-        req = Trigger.Request()
-        self.calibration_client.call(req)
 
         # # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
         # timer_period = 0.25
@@ -56,6 +54,18 @@ class arm_control_node(Node):
     def not_in_deadzone_check(self, x_axis: float, y_axis: float) -> bool:
         return not ((-self.deadzone <= x_axis <= self.deadzone) and (-self.deadzone <= y_axis <= self.deadzone))
     
+    def init_calibration(self):
+        while not self.calibration_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info("Waiting for calibration service")
+        req = Trigger.Request()
+        response = self.calibration_client.call_async(req)
+        rclpy.spin_until_future_complete(self, response)
+        if response.result():
+            if response.result().success:
+                self.get_logger().info(f'Calibration Result: {response.result().success}')
+            else:
+                self.get_logger().error(f'Calibration Result: {response.result().success}')
+            
     def run(self, gamepad_input: GamePadInput):
         """
         Main control loop that processes gamepad input and updates arm angles accordingly
@@ -68,8 +78,7 @@ class arm_control_node(Node):
             self.fault_publisher.publish(msg)
 
             #Calibration
-            req = Trigger.Request()
-            self.calibration_client.call(req)
+            self.init_calibration()
         else:
             msg = Bool()
             msg.data = False

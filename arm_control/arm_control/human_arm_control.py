@@ -30,8 +30,8 @@ class HumanArmControl:
     def __init__(self):
         self.current_cycle_mode = 0  # Start with waist joint. 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
         self.speed = 1.0  # TO BE SET LATER
-        self.speed_increment = 0.1  # TO BE SET LATER
-        self.distance = 0.05 # TO BE SET LATER
+        self.speed_increment = 0.5  # TO BE SET LATER
+        self.distance = 0.5 # TO BE SET LATER
         self.distance_increment = [self.distance, self.distance/2, self.distance/4] # TO BE SET LATER
         self.angle_increment = [np.pi/4, np.pi/8, np.pi/16] # TO BE SET LATER
         self.horizontal_lock = [0.0, 1.0] # DEFAULT

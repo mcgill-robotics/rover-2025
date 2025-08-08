@@ -24,9 +24,9 @@ class arm_firmware(Node):
 
         self.calibration_service = self.create_service(Trigger, "calibration_service", self.calibration_callback)
 
-        # station = aCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
-        # #esc_interface = aCAN.ESCInterface(station)
-        # self.arm_interface = aCAN.ArmESCInterface(station)
+        station = aCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
+        #esc_interface = aCAN.ESCInterface(station) # armCANV1
+        self.arm_interface = aCAN.ArmESCInterface(station) #armCANV2
         self.nodes = [aCAN.ArmNodeID.WAIST, aCAN.ArmNodeID.SHOULDER, aCAN.ArmNodeID.ELBOW]
 
     def clear_motor_faults(self, acknowledge_faults: Bool):
