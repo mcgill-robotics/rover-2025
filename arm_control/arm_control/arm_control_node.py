@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import time
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
 import rclpy
@@ -10,10 +11,14 @@ from human_arm_control import *
 import numpy as np
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Bool
+from std_srvs.srv import Trigger
 
 # Enum for control schema
 IK_CONTROL = 0
 JOINT_CONTROL = 1
+
+ARM_PRESET_1 = {"waist": 45.0, "shoulder": 5.0, "elbow": 5.0} #we can use this for stowed position
+ARM_PRESET_2 = {"waist": 45.0, "shoulder": 30, "elbow": 45.0} #this can be more of a centered position
 
 class arm_control_node(Node):
     def __init__(self):
@@ -37,6 +42,13 @@ class arm_control_node(Node):
         self.position_publisher = self.create_publisher(Float32MultiArray, 'arm_position_cmd', 10)
         self.fault_publisher = self.create_publisher(Bool, "acknowledge_arm_faults", 10)
 
+        self.calibration_client = self.create_client(Trigger, "calibration_service")
+
+        self.going_to_preset = False
+
+        req = Trigger.Request()
+        self.calibration_client.call(req)
+
         # # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
         # timer_period = 0.25
         # self.timer = self.create_timer(timer_period, self.run)
@@ -48,10 +60,16 @@ class arm_control_node(Node):
         """
         Main control loop that processes gamepad input and updates arm angles accordingly
         """
+        self.going_to_preset = False
+
         if gamepad_input.home_button:
             msg = Bool()
             msg.data = True
             self.fault_publisher.publish(msg)
+
+            #Calibration
+            req = Trigger.Request()
+            self.calibration_client.call(req)
         else:
             msg = Bool()
             msg.data = False
@@ -72,41 +90,50 @@ class arm_control_node(Node):
         
         if gamepad_input.select_button:
             self.controller.set_horizontal_lock(self.cur_angles)
-        
-        if self.current_schema == IK_CONTROL:
-            #Check if there is input value for vertical plannar motion:
-            if self.not_in_deadzone_check(gamepad_input.d_pad_y, 0):
-                new_angles = self.controller.vertical_motion(gamepad_input.d_pad_y, self.cur_angles)
-            
-            #Check if there is input value for horizontal plannar motion:
-            elif self.not_in_deadzone_check(gamepad_input.d_pad_x, 0):
-                new_angles = self.controller.horizontal_motion(gamepad_input.d_pad_x, self.cur_angles)
-            
-            #Check if there is joystick value for depth plannar motion:
-            elif self.not_in_deadzone_check(gamepad_input.l_stick_y, 0):
-                new_angles = self.controller.depth_motion(gamepad_input.l_stick_y, self.cur_angles)
 
-            #Check if there is input for up and down tilt
-            elif gamepad_input.r2_button:
-                new_angles = self.controller.upDownTilt(1, self.cur_angles)
+        if gamepad_input.l1_button: #Preset1
+            new_angles = [ARM_PRESET_1["waist"], ARM_PRESET_1["shoulder"], ARM_PRESET_1["elbow"], self.cur_angles[3], self.cur_angles[4]] #Include James vars
+            self.going_to_preset = True
 
-            elif gamepad_input.l2_button:
-                new_angles = self.controller.upDownTilt(-1, self.cur_angles)
+        if gamepad_input.r1_button: #Preset2
+            new_angles = [ARM_PRESET_2["waist"], ARM_PRESET_2["shoulder"], ARM_PRESET_2["elbow"], self.cur_angles[3], self.cur_angles[4]] #Include James vars
+            self.going_to_preset = True
         
-        elif self.current_schema == JOINT_CONTROL:
-            #Check if there is joystick value for specific angle adjustment and if individual joint moment allowed
-            if self.not_in_deadzone_check(gamepad_input.r_stick_y, 0):
-                new_angles = self.controller.move_joint(gamepad_input.r_stick_y, self.cur_angles)
-            
-        
-        #Check if there is input for enabling/disabling joint control
-        if gamepad_input.start_button:
+        if not self.going_to_preset:
             if self.current_schema == IK_CONTROL:
-                self.current_schema = JOINT_CONTROL
-                print("Joint Control Activated")
-            else:
-                self.current_schema = IK_CONTROL
-                print("IK Mode Activated")
+                #Check if there is input value for vertical plannar motion:
+                if self.not_in_deadzone_check(gamepad_input.d_pad_y, 0):
+                    new_angles = self.controller.vertical_motion(gamepad_input.d_pad_y, self.cur_angles)
+                
+                #Check if there is input value for horizontal plannar motion:
+                elif self.not_in_deadzone_check(gamepad_input.d_pad_x, 0):
+                    new_angles = self.controller.horizontal_motion(gamepad_input.d_pad_x, self.cur_angles)
+                
+                #Check if there is joystick value for depth plannar motion:
+                elif self.not_in_deadzone_check(gamepad_input.l_stick_y, 0):
+                    new_angles = self.controller.depth_motion(gamepad_input.l_stick_y, self.cur_angles)
+
+                #Check if there is input for up and down tilt
+                elif gamepad_input.r2_button:
+                    new_angles = self.controller.upDownTilt(1, self.cur_angles)
+
+                elif gamepad_input.l2_button:
+                    new_angles = self.controller.upDownTilt(-1, self.cur_angles)
+            
+            elif self.current_schema == JOINT_CONTROL:
+                #Check if there is joystick value for specific angle adjustment and if individual joint moment allowed
+                if self.not_in_deadzone_check(gamepad_input.r_stick_y, 0):
+                    new_angles = self.controller.move_joint(gamepad_input.r_stick_y, self.cur_angles)
+            
+        
+            #Check if there is input for enabling/disabling joint control
+            if gamepad_input.start_button:
+                if self.current_schema == IK_CONTROL:
+                    self.current_schema = JOINT_CONTROL
+                    print("Joint Control Activated")
+                else:
+                    self.current_schema = IK_CONTROL
+                    print("IK Mode Activated")
 
         msg = Float32MultiArray()
         msg.data = new_angles
