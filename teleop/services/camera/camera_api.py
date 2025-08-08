@@ -359,8 +359,10 @@ class CameraAPI:
                         await asyncio.sleep(0.05)
                         continue
 
+                    logger.debug(f"[{camera_id}] Checking frame_buffer contents...")
                     frame = frame_buffer.get_latest_frame()
                     if frame is not None:
+                        logger.debug(f"[{camera_id}] Sending frame at {frame.timestamp}")
                         jpeg_b64 = base64.b64encode(frame.frame_data).decode()
                         await websocket.send_json({
                             "type": "frame",

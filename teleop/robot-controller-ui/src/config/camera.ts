@@ -22,31 +22,6 @@ export const MULTI_CAMERA_BACKEND = {
   }
 };
 
-// Jetson/Pi Device Configuration
-export const JETSON_DEVICES = {
-  // Default backend host for Jetson/Pi devices to send frames to
-  DEFAULT_BACKEND_HOST: "192.168.1.100", // Change to your backend server IP
-  
-  // Default backend UDP port for Jetson/Pi devices
-  DEFAULT_BACKEND_PORT: 9999,
-  
-  // Default device configurations
-  DEVICES: {
-    JETSON_01: {
-      DEVICE_ID: "jetson-01",
-      DESCRIPTION: "Primary Jetson Device"
-    },
-    JETSON_02: {
-      DEVICE_ID: "jetson-02", 
-      DESCRIPTION: "Secondary Jetson Device"
-    },
-    RPI_01: {
-      DEVICE_ID: "rpi-01",
-      DESCRIPTION: "Raspberry Pi Device"
-    }
-  }
-};
-
 // Camera Stream Configuration
 export const CAMERA_STREAM_CONFIG = {
   // Default JPEG quality (1-100)
@@ -112,7 +87,6 @@ export const LEGACY_WEBRTC_CONFIG = {
 // Export combined configuration for easy access
 export const CAMERA_CONFIG = {
   BACKEND: MULTI_CAMERA_BACKEND,
-  DEVICES: JETSON_DEVICES,
   STREAM: CAMERA_STREAM_CONFIG,
   UI: CAMERA_UI_CONFIG,
   LEGACY: LEGACY_WEBRTC_CONFIG

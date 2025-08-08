@@ -201,14 +201,21 @@ class ServiceManager:
     async def _start_camera_service(self):
         """Start the camera service."""
         try:
-            from camera.camera_service import CameraService
+            from camera.camera_service import MultiCameraBackend
             
-            # Get camera service config from service_config.json
+            # Get camera service config from service_config.yml
             camera_config = self.config['services']['camera_service']['config']
-            self.camera_service = CameraService(camera_config)
+            http_port = self.config['services']['camera_service']['port']
             
-            # Start the camera service
-            await self.camera_service.startup()
+            # Create and start the camera backend
+            self.camera_service = MultiCameraBackend(http_port=http_port, enable_aruco=True)
+            
+            # Start the camera service in a separate thread
+            def run_camera_service():
+                self.camera_service.run()
+            
+            camera_thread = threading.Thread(target=run_camera_service, daemon=True)
+            camera_thread.start()
             
             logger.info("Camera Service started successfully")
             
@@ -220,7 +227,7 @@ class ServiceManager:
         """Stop the camera service."""
         if self.camera_service:
             try:
-                await self.camera_service.shutdown()
+                self.camera_service.running = False
                 self.camera_service = None
                 logger.info("Camera Service stopped successfully")
             except Exception as e:

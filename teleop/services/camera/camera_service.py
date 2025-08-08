@@ -25,9 +25,56 @@ from aruco_detector import create_aruco_detector
 from gstreamer_reader import GStreamerCameraReader, MultiGStreamerReader
 from camera_api import CameraAPI
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging with colors
+class ColoredFormatter(logging.Formatter):
+    """Custom formatter with colors for different log levels and components."""
+    
+    # Colors
+    COLORS = {
+        'DEBUG': '\033[36m',    # Cyan
+        'INFO': '\033[32m',     # Green
+        'WARNING': '\033[33m',  # Yellow
+        'ERROR': '\033[31m',    # Red
+        'CRITICAL': '\033[35m', # Magenta
+        'RESET': '\033[0m'      # Reset
+    }
+    
+    # Component colors
+    COMPONENT_COLORS = {
+        'GSTREAMER': '\033[94m',   # Blue
+        'PIPELINE': '\033[95m',    # Magenta
+        'POLLING': '\033[96m',     # Light Cyan
+        'WEBSOCKET': '\033[93m',   # Light Yellow
+        'CAMERA': '\033[92m',      # Light Green
+        'MONITOR': '\033[97m',     # White
+        'ARUCO': '\033[91m',       # Light Red
+        'ERROR': '\033[31m',       # Red
+        'QUEUE': '\033[90m',       # Dark Gray
+        'STATS': '\033[37m',       # Light Gray
+        'RESET': '\033[0m'         # Reset
+    }
+    
+    def format(self, record):
+        # Add color to log level
+        level_color = self.COLORS.get(record.levelname, self.COLORS['RESET'])
+        
+        # Check for component tags in the message
+        message = record.getMessage()
+        for component, color in self.COMPONENT_COLORS.items():
+            if f'[{component}]' in message:
+                message = message.replace(f'[{component}]', f'{color}[{component}]{self.COLORS["RESET"]}')
+                break
+        
+        # Format the record
+        formatted = super().format(record)
+        return f"{level_color}{formatted}{self.COLORS['RESET']}"
+
+# Configure logging with colored formatter
+handler = logging.StreamHandler()
+handler.setFormatter(ColoredFormatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger = logging.getLogger(__name__)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 def get_backend_config():
     """Get backend configuration from service_config.yml."""
@@ -113,10 +160,16 @@ class FrameBuffer:
     def add_frame(self, frame: CameraFrame):
         with self.lock:
             self.frames.append(frame)
+            logger.debug(f"Frame buffer: added frame, size now {len(self.frames)}")
 
     def get_latest_frame(self) -> Optional[CameraFrame]:
         with self.lock:
-            return self.frames[-1] if self.frames else None
+            if self.frames:
+                logger.debug(f"Frame buffer: returning frame, buffer size {len(self.frames)}")
+                return self.frames[-1]
+            else:
+                logger.debug("Frame buffer: no frames available")
+                return None
 
     def clear(self):
         with self.lock:
@@ -244,20 +297,22 @@ class MultiCameraBackend:
                     'cameras': cameras  # Store camera information from heartbeat
                 }
             
-            logger.debug(f"Received heartbeat from {device_id} with {len(cameras)} cameras")
+            logger.info(f"Received heartbeat from {device_id} with {len(cameras)} cameras")
             
-            # Only track available cameras, don't automatically start them
+            # Track all available cameras from the device, not just active ones
             for camera_id, camera_info in cameras.items():
                 name = camera_info.get('name', camera_id)
                 device_path = camera_info.get('device_path', '')
                 is_active = camera_info.get('is_active', False)
                 rtp_port = camera_info.get('rtp_port')
                 
-                # If camera is active and has RTP port, handle it
+                # Store all cameras in device info for frontend to see
+                # Only start RTP streams for active cameras with RTP ports
                 if is_active and rtp_port:
                     if camera_id not in self.cameras:
                         # Add new active camera
                         try:
+                            logger.info(f"[{camera_id}] [CAMERA] Adding new active camera on RTP port {rtp_port}")
                             reader = self.camera_readers.add_camera(camera_id, rtp_port)
                             
                             self.cameras[camera_id] = CameraInfo(
@@ -272,6 +327,7 @@ class MultiCameraBackend:
                             )
                             
                             self.frame_buffers[camera_id] = FrameBuffer()
+                            logger.info(f"[{camera_id}] [CAMERA] Camera added successfully")
                             
                             # Start polling thread for this camera
                             thread = threading.Thread(
@@ -348,13 +404,13 @@ class MultiCameraBackend:
                 
             try:
                 data, addr = self.udp_sock.recvfrom(65536)
-                logger.debug(f"Received UDP packet from {addr}, size: {len(data)} bytes")
+                logger.info(f"Received UDP packet from {addr}, size: {len(data)} bytes")
                 
                 packet_info = self.parse_udp_packet(data)
                 
                 if packet_info:
                     camera_id = packet_info['camera_id']
-                    logger.debug(f"Parsed packet with camera_id: {camera_id}")
+                    logger.info(f"Parsed packet with camera_id: {camera_id}")
                     
                     if camera_id == '__HEARTBEAT__':
                         # Handle heartbeat
@@ -374,7 +430,7 @@ class MultiCameraBackend:
                 continue
             except Exception as e:
                 if self.running:  # Only log if we're supposed to be running
-                    logger.debug(f"UDP receive error: {e}")
+                    logger.error(f"UDP receive error: {e}")
                 time.sleep(0.1)
         
         logger.info("UDP receiver thread ended")
@@ -394,16 +450,31 @@ class MultiCameraBackend:
 
     def camera_polling_loop(self, camera_id: str, reader: GStreamerCameraReader):
         """Polling loop for a single camera."""
-        logger.info(f"Starting polling loop for camera {camera_id}")
+        logger.info(f"[{camera_id}] [POLLING] Starting polling loop for camera")
+        
+        frame_count = 0
+        last_log_time = time.time()
         
         while self.running:
             try:
                 frame = reader.read_frame()
                 if frame is not None:
+                    frame_count += 1
+                    current_time = time.time()
+                    
+                    # Log progress every 10 frames or every 5 seconds
+                    if frame_count % 10 == 0 or (current_time - last_log_time) > 5:
+                        logger.info(f"[{camera_id}] [POLLING] Received frame {frame_count}, shape: {frame.shape}")
+                        last_log_time = current_time
+                    
                     # Update camera info
                     if camera_id in self.cameras:
                         self.cameras[camera_id].last_frame_time = time.time()
                         self.cameras[camera_id].is_active = True
+                        # Update resolution if not set
+                        if self.cameras[camera_id].resolution == (0, 0):
+                            self.cameras[camera_id].resolution = (frame.shape[1], frame.shape[0])
+                            logger.info(f"[{camera_id}] [POLLING] Updated resolution: {self.cameras[camera_id].resolution}")
                     
                     # Process frame with ArUco detection if enabled
                     processed_frame = frame
@@ -413,7 +484,7 @@ class MultiCameraBackend:
                         try:
                             processed_frame, aruco_detected = self.aruco_detector.process_frame(frame)
                         except Exception as e:
-                            logger.error(f"ArUco detection failed for {camera_id}: {e}")
+                            logger.error(f"[{camera_id}] [ARUCO] ArUco detection failed: {e}")
                     
                     # Encode frame to JPEG
                     try:
@@ -442,18 +513,25 @@ class MultiCameraBackend:
                             self.broadcast_frame_data(camera_id, message), self.loop
                         )
                         
+                        if frame_count % 50 == 0:  # Log every 50 frames
+                            logger.info(f"[{camera_id}] [WEBSOCKET] Broadcasted frame {frame_count} to WebSocket clients")
+                        
                     except Exception as e:
-                        logger.error(f"Failed to encode frame for {camera_id}: {e}")
+                        logger.error(f"[{camera_id}] [ERROR] Failed to encode frame: {e}")
+                        import traceback
+                        logger.error(f"[{camera_id}] [ERROR] Stack trace: {traceback.format_exc()}")
                         
                 else:
                     # No frame received, brief sleep
                     time.sleep(0.033)  # ~30 FPS
                     
             except Exception as e:
-                logger.error(f"Error in camera polling loop for {camera_id}: {e}")
+                logger.error(f"[{camera_id}] [ERROR] Error in camera polling loop: {e}")
+                import traceback
+                logger.error(f"[{camera_id}] [ERROR] Stack trace: {traceback.format_exc()}")
                 time.sleep(1)  # Longer sleep on error
                 
-        logger.info(f"Camera polling loop ended for {camera_id}")
+        logger.info(f"[{camera_id}] [POLLING] Camera polling loop ended")
 
     def start_camera_polling_threads(self):
         """Start polling threads for all cameras."""
