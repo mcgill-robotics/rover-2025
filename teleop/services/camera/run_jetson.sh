@@ -1,18 +1,18 @@
 #!/bin/bash
-# Run script for GStreamer-based Vision Server (Jetson/Pi)
+# Run script for GStreamer-based Jetson/Pi camera server
 
 # Load default values from config.py
 eval $(python3 -c "
 from config import get_jetson_config
 config = get_jetson_config()
-gst_config = config.get('gstreamer_config', {})
-print(f'BACKEND_HOST=\"{config.get(\"default_backend_host\", \"192.168.1.100\")}\"')
-print(f'BACKEND_PORT={config.get(\"default_backend_port\", 9999)}')
-print(f'FPS={config.get(\"default_fps\", 20)}')
-print(f'WIDTH={config.get(\"capture_width\", 640)}')
-print(f'HEIGHT={config.get(\"capture_height\", 480)}')
-print(f'BITRATE={gst_config.get(\"h264_bitrate\", 512)}')
-print(f'TUNE=\"{gst_config.get(\"h264_tune\", \"zerolatency\")}\"')
+gst_config = config['GSTREAMER_CONFIG']
+print(f'BACKEND_HOST=\"{config[\"DEFAULT_BACKEND_HOST\"]}\"')
+print(f'BACKEND_PORT={config[\"DEFAULT_BACKEND_PORT\"]}')
+print(f'FPS={config[\"DEFAULT_FPS\"]}')
+print(f'WIDTH={config[\"CAPTURE_WIDTH\"]}')
+print(f'HEIGHT={config[\"CAPTURE_HEIGHT\"]}')
+print(f'BITRATE={gst_config[\"H264_BITRATE\"]}')
+print(f'TUNE=\"{gst_config[\"H264_TUNE\"]}\"')
 ")
 
 # Default device ID (not in config since it should be unique per device)
@@ -56,31 +56,27 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo ""
-            echo "GStreamer-based Multi-Camera Vision Server"
+            echo "GStreamer-based Multi-Camera Jetson/Pi Server"
             echo "Captures video from cameras and sends RTP/H.264 streams to backend"
             echo ""
             echo "Options:"
             echo "  --backend-host HOST    Backend server IP address (default: $BACKEND_HOST)"
             echo "  --backend-port PORT    Backend server UDP port for heartbeat (default: $BACKEND_PORT)"
             echo "  --device-id ID         Unique device identifier (default: $DEVICE_ID)"
-            echo "  --width WIDTH          Video capture width (display only, configured in config.yml)"
-            echo "  --height HEIGHT        Video capture height (display only, configured in config.yml)"
-            echo "  --fps FPS              Target frames per second (display only, configured in config.yml)"
-            echo "  --bitrate KBPS         H.264 bitrate in kbps (display only, configured in config.yml)"
-            echo "  --tune PRESET          H.264 encoder tune preset (display only, configured in config.yml)"
+            echo "  --width WIDTH          Video capture width (default: $WIDTH)"
+            echo "  --height HEIGHT        Video capture height (default: $HEIGHT)"
+            echo "  --fps FPS              Target frames per second (default: $FPS)"
+            echo "  --bitrate KBPS         H.264 bitrate in kbps (default: $BITRATE)"
+            echo "  --tune PRESET          H.264 encoder tune preset (default: $TUNE)"
             echo "  -h, --help             Show this help message"
             echo ""
             echo "Camera Port Mapping (RTP streams sent to backend):"
-            echo "  cam00 -> $BACKEND_HOST:5000 (Front Camera)"
-            echo "  cam01 -> $BACKEND_HOST:5001 (Left Camera)"
-            echo "  cam02 -> $BACKEND_HOST:5002 (Right Camera)"
+            echo "  cam00 -> Backend Port 5000 (Front Camera)"
+            echo "  cam01 -> Backend Port 5001 (Left Camera)"
+            echo "  cam02 -> Backend Port 5002 (Right Camera)"
             echo ""
-            echo "Examples:"
-            echo "  $0 --backend-host 192.168.1.100 --device-id jetson-01"
-            echo "  $0 --device-id jetson-01 --backend-port 9999  # Use default host, custom port"
-            echo ""
-            echo "Note: Video settings (width, height, fps, bitrate, tune) are configured in config.yml"
-            echo "      and cannot be changed via command-line arguments."
+            echo "Example:"
+            echo "  $0 --backend-host 192.168.1.100 --device-id jetson-01 --fps 30"
             echo ""
             echo "Requirements:"
             echo "  - GStreamer 1.0 with NVIDIA plugins (nvvidconv, x264enc)"
@@ -138,7 +134,7 @@ echo "Discovering cameras..."
 v4l2-ctl --list-devices 2>/dev/null | grep -E "(video|Camera)" || echo "No cameras found or v4l2-ctl failed"
 
 echo "=============================================="
-echo "GStreamer Multi-Camera Vision Server"
+echo "GStreamer Multi-Camera Jetson/Pi Server"
 echo "=============================================="
 echo "Backend: $BACKEND_HOST:$BACKEND_PORT (heartbeat)"
 echo "Device ID: $DEVICE_ID"
@@ -160,7 +156,12 @@ echo "Press Ctrl+C to stop"
 echo "=============================================="
 
 # Run the server
-python3 vision_server.py \
+python3 jetson_server.py \
     --backend-host "$BACKEND_HOST" \
     --backend-port "$BACKEND_PORT" \
-    --device-id "$DEVICE_ID"
+    --device-id "$DEVICE_ID" \
+    --width "$WIDTH" \
+    --height "$HEIGHT" \
+    --fps "$FPS" \
+    --bitrate "$BITRATE" \
+    --tune "$TUNE"

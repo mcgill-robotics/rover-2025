@@ -15,77 +15,18 @@ import logging
 from dataclasses import dataclass
 import base64
 import cv2
-import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
+from config import get_backend_config
 from aruco_detector import create_aruco_detector
 from gstreamer_reader import GStreamerCameraReader, MultiGStreamerReader
-from camera_api import CameraAPI
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-def get_backend_config():
-    """Get backend configuration from service_config.yml."""
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'service_config.yml')
-    
-    try:
-        import yaml
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
-        
-        camera_config = config['services']['camera_service']['config']
-        
-        # Convert to old format for compatibility
-        return {
-            "HOST": camera_config["host"],
-            "HTTP_PORT": 8001,  # This will be overridden by service manager
-            "UDP_PORT": 9999,
-            "INACTIVE_TIMEOUT": camera_config["inactive_timeout"],
-            "HEARTBEAT_TIMEOUT": 15.0,
-            "FRAME_BUFFER_SIZE": camera_config["frame_buffer_size"],
-            "MAX_UDP_PACKET_SIZE": 65507,
-            "CAMERA_DISCOVERY": camera_config["camera_discovery"],
-            "GSTREAMER_CONFIG": camera_config["gstreamer_config"],
-            "ARUCO_CONFIG": camera_config["aruco_config"],
-            "JPEG_CONFIG": camera_config["jpeg_config"]
-        }
-    except (FileNotFoundError, KeyError, yaml.YAMLError) as e:
-        print(f"Warning: Could not load service config: {e}")
-        # Return default config
-        return {
-            "HOST": "0.0.0.0",
-            "HTTP_PORT": 8001,
-            "UDP_PORT": 9999,
-            "INACTIVE_TIMEOUT": 30.0,
-            "HEARTBEAT_TIMEOUT": 15.0,
-            "FRAME_BUFFER_SIZE": 10,
-            "MAX_UDP_PACKET_SIZE": 65507,
-            "CAMERA_DISCOVERY": {"enabled": True, "scan_interval": 5.0, "auto_connect": True},
-            "GSTREAMER_CONFIG": {
-                "rtp_caps": "application/x-rtp,media=video,clock-rate=90000,encoding-name=H264,payload=96",
-                "pipeline_elements": ["rtph264depay", "h264parse", "avdec_h264", "videoconvert", "video/x-raw,format=BGR", "appsink drop=true max-buffers=2"],
-                "buffer_size": 1,
-                "drop_frames": True
-            },
-            "ARUCO_CONFIG": {
-                "dictionary": "DICT_4X4_100",
-                "marker_border_color": [0, 255, 0],
-                "marker_border_thickness": 2,
-                "text_color": [255, 255, 255],
-                "text_thickness": 2,
-                "text_font": "FONT_HERSHEY_SIMPLEX",
-                "text_scale": 0.7
-            },
-            "JPEG_CONFIG": {
-                "quality": 85,
-                "optimize": True
-            }
-        }
 
 @dataclass
 class CameraFrame:
@@ -157,9 +98,261 @@ class MultiCameraBackend:
                 logger.error(f"Failed to initialize ArUco detector: {e}")
                 self.enable_aruco = False
 
-        # Initialize API
-        self.api = CameraAPI(self)
-        self.app = self.api.app
+        self.app = FastAPI(title="Multi-Camera Backend", version="1.0.0")
+        self.setup_routes()
+        self.setup_cors()
+
+    def setup_cors(self):
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+    def setup_routes(self):
+        @self.app.get("/api/cameras")
+        async def get_cameras():
+            """Get currently active cameras."""
+            current_time = time.time()
+            active_cameras = []
+            for camera_id, info in self.cameras.items():
+                if current_time - info.last_frame_time < self.inactive_timeout:
+                    active_cameras.append({**info.__dict__})
+            return {"cameras": active_cameras}
+
+        @self.app.get("/api/cameras/available")
+        async def get_available_cameras():
+            """Get all available cameras from connected Jetson devices."""
+            available_cameras = []
+            current_time = time.time()
+            
+            for device_id, device_info in self.jetson_devices.items():
+                # Only include devices that have sent recent heartbeats
+                if current_time - device_info['last_heartbeat'] < 30:
+                    # Get camera info from the stored heartbeat data
+                    cameras_data = device_info.get('cameras', {})
+                    
+                    for camera_id, camera_info in cameras_data.items():
+                        available_cameras.append({
+                            "camera_id": camera_id,
+                            "device_id": device_id,
+                            "name": camera_info.get('name', camera_id),
+                            "device_path": camera_info.get('device_path', ''),
+                            "is_active": camera_info.get('is_active', False),
+                            "rtp_port": camera_info.get('rtp_port'),
+                            "host": device_info['host'],
+                            "last_heartbeat": device_info['last_heartbeat'],
+                            "status": "connected"
+                        })
+            
+            return {
+                "available_cameras": available_cameras, 
+                "total_devices": len(self.jetson_devices),
+                "total_cameras": len(available_cameras)
+            }
+
+        @self.app.post("/api/cameras/{camera_id}/start")
+        async def start_camera(camera_id: str):
+            """Request to start a specific camera."""
+            try:
+                # Find which device this camera belongs to
+                device_id = None
+                for cam_id, cam_info in self.cameras.items():
+                    if cam_id == camera_id:
+                        device_id = cam_info.device_id
+                        break
+                
+                # If camera not found in active cameras, try to find it from device info
+                if not device_id:
+                    # Extract device_id from camera_id (assuming format like "jetson-01-cam00")
+                    parts = camera_id.split('-')
+                    if len(parts) >= 2:
+                        potential_device_id = '-'.join(parts[:-1])  # e.g., "jetson-01"
+                        if potential_device_id in self.jetson_devices:
+                            device_id = potential_device_id
+                
+                if not device_id:
+                    return {"error": f"Cannot determine device for camera {camera_id}"}
+                
+                # Send start command to Jetson device
+                command = {
+                    "type": "start_camera",
+                    "camera_id": camera_id
+                }
+                
+                success = self.send_command_to_jetson(device_id, command)
+                
+                if success:
+                    return {"success": True, "message": f"Start command sent for camera {camera_id}"}
+                else:
+                    return {"error": f"Failed to send start command for camera {camera_id}"}
+                    
+            except Exception as e:
+                logger.error(f"Failed to start camera {camera_id}: {e}")
+                return {"error": str(e)}
+
+        @self.app.post("/api/cameras/{camera_id}/stop")
+        async def stop_camera(camera_id: str):
+            """Request to stop a specific camera."""
+            try:
+                # Find which device this camera belongs to
+                device_id = None
+                if camera_id in self.cameras:
+                    device_id = self.cameras[camera_id].device_id
+                else:
+                    # Extract device_id from camera_id (assuming format like "jetson-01-cam00")
+                    parts = camera_id.split('-')
+                    if len(parts) >= 2:
+                        potential_device_id = '-'.join(parts[:-1])  # e.g., "jetson-01"
+                        if potential_device_id in self.jetson_devices:
+                            device_id = potential_device_id
+                
+                if not device_id:
+                    return {"error": f"Cannot determine device for camera {camera_id}"}
+                
+                # Send stop command to Jetson device
+                command = {
+                    "type": "stop_camera",
+                    "camera_id": camera_id
+                }
+                
+                success = self.send_command_to_jetson(device_id, command)
+                
+                if success:
+                    return {"success": True, "message": f"Stop command sent for camera {camera_id}"}
+                else:
+                    return {"error": f"Failed to send stop command for camera {camera_id}"}
+                    
+            except Exception as e:
+                logger.error(f"Failed to stop camera {camera_id}: {e}")
+                return {"error": str(e)}
+
+        @self.app.post("/api/cameras/add")
+        async def add_camera(camera_data: dict):
+            """Add a new camera with specified port."""
+            try:
+                camera_id = camera_data.get("camera_id")
+                port = camera_data.get("port")
+                device_id = camera_data.get("device_id", "unknown")
+                name = camera_data.get("name", camera_id)
+                
+                if not camera_id or not port:
+                    return {"error": "camera_id and port are required"}
+                
+                # Add camera reader
+                reader = self.camera_readers.add_camera(camera_id, port)
+                
+                # Create camera info
+                self.cameras[camera_id] = CameraInfo(
+                    camera_id=camera_id,
+                    device_id=device_id,
+                    name=name,
+                    port=port,
+                    is_active=reader.is_active(),
+                    last_frame_time=time.time(),
+                    resolution=reader.get_resolution(),
+                    fps=reader.get_frame_rate()
+                )
+                
+                # Create frame buffer
+                self.frame_buffers[camera_id] = FrameBuffer()
+                
+                logger.info(f"Added camera {camera_id} on port {port}")
+                return {"success": True, "camera_id": camera_id, "port": port}
+                
+            except Exception as e:
+                logger.error(f"Failed to add camera: {e}")
+                return {"error": str(e)}
+
+        @self.app.delete("/api/cameras/{camera_id}")
+        async def remove_camera(camera_id: str):
+            """Remove a camera."""
+            try:
+                if camera_id in self.cameras:
+                    # Remove camera reader
+                    self.camera_readers.remove_camera(camera_id)
+                    
+                    # Remove camera info and buffer
+                    del self.cameras[camera_id]
+                    self.frame_buffers.pop(camera_id, None)
+                    
+                    # Close WebSocket connections
+                    connections = self.websocket_connections.pop(camera_id, set())
+                    for ws in connections:
+                        await ws.close()
+                    
+                    logger.info(f"Removed camera {camera_id}")
+                    return {"success": True, "camera_id": camera_id}
+                else:
+                    return {"error": f"Camera {camera_id} not found"}
+                    
+            except Exception as e:
+                logger.error(f"Failed to remove camera: {e}")
+                return {"error": str(e)}
+
+        @self.app.websocket("/stream")
+        async def websocket_stream(websocket: WebSocket, camera_id: str = None):
+            await websocket.accept()
+            
+            # Get camera_id from query parameters if not provided as path parameter
+            if not camera_id:
+                query_params = dict(websocket.query_params)
+                camera_id = query_params.get('camera_id')
+            
+            if not camera_id:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "camera_id parameter is required"
+                })
+                await websocket.close()
+                return
+
+            if camera_id not in self.cameras:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": f"Camera {camera_id} not found"
+                })
+                await websocket.close()
+                return
+
+            self.websocket_connections[camera_id].add(websocket)
+            logger.info(f"WebSocket connected for camera {camera_id}")
+
+            try:
+                while True:
+                    frame_buffer = self.frame_buffers.get(camera_id)
+                    if not frame_buffer:
+                        await asyncio.sleep(0.05)
+                        continue
+
+                    frame = frame_buffer.get_latest_frame()
+                    if frame is not None:
+                        jpeg_b64 = base64.b64encode(frame.frame_data).decode()
+                        await websocket.send_json({
+                            "type": "frame",
+                            "frame_data": jpeg_b64,
+                            "timestamp": frame.timestamp
+                        })
+
+                    await asyncio.sleep(1 / 20)  # assuming 20 FPS target
+            except WebSocketDisconnect:
+                logger.info(f"WebSocket disconnected for camera {camera_id}")
+            except Exception as e:
+                logger.error(f"WebSocket error for {camera_id}: {e}")
+            finally:
+                self.websocket_connections[camera_id].discard(websocket)
+
+
+        @self.app.get("/api/health")
+        async def health_check():
+            return {
+                "status": "healthy",
+                "cameras_count": len(self.cameras),
+                "active_connections": sum(len(v) for v in self.websocket_connections.values()),
+                "timestamp": time.time()
+            }
 
     def setup_udp_socket(self):
         """Setup UDP socket for receiving heartbeats from Jetson devices."""

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Multi-camera UDP streaming server for Jetson/Pi devices.
-Uses GStreamer Python bindings (gi) for hardware-accelerated capture and H.264 encoding.
+Uses GStreamer for hardware-accelerated capture and H.264 encoding.
 Sends encoded frames with camera IDs over UDP to central backend.
 """
 
@@ -13,16 +13,14 @@ import threading
 import subprocess
 import re
 import argparse
-from typing import Dict, List, Optional
+from typing import Dict, List
 import logging
 import signal
-import os
 
-from config import get_jetson_config, get_network_config, setup_logging
-from gstreamer_pipeline import GStreamerPipeline
+from config import get_jetson_config
 
 # Configure logging
-setup_logging()
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class CameraInfo:
@@ -32,7 +30,7 @@ class CameraInfo:
         self.device_path = device_path
         self.is_active = False
         self.last_frame_time = 0
-        self.pipeline: Optional[GStreamerPipeline] = None
+        self.gst_process = None
         self.rtp_port = None  # Port where RTP stream is sent to backend
         self.camera_type = None  # Type of camera/pipeline (MJPG, YUYV, RAW)
 
@@ -43,22 +41,23 @@ class MultiCameraStreamer:
         self.device_id = device_id
         self.cameras: Dict[str, CameraInfo] = {}
         self.running = False
-        
-        # Load configuration
-        self.config = get_jetson_config()
-        self.network_config = get_network_config()
-        
-        # Setup UDP socket for heartbeats
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(
-            socket.SOL_SOCKET,
-            socket.SO_SNDBUF,
-            self.network_config.get('udp_send_buffer_size', 1024 * 1024)
-        )
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1024 * 1024)  # 1MB buffer
+        
+        # GStreamer settings
+        self.width = 320
+        self.height = 240
+        self.framerate = 15
+        self.bitrate = 512
+        self.h264_tune = "zerolatency"
+        
+        # UDP frame capture settings
+        self.frame_buffer_size = 65536
+        self.max_frame_size = 60000
         
         # Command socket for receiving start/stop commands from backend
         self.command_sock = None
-        self.command_port = backend_port + self.network_config.get('command_port_offset', 1)
+        self.command_port = backend_port + 1  # Use backend_port + 1 for commands
         
     def discover_cameras(self) -> List[CameraInfo]:
         """Discover available cameras using v4l2-ctl, only using even-numbered video devices."""
@@ -110,12 +109,171 @@ class MultiCameraStreamer:
         except Exception as e:
             logger.error(f"Failed to test camera {device_path}: {e}")
             return False
+        
+    def build_gst_pipeline(self, camera_info: CameraInfo, udp_port: int) -> tuple[List[str], str]:
+        """Build GStreamer pipeline and return (pipeline, camera_type)."""
+        try:
+            fmt_info = subprocess.check_output([
+                "v4l2-ctl", "--device", camera_info.device_path, "--list-formats-ext"
+            ], text=True)
+
+            if 'MJPG' in fmt_info:
+                logger.info(f"Using MJPG pipeline for {camera_info.device_path}")
+                camera_info.camera_type = "MJPG"
+                pipeline = [
+                    "gst-launch-1.0",
+                    "v4l2src", f"device={camera_info.device_path}",
+                    "!", "image/jpeg,width=640,height=480,framerate=30/1",
+                    "!", "jpegdec",
+                    "!", "videoconvert",
+                    "!", "video/x-raw,format=NV12",
+                    "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
+                    "!", "h264parse",
+                    "!", "rtph264pay", "config-interval=1", "pt=96",
+                    "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
+                ]
+                return pipeline, "MJPG"
+            elif 'YUYV' in fmt_info or 'YUYV8' in fmt_info:
+                logger.info(f"Using YUYV pipeline for {camera_info.device_path}")
+                camera_info.camera_type = "YUYV"
+                pipeline = [
+                    "gst-launch-1.0",
+                    "v4l2src", f"device={camera_info.device_path}",
+                    "!", "video/x-raw,format=YUY2,width=640,height=480,framerate=20/1",
+                    "!", "videoconvert",
+                    "!", "video/x-raw,format=NV12",
+                    "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
+                    "!", "h264parse",
+                    "!", "rtph264pay", "config-interval=1", "pt=96",
+                    "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
+                ]
+                return pipeline, "YUYV"
+            else:
+                logger.warning(f"Unknown formats for {camera_info.device_path}, using fallback raw pipeline")
+
+        except Exception as e:
+            logger.warning(f"Could not query format for {camera_info.device_path}, using fallback pipeline: {e}")
+
+        camera_info.camera_type = "RAW"
+        pipeline = [
+            "gst-launch-1.0",
+            "v4l2src", f"device={camera_info.device_path}",
+            "!", f"video/x-raw,width={self.width},height={self.height},framerate={self.framerate}/1",
+            "!", "videoconvert",
+            "!", "x264enc", f"tune={self.h264_tune}", f"bitrate={self.bitrate}",
+            "!", "h264parse",
+            "!", "rtph264pay", "config-interval=1", "pt=96",
+            "!", "udpsink", f"host={self.backend_host}", f"port={udp_port}"
+        ]
+        return pipeline, "RAW"
     
     def get_free_udp_port(self) -> int:
         """Get a free UDP port for GStreamer output."""
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.bind(('', 0))
             return s.getsockname()[1]
+    
+    def send_frame_packet(self, camera_id: str, frame_data: bytes, packet_num: int, total_packets: int):
+        """Send a single frame packet over UDP."""
+        try:
+            # Packet format: [camera_id_len][packet_num][total_packets][timestamp][camera_id][data]
+            camera_id_bytes = camera_id.encode('utf-8')
+            camera_id_len = len(camera_id_bytes)
+            timestamp = int(time.time() * 1000)  # milliseconds
+            
+            header = struct.pack('!BHHQ', camera_id_len, packet_num, total_packets, timestamp)
+            packet = header + camera_id_bytes + frame_data
+            
+            self.sock.sendto(packet, (self.backend_host, self.backend_port))
+            
+        except Exception as e:
+            logger.error(f"Failed to send packet for {camera_id}: {e}")
+    
+    def send_frame(self, camera_id: str, frame_data: bytes):
+        """Send a frame over UDP, splitting into packets if necessary."""
+        frame_size = len(frame_data)
+        
+        if frame_size <= self.max_frame_size - 100:  # Account for header
+            # Single packet
+            self.send_frame_packet(camera_id, frame_data, 0, 1)
+        else:
+            # Multiple packets
+            chunk_size = self.max_frame_size - 100
+            total_packets = (frame_size + chunk_size - 1) // chunk_size
+            
+            for i in range(total_packets):
+                start_idx = i * chunk_size
+                end_idx = min(start_idx + chunk_size, frame_size)
+                chunk = frame_data[start_idx:end_idx]
+                self.send_frame_packet(camera_id, chunk, i, total_packets)
+    
+    def capture_h264_stream(self, camera_info: CameraInfo, udp_port: int):
+        """Capture H.264 stream from GStreamer UDP output."""
+        logger.info(f"Starting H.264 capture for {camera_info.camera_id} on port {udp_port}")
+        
+        # Create UDP socket to receive H.264 stream from GStreamer
+        recv_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        recv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, self.frame_buffer_size)
+        
+        try:
+            recv_sock.bind(('127.0.0.1', udp_port))
+            recv_sock.settimeout(1.0)  # 1 second timeout
+            
+            frame_buffer = b''
+            last_frame_time = time.time()
+            
+            while self.running and camera_info.is_active:
+                try:
+                    # Receive RTP packet from GStreamer
+                    data, addr = recv_sock.recvfrom(self.frame_buffer_size)
+                    
+                    if len(data) < 12:  # Minimum RTP header size
+                        continue
+                    
+                    # Parse RTP header
+                    rtp_header = struct.unpack('!BBHII', data[:12])
+                    version = (rtp_header[0] >> 6) & 0x3
+                    marker = (rtp_header[1] >> 7) & 0x1
+                    payload_type = rtp_header[1] & 0x7F
+                    
+                    if version != 2 or payload_type != 96:  # RTP version 2, PT 96 for H.264
+                        continue
+                    
+                    # Extract H.264 payload (skip RTP header)
+                    h264_payload = data[12:]
+                    
+                    # Accumulate H.264 data
+                    frame_buffer += h264_payload
+                    
+                    # If marker bit is set, we have a complete frame
+                    if marker:
+                        current_time = time.time()
+                        
+                        # Send complete H.264 frame
+                        if frame_buffer:
+                            self.send_frame(camera_info.camera_id, frame_buffer)
+                            camera_info.last_frame_time = current_time
+                            
+                            # Log frame rate occasionally
+                            if current_time - last_frame_time > 5.0:
+                                logger.debug(f"Camera {camera_info.camera_id} streaming H.264 frames")
+                                last_frame_time = current_time
+                        
+                        # Reset buffer for next frame
+                        frame_buffer = b''
+                
+                except socket.timeout:
+                    # Check if we should continue
+                    continue
+                except Exception as e:
+                    logger.error(f"Error receiving H.264 stream for {camera_info.camera_id}: {e}")
+                    time.sleep(0.1)
+                    
+        except Exception as e:
+            logger.error(f"Failed to setup H.264 capture for {camera_info.camera_id}: {e}")
+        finally:
+            recv_sock.close()
+            logger.info(f"Stopped H.264 capture for {camera_info.camera_id}")
     
     def start_camera(self, camera_id: str) -> bool:
         """Start streaming from a specific camera using GStreamer."""
@@ -138,24 +296,40 @@ class MultiCameraStreamer:
             rtp_port = self.get_free_udp_port()
             camera_info.rtp_port = rtp_port
             
-            # Create GStreamer pipeline
-            pipeline = GStreamerPipeline(
-                device_path=camera_info.device_path,
-                camera_id=camera_id,
-                host=self.backend_host,
-                port=rtp_port
+            # Get free UDP port for local GStreamer capture
+            local_udp_port = self.get_free_udp_port()
+            
+            # Build GStreamer pipeline that sends RTP to backend
+            pipeline, camera_type = self.build_gst_pipeline(camera_info, rtp_port)
+            
+            logger.info(f"Starting GStreamer for {camera_id} -> RTP port {rtp_port}: {' '.join(pipeline)}")
+            
+            # Start GStreamer process
+            camera_info.gst_process = subprocess.Popen(
+                pipeline,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                preexec_fn=os.setsid if hasattr(os, 'setsid') else None
             )
             
-            # Start pipeline
-            if not pipeline.start():
+            # Wait a moment for GStreamer to start
+            time.sleep(2)
+            
+            # Check if process is still running
+            if camera_info.gst_process.poll() is not None:
+                # Get error output from GStreamer
+                stdout, stderr = camera_info.gst_process.communicate()
+                logger.error(f"GStreamer process failed to start for {camera_id}")
+                if stderr:
+                    logger.error(f"GStreamer stderr: {stderr.decode('utf-8', errors='ignore')}")
+                if stdout:
+                    logger.error(f"GStreamer stdout: {stdout.decode('utf-8', errors='ignore')}")
                 camera_info.rtp_port = None
                 return False
             
-            # Store pipeline and update state
-            camera_info.pipeline = pipeline
+            # Mark camera as active
             camera_info.is_active = True
             camera_info.last_frame_time = time.time()
-            camera_info.camera_type = pipeline.camera_type
             
             logger.info(f"Started streaming from {camera_id} to backend port {rtp_port}")
             return True
@@ -173,14 +347,20 @@ class MultiCameraStreamer:
         camera_info = self.cameras[camera_id]
         camera_info.is_active = False
         
-        # Stop GStreamer pipeline
-        if camera_info.pipeline:
+        # Stop GStreamer process
+        if camera_info.gst_process:
             try:
-                camera_info.pipeline.stop()
+                # Try graceful termination first
+                camera_info.gst_process.terminate()
+                camera_info.gst_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                # Force kill if graceful termination fails
+                camera_info.gst_process.kill()
+                camera_info.gst_process.wait()
             except Exception as e:
                 logger.error(f"Error stopping GStreamer for {camera_id}: {e}")
             finally:
-                camera_info.pipeline = None
+                camera_info.gst_process = None
         
         logger.info(f"Stopped streaming from {camera_id}")
     
@@ -199,12 +379,12 @@ class MultiCameraStreamer:
         try:
             self.command_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.command_sock.bind(('0.0.0.0', self.command_port))
-            self.command_sock.settimeout(self.network_config.get('command_timeout', 1.0))
+            self.command_sock.settimeout(1.0)  # 1 second timeout
             logger.info(f"Command socket listening on port {self.command_port}")
         except Exception as e:
             logger.error(f"Failed to setup command socket: {e}")
             self.command_sock = None
-    
+
     def handle_command(self, command_data: dict):
         """Handle command from backend."""
         try:
@@ -235,94 +415,12 @@ class MultiCameraStreamer:
                 }
                 self.send_command_response(response)
                 
-            elif command_type == 'update_settings':
-                logger.info(f"Received update settings command for camera {camera_id}")
-                settings = command_data.get('settings', {})
-                success = self.update_camera_settings(camera_id, settings)
-                response = {
-                    'type': 'command_response',
-                    'command': 'update_settings',
-                    'camera_id': camera_id,
-                    'success': success,
-                    'device_id': self.device_id,
-                    'settings': settings
-                }
-                self.send_command_response(response)
-                
-            elif command_type == 'dynamic_update':
-                logger.info(f"Received dynamic update command for camera {camera_id}")
-                property_name = command_data.get('property')
-                value = command_data.get('value')
-                success = self.update_camera_property_dynamic(camera_id, property_name, value)
-                response = {
-                    'type': 'command_response',
-                    'command': 'dynamic_update',
-                    'camera_id': camera_id,
-                    'success': success,
-                    'device_id': self.device_id,
-                    'property': property_name,
-                    'value': value
-                }
-                self.send_command_response(response)
-                
             else:
                 logger.warning(f"Unknown command type: {command_type}")
                 
         except Exception as e:
             logger.error(f"Failed to handle command: {e}")
-    
-    def update_camera_settings(self, camera_id: str, settings: dict) -> bool:
-        """Update camera settings (bitrate, fps, etc.)."""
-        try:
-            if camera_id not in self.cameras:
-                logger.error(f"Camera {camera_id} not found for settings update")
-                return False
-            
-            camera_info = self.cameras[camera_id]
-            if not camera_info.pipeline:
-                logger.error(f"No active pipeline for camera {camera_id}")
-                return False
-            
-            success = True
-            
-            # Update bitrate if provided
-            if 'bitrate' in settings:
-                success = success and camera_info.pipeline.update_bitrate(settings['bitrate'])
-            
-            # Update FPS if provided
-            if 'fps' in settings:
-                success = success and camera_info.pipeline.update_framerate(settings['fps'])
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"Failed to update camera settings: {e}")
-            return False
-    
-    def update_camera_property_dynamic(self, camera_id: str, property_name: str, value) -> bool:
-        """Dynamically update camera property without restarting pipeline."""
-        try:
-            if camera_id not in self.cameras:
-                logger.error(f"Camera {camera_id} not found for dynamic update")
-                return False
-            
-            camera_info = self.cameras[camera_id]
-            if not camera_info.pipeline:
-                logger.error(f"No active pipeline for camera {camera_id}")
-                return False
-            
-            if property_name == 'bitrate':
-                return camera_info.pipeline.update_bitrate(value)
-            elif property_name == 'fps':
-                return camera_info.pipeline.update_framerate(value)
-            else:
-                logger.warning(f"Unknown property for dynamic update: {property_name}")
-                return False
-                
-        except Exception as e:
-            logger.error(f"Failed to update camera property dynamically: {e}")
-            return False
-    
+
     def send_command_response(self, response_data: dict):
         """Send command response back to backend."""
         try:
@@ -341,7 +439,7 @@ class MultiCameraStreamer:
             
         except Exception as e:
             logger.error(f"Failed to send command response: {e}")
-    
+
     def command_listener_thread(self):
         """Thread to listen for commands from backend."""
         logger.info("Starting command listener thread")
@@ -370,12 +468,11 @@ class MultiCameraStreamer:
                 time.sleep(0.1)
         
         logger.info("Command listener thread ended")
-    
+
     def send_heartbeat(self):
         """Send periodic heartbeat with camera status including RTP port information."""
         heartbeat_failures = 0
-        max_failures = self.network_config.get('max_retries', 3)
-        heartbeat_interval = self.config.get('heartbeat_interval', 5.0)
+        max_failures = 3
         
         while self.running:
             try:
@@ -386,8 +483,8 @@ class MultiCameraStreamer:
                         'device_path': camera_info.device_path,
                         'is_active': camera_info.is_active,
                         'last_frame_time': camera_info.last_frame_time,
-                        'rtp_port': camera_info.rtp_port,
-                        'camera_type': camera_info.camera_type
+                        'rtp_port': camera_info.rtp_port,  # Include RTP port for backend
+                        'camera_type': camera_info.camera_type  # Include camera type (MJPG, YUYV, RAW)
                     }
                 
                 heartbeat_data = {
@@ -423,7 +520,7 @@ class MultiCameraStreamer:
                     time.sleep(15)
                     heartbeat_failures = 0  # Reset counter
                 
-            time.sleep(heartbeat_interval)
+            time.sleep(5)  # Send heartbeat every 5 seconds
     
     def signal_handler(self, signum, frame):
         """Handle shutdown signals."""
@@ -435,6 +532,7 @@ class MultiCameraStreamer:
         logger.info(f"Starting multi-camera GStreamer streamer service (device: {self.device_id})")
         logger.info(f"Backend: {self.backend_host}:{self.backend_port}")
         logger.info(f"Command port: {self.command_port}")
+        logger.info(f"Video settings: {self.width}x{self.height}@{self.framerate}fps, bitrate={self.bitrate}kbps")
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -468,7 +566,7 @@ class MultiCameraStreamer:
         command_thread.start()
         
         # Don't start cameras automatically - wait for commands from backend
-        logger.info("Vision camera service ready. Cameras will start when requested by backend.")
+        logger.info("Jetson camera service ready. Cameras will start when requested by backend.")
         
         try:
             # Keep main thread alive
@@ -489,12 +587,22 @@ def main():
     config = get_jetson_config()
     
     parser = argparse.ArgumentParser(description='Multi-camera GStreamer UDP streamer for Jetson/Pi')
-    parser.add_argument('--backend-host', default=config["default_backend_host"], 
+    parser.add_argument('--backend-host', default=config["DEFAULT_BACKEND_HOST"], 
                        help='Backend server IP address')
-    parser.add_argument('--backend-port', type=int, default=config["default_backend_port"], 
+    parser.add_argument('--backend-port', type=int, default=config["DEFAULT_BACKEND_PORT"], 
                        help='Backend server UDP port')
     parser.add_argument('--device-id', default='jetson-01', 
                        help='Unique device identifier')
+    parser.add_argument('--width', type=int, default=config["CAPTURE_WIDTH"], 
+                       help='Video capture width')
+    parser.add_argument('--height', type=int, default=config["CAPTURE_HEIGHT"], 
+                       help='Video capture height')
+    parser.add_argument('--fps', type=int, default=config["DEFAULT_FPS"], 
+                       help='Target frames per second')
+    parser.add_argument('--bitrate', type=int, default=512, 
+                       help='H.264 bitrate in kbps')
+    parser.add_argument('--tune', default='zerolatency', 
+                       help='H.264 encoder tune setting')
     
     args = parser.parse_args()
     
@@ -504,7 +612,15 @@ def main():
         device_id=args.device_id
     )
     
+    # Apply settings
+    streamer.width = args.width
+    streamer.height = args.height
+    streamer.framerate = args.fps
+    streamer.bitrate = args.bitrate
+    streamer.h264_tune = args.tune
+    
     streamer.run()
 
 if __name__ == "__main__":
+    import os
     main()

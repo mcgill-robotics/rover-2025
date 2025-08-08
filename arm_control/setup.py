@@ -24,6 +24,7 @@ setup(
             'arm_firmware_node = arm_control.arm_firmware_node:main',
             'sim_bridge_node = test.sim_bridge_node:main',
             'mock_gamepad_publisher = test.mock_gamepad_publisher:main',
+            'arm_backup_node = arm_control.arm_backup_node:main'
         ],
     },
 )
