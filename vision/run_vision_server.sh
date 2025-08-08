@@ -63,11 +63,11 @@ while [[ $# -gt 0 ]]; do
             echo "  --backend-host HOST    Backend server IP address (default: $BACKEND_HOST)"
             echo "  --backend-port PORT    Backend server UDP port for heartbeat (default: $BACKEND_PORT)"
             echo "  --device-id ID         Unique device identifier (default: $DEVICE_ID)"
-            echo "  --width WIDTH          Video capture width (default: $WIDTH)"
-            echo "  --height HEIGHT        Video capture height (default: $HEIGHT)"
-            echo "  --fps FPS              Target frames per second (default: $FPS)"
-            echo "  --bitrate KBPS         H.264 bitrate in kbps (default: $BITRATE)"
-            echo "  --tune PRESET          H.264 encoder tune preset (default: $TUNE)"
+            echo "  --width WIDTH          Video capture width (display only, configured in config.yml)"
+            echo "  --height HEIGHT        Video capture height (display only, configured in config.yml)"
+            echo "  --fps FPS              Target frames per second (display only, configured in config.yml)"
+            echo "  --bitrate KBPS         H.264 bitrate in kbps (display only, configured in config.yml)"
+            echo "  --tune PRESET          H.264 encoder tune preset (display only, configured in config.yml)"
             echo "  -h, --help             Show this help message"
             echo ""
             echo "Camera Port Mapping (RTP streams sent to backend):"
@@ -76,8 +76,11 @@ while [[ $# -gt 0 ]]; do
             echo "  cam02 -> $BACKEND_HOST:5002 (Right Camera)"
             echo ""
             echo "Examples:"
-            echo "  $0 --backend-host 192.168.1.100 --device-id jetson-01 --fps 30"
+            echo "  $0 --backend-host 192.168.1.100 --device-id jetson-01"
             echo "  $0 --device-id jetson-01 --backend-port 9999  # Use default host, custom port"
+            echo ""
+            echo "Note: Video settings (width, height, fps, bitrate, tune) are configured in config.yml"
+            echo "      and cannot be changed via command-line arguments."
             echo ""
             echo "Requirements:"
             echo "  - GStreamer 1.0 with NVIDIA plugins (nvvidconv, x264enc)"
@@ -160,9 +163,4 @@ echo "=============================================="
 python3 vision_server.py \
     --backend-host "$BACKEND_HOST" \
     --backend-port "$BACKEND_PORT" \
-    --device-id "$DEVICE_ID" \
-    --width "$WIDTH" \
-    --height "$HEIGHT" \
-    --fps "$FPS" \
-    --bitrate "$BITRATE" \
-    --tune "$TUNE"
+    --device-id "$DEVICE_ID"
