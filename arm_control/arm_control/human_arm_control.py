@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import arm_kinematics
+import os
 
 joint_upper_limits = [ 
     118.76 * np.pi / 180, # Waist
@@ -25,6 +26,8 @@ joint_max_speed = [
     np.pi/3, # Wrist
     np.pi/3 # Hand
 ] # rad per method call
+
+joint_names = ["WAIST", "SHOULDER", "ELBOW", "WRIST", "HAND"]
 
 class HumanArmControl:
     def __init__(self):
@@ -100,6 +103,7 @@ class HumanArmControl:
         #assume button check is done before calling this
         self.current_cycle_mode += 1
         self.current_cycle_mode %= 5
+        #self.print_joint_menu()
         return self.current_cycle_mode
 
     def cycle_down(self):
@@ -114,6 +118,7 @@ class HumanArmControl:
         #assume button check is done before calling this
         self.current_cycle_mode -= 1
         self.current_cycle_mode %= 5
+        #self.print_joint_menu()
         return self.current_cycle_mode
 
     def depth_motion(self, joystick_input: float, cur_angles: list[float]) -> list[float]:
@@ -237,3 +242,11 @@ class HumanArmControl:
                 pass
 
         return cur_angles
+    
+    def print_joint_menu(self):
+        print("JOINT CONTROL SELECTION:")
+        for i, joint in enumerate(joint_names[::-1]):
+            if (len(joint_names) - 1 - i) == self.current_cycle_mode:
+                print(joint + " <- Current Joint")
+            else:
+                print(joint)

@@ -36,7 +36,7 @@ class arm_control_node(Node):
         self.cur_angles = [0.0,0.0,0.0,0.0,0.0] #Dummy  value, update with API call
         self.current_schema = JOINT_CONTROL  # Start with Inverse Kinematics control
        
-        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_arm", self.run, 10)
+        self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.run, 10) #CAREFUL, CHANGE TO ARM
         self.feedbackSubscriber = self.create_subscription(Float32MultiArray, "arm_position_feedback", self.updateArmPosition, 10)
 
         self.position_publisher = self.create_publisher(Float32MultiArray, 'arm_position_cmd', 10)
@@ -70,6 +70,7 @@ class arm_control_node(Node):
         """
         Main control loop that processes gamepad input and updates arm angles accordingly
         """
+        #self.controller.print_joint_menu()
         self.going_to_preset = False
 
         if gamepad_input.home_button:
@@ -130,6 +131,9 @@ class arm_control_node(Node):
                     new_angles = self.controller.upDownTilt(-1, self.cur_angles)
             
             elif self.current_schema == JOINT_CONTROL:
+                os.system("clear")
+                print("Joint Control Activated")
+                self.controller.print_joint_menu()
                 #Check if there is joystick value for specific angle adjustment and if individual joint moment allowed
                 if self.not_in_deadzone_check(gamepad_input.r_stick_y, 0):
                     new_angles = self.controller.move_joint(gamepad_input.r_stick_y, self.cur_angles)
@@ -137,9 +141,11 @@ class arm_control_node(Node):
         
             #Check if there is input for enabling/disabling joint control
             if gamepad_input.start_button:
+                os.system("clear")
                 if self.current_schema == IK_CONTROL:
                     self.current_schema = JOINT_CONTROL
-                    print("Joint Control Activated")
+                    #print("Joint Control Activated")
+                    #self.controller.print_joint_menu()
                 else:
                     self.current_schema = IK_CONTROL
                     print("IK Mode Activated")
