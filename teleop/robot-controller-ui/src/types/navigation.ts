@@ -54,4 +54,3 @@ export interface WaypointEdit {
   name: string;
   description: string;
 }
-

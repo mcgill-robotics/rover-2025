@@ -114,4 +114,3 @@ export const findClosestWaypoint = (
     return closest;
   }, null as { waypoint: Waypoint; distance: number } | null);
 };
-

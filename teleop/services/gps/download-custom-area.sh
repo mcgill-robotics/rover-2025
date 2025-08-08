@@ -238,4 +238,3 @@ echo ""
 echo -e "${YELLOW}⚠️  Note: This is a basic tile structure.${NC}"
 echo -e "${YELLOW}   For production use, consider using specialized tile downloading tools${NC}"
 echo -e "${YELLOW}   like tilemill, mbutil, or osmium-tool for complete coverage.${NC}"
-

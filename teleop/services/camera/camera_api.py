@@ -384,4 +384,3 @@ class CameraAPI:
                 "active_connections": sum(len(v) for v in self.backend.websocket_connections.values()),
                 "timestamp": time.time()
             }
-
