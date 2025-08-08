@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Teleop System Environment Activation Script
+# Activates the Python virtual environment and sets up environment variables
 
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
@@ -21,11 +21,14 @@ fi
 source venv/bin/activate
 
 # Set environment variables
-export PYTHONPATH="${PYTHONPATH}:$(pwd)/services:$(pwd)/services/ros:$(pwd)/services/gps:$(pwd)/services/camera"
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+export PYTHONPATH="${PYTHONPATH}:$(pwd)/services"
 
-# Set ROS environment if available
-if [ -f "/opt/ros/humble/setup.bash" ]; then
-    source /opt/ros/humble/setup.bash
+# Check ROS environment
+if [ -z "$ROS_DISTRO" ]; then
+    echo -e "${YELLOW}⚠️  ROS environment not sourced. Some features may be limited.${NC}"
+    echo -e "${YELLOW}   To enable ROS features, run: source /opt/ros/humble/setup.bash${NC}"
+else
     echo -e "${GREEN}✅ ROS environment detected: $ROS_DISTRO${NC}"
 fi
 
@@ -38,4 +41,4 @@ echo -e "${GREEN}Ready to run teleop system!${NC}"
 echo -e "${BLUE}Examples:${NC}"
 echo -e "${BLUE}  Start system: ./start-teleop-system.sh${NC}"
 echo -e "${BLUE}  Test services: cd services && ./test_service.sh camera${NC}"
-echo -e "${BLUE}  Start UI: cd robot-controller-ui && npm run dev${NC}" 
+echo -e "${BLUE}  Start UI: cd robot-controller-ui && npm run dev${NC}"

@@ -1,6 +1,6 @@
 'use client';
 
-import { CameraView } from '@/components/sections/drive/camera';
+import { MultiCameraView } from '@/components/sections/drive/camera';
 import { MobilityPanel } from '@/components/sections/drive/mobility';
 
 const Drive: React.FC = () => {
@@ -9,7 +9,7 @@ const Drive: React.FC = () => {
     <div className="w-full h-[95dvh] p-1">
       <div className="w-full h-full flex gap-1">
         <div className="w-[70%]">
-          <CameraView />
+          <MultiCameraView />
         </div>
         <div className="w-[30%]">
           <MobilityPanel />

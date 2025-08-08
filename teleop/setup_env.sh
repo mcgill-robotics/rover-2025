@@ -262,33 +262,16 @@ pip install --upgrade pip
 # Install Python dependencies
 echo -e "${YELLOW}📦 Installing Python dependencies...${NC}"
 
+# Clean up any existing pip log files that might have been created accidentally
+find . -maxdepth 1 -name "=*" -type f -delete 2>/dev/null || true
+
 # Install core dependencies
-pip install \
-    fastapi>=0.100.0 \
-    uvicorn>=0.20.0 \
-    aiohttp>=3.8.0 \
-    aiohttp-cors>=0.7.0 \
-    websockets>=11.0.0 \
-    flask>=2.3.0 \
-    flask-cors>=4.0.0 \
-    numpy>=1.23.0 \
-    opencv-contrib-python==4.8.1.78 \
-    PyGObject>=3.42.0 \
-    PyYAML>=6.0 \
-    python-dateutil>=2.8.0 \
-    requests>=2.28.0 \
-    python-multipart>=0.0.6
+echo "Installing core Python dependencies..."
+pip install fastapi>=0.100.0 uvicorn>=0.20.0 aiohttp>=3.8.0 aiohttp-cors>=0.7.0 websockets>=11.0.0 flask>=2.3.0 flask-cors>=4.0.0 "numpy<2" opencv-contrib-python==4.8.1.78 PyGObject>=3.42.0 PyYAML>=6.0 python-dateutil>=2.8.0 requests>=2.28.0 python-multipart>=0.0.6 > /dev/null 2>&1
 
 # Install development and testing dependencies
-pip install \
-    pytest>=7.0.0 \
-    pytest-asyncio>=0.21.0 \
-    pytest-cov>=4.0.0 \
-    pytest-timeout>=2.0.0 \
-    selenium>=4.0.0 \
-    black>=23.0.0 \
-    flake8>=6.0.0 \
-    mypy>=1.0.0
+echo "Installing development and testing dependencies..."
+pip install pytest>=7.0.0 pytest-asyncio>=0.21.0 pytest-cov>=4.0.0 pytest-timeout>=2.0.0 selenium>=4.0.0 black>=23.0.0 flake8>=6.0.0 mypy>=1.0.0 > /dev/null 2>&1
 
 echo -e "${GREEN}✅ Python dependencies installed${NC}"
 
@@ -425,6 +408,10 @@ else
     echo -e "${YELLOW}⚠️  ROS2 not found in PATH${NC}"
     echo -e "${YELLOW}   Some features may be limited without ROS2${NC}"
 fi
+
+# Final cleanup - remove any accidentally created pip log files
+echo -e "${YELLOW}🧹 Cleaning up any temporary files...${NC}"
+find . -maxdepth 1 -name "=*" -type f -delete 2>/dev/null || true
 
 echo -e "${GREEN}✅ Teleop system setup completed successfully!${NC}"
 echo ""

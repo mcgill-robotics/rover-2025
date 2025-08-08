@@ -150,7 +150,7 @@ class MultiCameraBackend:
         if self.enable_aruco:
             try:
                 config = get_backend_config()
-                aruco_dict = config["ARUCO_CONFIG"]["DICTIONARY"]
+                aruco_dict = config["ARUCO_CONFIG"]["dictionary"]
                 self.aruco_detector = create_aruco_detector(aruco_dict)
                 logger.info(f"ArUco detector initialized with {aruco_dict}")
             except Exception as e:

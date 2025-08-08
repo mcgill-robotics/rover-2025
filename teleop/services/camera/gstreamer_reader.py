@@ -15,7 +15,7 @@ import threading
 from typing import Optional, Dict
 from queue import Queue, Empty
 
-from .config import get_backend_config
+from config import get_backend_config
 
 # Initialize GStreamer
 Gst.init(None)
