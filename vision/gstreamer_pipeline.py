@@ -134,17 +134,9 @@ class GStreamerPipeline:
             for element in elements:
                 pipeline.add(element)
             
-            # Link elements one by one
-            if not src.link(capsfilter):
-                raise RuntimeError("Failed to link src to capsfilter")
-            if not capsfilter.link(converter):
-                raise RuntimeError("Failed to link capsfilter to converter")
-            if not converter.link(encoder):
-                raise RuntimeError("Failed to link converter to encoder")
-            if not encoder.link(payloader):
-                raise RuntimeError("Failed to link encoder to payloader")
-            if not payloader.link(sink):
-                raise RuntimeError("Failed to link payloader to sink")
+            # Link elements
+            if not Gst.Element.link_many(src, capsfilter, converter, encoder, payloader, sink):
+                raise RuntimeError("Failed to link pipeline elements")
             
             # Get pipeline bus
             bus = pipeline.get_bus()
