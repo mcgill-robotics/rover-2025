@@ -58,17 +58,11 @@ class arm_backup_node(Node):
         # TODO: Tune values
         self.deadzone = 0.1
         self.active = False
-
-        self.cur_angles = [0.0,0.0,0.0,0.0,0.0] #Dummy  value, update with API call
-        
+                
         self.init_calibration()
         time.sleep(0.5)
 
         self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_arm", self.update_gamepad_input, 10)
-        self.feedbackSubscriber = self.create_subscription(Float32MultiArray, "arm_position_feedback", self.updateArmPosition, 10)
-
-        self.position_publisher = self.create_publisher(Float32MultiArray, 'arm_position_cmd', 10)
-        self.fault_publisher    = self.create_publisher(Bool, "acknowledge_arm_faults", 10)
 
         # # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
         timer_period = 0.025
@@ -130,11 +124,6 @@ class arm_backup_node(Node):
                 
             run_mode(elbow_pos, shoulder_pos, waist_pos)
 
-    def updateArmPosition(self, position: Float32MultiArray) -> None:
-        """
-        Callback to update the current arm angles based on feedback from the arm firmware
-        """
-        self.cur_angles = position.data.tolist()
 
 def main(args=None):
     rclpy.init(args=args)
