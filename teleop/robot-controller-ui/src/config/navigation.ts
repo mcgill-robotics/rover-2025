@@ -86,3 +86,4 @@ export const WAYPOINT_COLORS = {
 
 export const MAP_UPDATE_INTERVAL = 1000; // ms
 export const GPS_UPDATE_INTERVAL = 1000; // ms
+

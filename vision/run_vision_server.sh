@@ -5,14 +5,14 @@
 eval $(python3 -c "
 from config import get_jetson_config
 config = get_jetson_config()
-gst_config = config['GSTREAMER_CONFIG']
-print(f'BACKEND_HOST=\"{config[\"DEFAULT_BACKEND_HOST\"]}\"')
-print(f'BACKEND_PORT={config[\"DEFAULT_BACKEND_PORT\"]}')
-print(f'FPS={config[\"DEFAULT_FPS\"]}')
-print(f'WIDTH={config[\"CAPTURE_WIDTH\"]}')
-print(f'HEIGHT={config[\"CAPTURE_HEIGHT\"]}')
-print(f'BITRATE={gst_config[\"H264_BITRATE\"]}')
-print(f'TUNE=\"{gst_config[\"H264_TUNE\"]}\"')
+gst_config = config.get('gstreamer_config', {})
+print(f'BACKEND_HOST=\"{config.get(\"default_backend_host\", \"192.168.1.100\")}\"')
+print(f'BACKEND_PORT={config.get(\"default_backend_port\", 9999)}')
+print(f'FPS={config.get(\"default_fps\", 20)}')
+print(f'WIDTH={config.get(\"capture_width\", 640)}')
+print(f'HEIGHT={config.get(\"capture_height\", 480)}')
+print(f'BITRATE={gst_config.get(\"h264_bitrate\", 512)}')
+print(f'TUNE=\"{gst_config.get(\"h264_tune\", \"zerolatency\")}\"')
 ")
 
 # Default device ID (not in config since it should be unique per device)
@@ -71,12 +71,13 @@ while [[ $# -gt 0 ]]; do
             echo "  -h, --help             Show this help message"
             echo ""
             echo "Camera Port Mapping (RTP streams sent to backend):"
-            echo "  cam00 -> Backend Port 5000 (Front Camera)"
-            echo "  cam01 -> Backend Port 5001 (Left Camera)"
-            echo "  cam02 -> Backend Port 5002 (Right Camera)"
+            echo "  cam00 -> $BACKEND_HOST:5000 (Front Camera)"
+            echo "  cam01 -> $BACKEND_HOST:5001 (Left Camera)"
+            echo "  cam02 -> $BACKEND_HOST:5002 (Right Camera)"
             echo ""
-            echo "Example:"
+            echo "Examples:"
             echo "  $0 --backend-host 192.168.1.100 --device-id jetson-01 --fps 30"
+            echo "  $0 --device-id jetson-01 --backend-port 9999  # Use default host, custom port"
             echo ""
             echo "Requirements:"
             echo "  - GStreamer 1.0 with NVIDIA plugins (nvvidconv, x264enc)"
