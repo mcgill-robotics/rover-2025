@@ -43,16 +43,16 @@ class drive_firmware(Node):
         self.timer = self.create_timer(timer_period, self.run)
 
     def run(self):
-        # self.update_speed_info()
-        # speeds_msg = Float32MultiArray()
-        # speeds_msg.data = self.drive_speed_info
-        # self.drive_motors_speeds_publisher.publish(speeds_msg)
+        self.update_speed_info()
+        speeds_msg = Float32MultiArray()
+        speeds_msg.data = self.drive_speed_info
+        self.drive_motors_speeds_publisher.publish(speeds_msg)
 
-        # if (self.pub_count % 5) == 0:
-        #     self.publish_motor_info()
-        #     self.pub_count = 0
+        if (self.pub_count % 5) == 0:
+            self.publish_motor_info()
+            self.pub_count = 0
 
-        # self.pub_count += 1
+        self.pub_count += 1
         pass
 
 

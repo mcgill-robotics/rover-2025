@@ -29,7 +29,7 @@ class drive_controller(Node):
         self.deadzone = 0.1 
         self.turning_speed = 3200.0
 
-        self.tank_drive_mode = False
+        self.tank_drive_mode = True
 
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
