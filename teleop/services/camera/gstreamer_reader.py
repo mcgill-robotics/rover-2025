@@ -99,10 +99,12 @@ class GStreamerCameraReader:
         self.latest_frame = None
         self.frame_lock = threading.Lock()
         
-        # Pipeline stats
+        # Frame statistics
         self.frame_count = 0
         self.last_frame_time = 0
-        self.start_time = time.time()
+        self.start_time = 0
+        
+        # Frame dimensions
         self.width = 0
         self.height = 0
         
@@ -156,90 +158,117 @@ class GStreamerCameraReader:
         return pipeline
     
     def _on_new_sample(self, sink):
-        """
-        Callback for new frame samples from GStreamer appsink.
-        
-        Args:
-            sink: GStreamer appsink element
-            
-        Returns:
-            Gst.FlowReturn.OK on success
-        """
-        logger.info(f"[{self.camera_id}] [GSTREAMER] Received new sample from GStreamer appsink")
+        """Callback for new frame samples from GStreamer appsink."""
         try:
             sample = sink.emit("pull-sample")
-            if sample is None:
-                logger.warning(f"[{self.camera_id}] [GSTREAMER] No sample received from appsink")
+            if sample:
+                buffer = sample.get_buffer()
+                caps = sample.get_caps()
+                
+                # Get buffer info
+                success, map_info = buffer.map(Gst.MapFlags.READ)
+                if success:
+                    frame_data = map_info.data
+                    buffer.unmap(map_info)
+                    
+                    # Convert to numpy array
+                    frame = np.frombuffer(frame_data, dtype=np.uint8)
+                    
+                    # Get frame dimensions from caps
+                    width = caps.get_structure(0).get_value("width")
+                    height = caps.get_structure(0).get_value("height")
+                    
+                    # Reshape frame to 2D array (assuming BGR format)
+                    if width and height:
+                        frame = frame.reshape((height, width, 3))
+                        
+                        # Update frame statistics
+                        self.frame_count += 1
+                        self.last_frame_time = time.time()
+                        
+                        # Initialize start_time on first frame
+                        if self.start_time == 0:
+                            self.start_time = time.time()
+                        
+                        logger.info(f"[{self.camera_id}] [GSTREAMER] Processed frame {self.frame_count}, size: {frame.shape}, buffer size: {len(frame_data)} bytes")
+                        
+                        # Store frame in queue and as latest frame
+                        try:
+                            if not self.frame_queue.full():
+                                self.frame_queue.put_nowait(frame)
+                        except:
+                            pass  # Queue is full, skip this frame
+                        
+                        with self.frame_lock:
+                            self.latest_frame = frame
+                        
+                        return Gst.FlowReturn.OK
+                    else:
+                        logger.warning(f"[{self.camera_id}] [GSTREAMER] Invalid frame dimensions: {width}x{height}")
+                        return Gst.FlowReturn.ERROR
+                else:
+                    logger.error(f"[{self.camera_id}] [GSTREAMER] Failed to map buffer")
+                    return Gst.FlowReturn.ERROR
+            else:
+                logger.warning(f"[{self.camera_id}] [GSTREAMER] No sample available")
                 return Gst.FlowReturn.ERROR
-            
-            buf = sample.get_buffer()
-            caps = sample.get_caps()
-            
-            # Get frame dimensions
-            structure = caps.get_structure(0)
-            self.width = structure.get_value('width')
-            self.height = structure.get_value('height')
-            
-            logger.info(f"[{self.camera_id}] [GSTREAMER] Frame dimensions: {self.width}x{self.height}")
-            
-            # Map buffer to access raw data
-            success, mapinfo = buf.map(Gst.MapFlags.READ)
-            if not success:
-                logger.error(f"[{self.camera_id}] [GSTREAMER] Failed to map buffer")
-                return Gst.FlowReturn.ERROR
-            
-            try:
-                # Convert buffer to numpy array
-                frame_data = np.frombuffer(mapinfo.data, dtype=np.uint8)
-                frame = frame_data.reshape((self.height, self.width, 3))
-                
-                # Update frame statistics
-                self.frame_count += 1
-                self.last_frame_time = time.time()
-                
-                logger.info(f"[{self.camera_id}] [GSTREAMER] Processed frame {self.frame_count}, size: {frame.shape}, buffer size: {len(frame_data)} bytes")
-                
-                # Store latest frame (thread-safe)
-                with self.frame_lock:
-                    self.latest_frame = frame.copy()
-                
-                # Add to queue (non-blocking, drop old frames)
-                try:
-                    self.frame_queue.put_nowait(frame.copy())
-                    logger.debug(f"[{self.camera_id}] [QUEUE] Added frame to queue")
-                except:
-                    # Queue full, remove old frame and add new one
-                    try:
-                        self.frame_queue.get_nowait()
-                        self.frame_queue.put_nowait(frame.copy())
-                        logger.debug(f"[{self.camera_id}] [QUEUE] Replaced frame in queue")
-                    except Empty:
-                        logger.warning(f"[{self.camera_id}] [QUEUE] Failed to update frame queue")
-                
-                if self.frame_count % 10 == 0:  # Log every 10 frames instead of 100
-                    logger.info(f"[{self.camera_id}] [STATS] Received {self.frame_count} frames total")
-                
-            finally:
-                buf.unmap(mapinfo)
-            
-            return Gst.FlowReturn.OK
-            
         except Exception as e:
-            logger.error(f"[{self.camera_id}] [ERROR] Error processing frame: {e}")
-            import traceback
-            logger.error(f"[{self.camera_id}] [ERROR] Stack trace: {traceback.format_exc()}")
+            logger.error(f"[{self.camera_id}] [GSTREAMER] Error in new-sample callback: {e}")
             return Gst.FlowReturn.ERROR
     
     def _run_glib_loop(self):
         """Run GLib main loop in separate thread."""
         try:
             self.loop = GLib.MainLoop()
+            self.running = True
             logger.debug(f"Starting GLib main loop for {self.camera_id}")
             self.loop.run()
         except Exception as e:
             logger.error(f"GLib main loop error for {self.camera_id}: {e}")
         finally:
+            self.running = False
             logger.debug(f"GLib main loop ended for {self.camera_id}")
+    
+    def _on_bus_message(self, bus, message):
+        """Handle GStreamer bus messages."""
+        t = message.type
+        
+        if t == Gst.MessageType.EOS:
+            logger.info(f"End of stream for {self.camera_id}")
+            self.stop()
+            
+        elif t == Gst.MessageType.ERROR:
+            err, debug = message.parse_error()
+            logger.error(f"GStreamer error for {self.camera_id}: {err} ({debug})")
+            self.stop()
+            
+        elif t == Gst.MessageType.WARNING:
+            err, debug = message.parse_warning()
+            logger.warning(f"GStreamer warning for {self.camera_id}: {err} ({debug})")
+            
+        elif t == Gst.MessageType.STATE_CHANGED:
+            if message.src == self.pipeline:
+                old_state, new_state, pending_state = message.parse_state_changed()
+                logger.debug(f"Pipeline state changed for {self.camera_id}: {old_state.value_name} -> {new_state.value_name}")
+                
+        return True
+    
+    def stop(self):
+        """Stop the GStreamer pipeline and clean up resources."""
+        self.running = False
+        
+        if self.pipeline:
+            logger.info(f"[{self.camera_id}] [PIPELINE] Stopping pipeline...")
+            self.pipeline.set_state(Gst.State.NULL)
+            self.pipeline = None
+        
+        if self.loop:
+            logger.info(f"[{self.camera_id}] [PIPELINE] Stopping GLib loop...")
+            self.loop.quit()
+            self.loop = None
+        
+        self.is_opened = False
+        logger.info(f"[{self.camera_id}] [PIPELINE] Pipeline stopped")
     
     def _open_pipeline(self):
         """Open the GStreamer pipeline using gi bindings."""
@@ -262,51 +291,48 @@ class GStreamerCameraReader:
             
             logger.info(f"[{self.camera_id}] [PIPELINE] Appsink element found")
             
+            # Configure appsink properties
+            self.appsink.set_property("emit-signals", True)
+            self.appsink.set_property("drop", True)
+            self.appsink.set_property("max-buffers", 10)
+            self.appsink.set_property("sync", False)  # Important: set to False for real-time streaming
+            
             # Connect new-sample signal
             self.appsink.connect("new-sample", self._on_new_sample)
             logger.info(f"[{self.camera_id}] [PIPELINE] Connected new-sample signal")
             
-            # Start GLib main loop in separate thread
-            self.running = True
+            # Connect bus message handler
+            bus = self.pipeline.get_bus()
+            bus.add_signal_watch()
+            bus.connect("message", self._on_bus_message)
+            logger.info(f"[{self.camera_id}] [PIPELINE] Connected bus message handler")
+            
+            # Start GLib loop in separate thread
             self.loop_thread = threading.Thread(target=self._run_glib_loop, daemon=True)
             self.loop_thread.start()
-            
-            # Wait a moment for loop to start
-            time.sleep(0.1)
-            logger.info(f"[{self.camera_id}] [PIPELINE] GLib main loop started")
             
             # Start pipeline
             logger.info(f"[{self.camera_id}] [PIPELINE] Starting pipeline...")
             ret = self.pipeline.set_state(Gst.State.PLAYING)
             if ret == Gst.StateChangeReturn.FAILURE:
-                raise RuntimeError(f"Failed to start GStreamer pipeline for {self.camera_id}")
+                raise RuntimeError(f"Failed to start pipeline for {self.camera_id}")
             
             logger.info(f"[{self.camera_id}] [PIPELINE] Pipeline state change initiated: {ret}")
             
             # Wait for pipeline to reach PLAYING state
             logger.info(f"[{self.camera_id}] [PIPELINE] Waiting for pipeline to reach PLAYING state...")
-            ret, state, pending = self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
-            logger.info(f"[{self.camera_id}] [PIPELINE] Pipeline state: {state}, ret: {ret}, pending: {pending}")
+            ret = self.pipeline.get_state(timeout=Gst.CLOCK_TIME_NONE)
+            logger.info(f"[{self.camera_id}] [PIPELINE] Pipeline state: {ret[0]}, ret: {ret[1]}, pending: {ret[2]}")
             
-            if ret == Gst.StateChangeReturn.FAILURE:
-                logger.error(f"[{self.camera_id}] [PIPELINE] Pipeline state change failed")
-                raise RuntimeError(f"Pipeline failed to reach PLAYING state for {self.camera_id}")
-            elif state != Gst.State.PLAYING:
-                logger.error(f"[{self.camera_id}] [PIPELINE] Pipeline not in PLAYING state: {state}")
-                raise RuntimeError(f"Pipeline failed to reach PLAYING state for {self.camera_id}")
+            if ret[0] != Gst.StateChangeReturn.SUCCESS:
+                raise RuntimeError(f"Pipeline failed to reach PLAYING state for {self.camera_id}: {ret[0]}")
             
-            self.is_opened = True
             logger.info(f"[{self.camera_id}] [PIPELINE] GStreamer pipeline opened successfully on port {self.port}")
-            
-            # Add pipeline monitoring
-            self._monitor_pipeline_state()
+            self.is_opened = True
             
         except Exception as e:
-            logger.error(f"[{self.camera_id}] [ERROR] Exception opening GStreamer pipeline: {e}")
-            import traceback
-            logger.error(f"[{self.camera_id}] [ERROR] Stack trace: {traceback.format_exc()}")
-            self.is_opened = False
-            self._cleanup()
+            logger.error(f"[{self.camera_id}] [PIPELINE] Error opening pipeline: {e}")
+            self.stop()
             raise
     
     def _monitor_pipeline_state(self):
@@ -359,14 +385,19 @@ class GStreamerCameraReader:
             # Try to get frame from queue first (most recent)
             try:
                 frame = self.frame_queue.get_nowait()
+                logger.debug(f"[{self.camera_id}] [READ] Got frame from queue, shape: {frame.shape}")
                 return frame
             except Empty:
+                logger.debug(f"[{self.camera_id}] [READ] No frame in queue")
                 pass
             
             # Fall back to latest stored frame
             with self.frame_lock:
                 if self.latest_frame is not None:
+                    logger.debug(f"[{self.camera_id}] [READ] Got frame from latest_frame, shape: {self.latest_frame.shape}")
                     return self.latest_frame.copy()
+                else:
+                    logger.debug(f"[{self.camera_id}] [READ] No latest_frame available")
             
             return None
             

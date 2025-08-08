@@ -35,6 +35,13 @@ class CameraInfo:
         self.pipeline: Optional[GStreamerPipeline] = None
         self.rtp_port = None  # Port where RTP stream is sent to backend
         self.camera_type = None  # Type of camera/pipeline (MJPG, YUYV, RAW)
+        
+        # Performance monitoring
+        self.frame_count = 0
+        self.start_time = 0
+        self.current_fps = 0.0
+        self.avg_latency = 0.0
+        self.last_performance_update = 0
 
 class MultiCameraStreamer:
     def __init__(self, backend_host: str, backend_port: int, device_id: str = "jetson-01"):
@@ -138,6 +145,10 @@ class MultiCameraStreamer:
             rtp_port = self.get_free_udp_port()
             camera_info.rtp_port = rtp_port
             
+            logger.info(f"[{camera_id}] [STARTUP] Starting camera with device {camera_info.device_path}")
+            logger.info(f"[{camera_id}] [STARTUP] Assigned RTP port: {rtp_port}")
+            logger.info(f"[{camera_id}] [STARTUP] Backend target: {self.backend_host}:{rtp_port}")
+            
             # Create GStreamer pipeline
             pipeline = GStreamerPipeline(
                 device_path=camera_info.device_path,
@@ -148,6 +159,7 @@ class MultiCameraStreamer:
             
             # Start pipeline
             if not pipeline.start():
+                logger.error(f"[{camera_id}] [STARTUP] Failed to start GStreamer pipeline")
                 camera_info.rtp_port = None
                 return False
             
@@ -157,11 +169,14 @@ class MultiCameraStreamer:
             camera_info.last_frame_time = time.time()
             camera_info.camera_type = pipeline.camera_type
             
-            logger.info(f"Started streaming from {camera_id} to backend port {rtp_port}")
+            logger.info(f"[{camera_id}] [STARTUP] Successfully started streaming to backend port {rtp_port}")
+            logger.info(f"[{camera_id}] [STARTUP] Camera type: {camera_info.camera_type}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to start camera {camera_id}: {e}")
+            logger.error(f"[{camera_id}] [STARTUP] Failed to start camera: {e}")
+            import traceback
+            logger.error(f"[{camera_id}] [STARTUP] Stack trace: {traceback.format_exc()}")
             camera_info.rtp_port = None
             return False
     
@@ -211,9 +226,16 @@ class MultiCameraStreamer:
             command_type = command_data.get('type')
             camera_id = command_data.get('camera_id')
             
+            logger.info(f"[COMMAND] Received {command_type} command for camera {camera_id}")
+            
             if command_type == 'start_camera':
-                logger.info(f"Received start command for camera {camera_id}")
+                logger.info(f"[COMMAND] Starting camera {camera_id}...")
                 success = self.start_camera(camera_id)
+                if success:
+                    logger.info(f"[COMMAND] Successfully started camera {camera_id}")
+                else:
+                    logger.error(f"[COMMAND] Failed to start camera {camera_id}")
+                
                 response = {
                     'type': 'command_response',
                     'command': 'start_camera',
@@ -224,8 +246,10 @@ class MultiCameraStreamer:
                 self.send_command_response(response)
                 
             elif command_type == 'stop_camera':
-                logger.info(f"Received stop command for camera {camera_id}")
+                logger.info(f"[COMMAND] Stopping camera {camera_id}...")
                 self.stop_camera(camera_id)
+                logger.info(f"[COMMAND] Successfully stopped camera {camera_id}")
+                
                 response = {
                     'type': 'command_response',
                     'command': 'stop_camera',
@@ -236,7 +260,7 @@ class MultiCameraStreamer:
                 self.send_command_response(response)
                 
             elif command_type == 'update_settings':
-                logger.info(f"Received update settings command for camera {camera_id}")
+                logger.info(f"[COMMAND] Updating settings for camera {camera_id}")
                 settings = command_data.get('settings', {})
                 success = self.update_camera_settings(camera_id, settings)
                 response = {
@@ -250,7 +274,7 @@ class MultiCameraStreamer:
                 self.send_command_response(response)
                 
             elif command_type == 'dynamic_update':
-                logger.info(f"Received dynamic update command for camera {camera_id}")
+                logger.info(f"[COMMAND] Dynamic update for camera {camera_id}")
                 property_name = command_data.get('property')
                 value = command_data.get('value')
                 success = self.update_camera_property_dynamic(camera_id, property_name, value)
@@ -266,10 +290,12 @@ class MultiCameraStreamer:
                 self.send_command_response(response)
                 
             else:
-                logger.warning(f"Unknown command type: {command_type}")
+                logger.warning(f"[COMMAND] Unknown command type: {command_type}")
                 
         except Exception as e:
-            logger.error(f"Failed to handle command: {e}")
+            logger.error(f"[COMMAND] Failed to handle command: {e}")
+            import traceback
+            logger.error(f"[COMMAND] Stack trace: {traceback.format_exc()}")
     
     def update_camera_settings(self, camera_id: str, settings: dict) -> bool:
         """Update camera settings (bitrate, fps, etc.)."""
@@ -322,6 +348,66 @@ class MultiCameraStreamer:
         except Exception as e:
             logger.error(f"Failed to update camera property dynamically: {e}")
             return False
+    
+    def update_camera_performance(self, camera_id: str):
+        """Update performance statistics for a camera."""
+        if camera_id not in self.cameras:
+            return
+            
+        camera_info = self.cameras[camera_id]
+        if not camera_info.is_active:
+            return
+            
+        current_time = time.time()
+        
+        # Update frame count and calculate FPS
+        if camera_info.start_time == 0:
+            camera_info.start_time = current_time
+        
+        elapsed_time = current_time - camera_info.start_time
+        if elapsed_time > 0:
+            camera_info.current_fps = camera_info.frame_count / elapsed_time
+        
+        # Log performance every 10 seconds
+        if current_time - camera_info.last_performance_update > 10:
+            logger.info(f"[{camera_id}] [PERFORMANCE] FPS: {camera_info.current_fps:.1f}, "
+                       f"Frames: {camera_info.frame_count}, "
+                       f"Runtime: {elapsed_time:.1f}s")
+            camera_info.last_performance_update = current_time
+    
+    def get_system_health(self) -> dict:
+        """Get system health status."""
+        active_cameras = sum(1 for cam in self.cameras.values() if cam.is_active)
+        total_cameras = len(self.cameras)
+        
+        health_status = {
+            'device_id': self.device_id,
+            'status': 'healthy' if self.running else 'stopped',
+            'uptime': time.time() - getattr(self, '_start_time', time.time()),
+            'cameras': {
+                'total': total_cameras,
+                'active': active_cameras,
+                'inactive': total_cameras - active_cameras
+            },
+            'network': {
+                'backend_host': self.backend_host,
+                'backend_port': self.backend_port,
+                'command_port': self.command_port
+            },
+            'performance': {}
+        }
+        
+        # Add camera-specific performance data
+        for camera_id, camera_info in self.cameras.items():
+            if camera_info.is_active:
+                health_status['performance'][camera_id] = {
+                    'fps': camera_info.current_fps,
+                    'frame_count': camera_info.frame_count,
+                    'rtp_port': camera_info.rtp_port,
+                    'camera_type': camera_info.camera_type
+                }
+        
+        return health_status
     
     def send_command_response(self, response_data: dict):
         """Send command response back to backend."""
@@ -380,6 +466,9 @@ class MultiCameraStreamer:
         while self.running:
             try:
                 camera_status = {}
+                active_cameras = 0
+                rtp_ports = []
+                
                 for camera_id, camera_info in self.cameras.items():
                     camera_status[camera_id] = {
                         'name': camera_info.name,
@@ -389,6 +478,11 @@ class MultiCameraStreamer:
                         'rtp_port': camera_info.rtp_port,
                         'camera_type': camera_info.camera_type
                     }
+                    
+                    if camera_info.is_active:
+                        active_cameras += 1
+                        if camera_info.rtp_port:
+                            rtp_ports.append(f"{camera_id}:{camera_info.rtp_port}")
                 
                 heartbeat_data = {
                     'type': 'heartbeat',
@@ -411,14 +505,20 @@ class MultiCameraStreamer:
                 
                 # Reset failure counter on successful send
                 heartbeat_failures = 0
-                logger.debug(f"Sent heartbeat to {self.backend_host}:{self.backend_port} with {len(camera_status)} cameras")
+                
+                # Enhanced logging
+                if active_cameras > 0:
+                    logger.info(f"[HEARTBEAT] Sent to {self.backend_host}:{self.backend_port} - {active_cameras} active cameras")
+                    logger.info(f"[HEARTBEAT] RTP ports: {', '.join(rtp_ports)}")
+                else:
+                    logger.debug(f"[HEARTBEAT] Sent to {self.backend_host}:{self.backend_port} - {len(camera_status)} cameras (none active)")
                 
             except Exception as e:
                 heartbeat_failures += 1
-                logger.error(f"Failed to send heartbeat ({heartbeat_failures}/{max_failures}): {e}")
+                logger.error(f"[HEARTBEAT] Failed to send heartbeat ({heartbeat_failures}/{max_failures}): {e}")
                 
                 if heartbeat_failures >= max_failures:
-                    logger.error(f"Too many heartbeat failures. Check network connectivity to {self.backend_host}:{self.backend_port}")
+                    logger.error(f"[HEARTBEAT] Too many heartbeat failures. Check network connectivity to {self.backend_host}:{self.backend_port}")
                     # Continue trying but with longer intervals
                     time.sleep(15)
                     heartbeat_failures = 0  # Reset counter
@@ -453,6 +553,7 @@ class MultiCameraStreamer:
         logger.info(f"Discovered {len(self.cameras)} cameras. Waiting for start commands from backend.")
         
         self.running = True
+        self._start_time = time.time()  # Track uptime for health monitoring
         
         # Setup command socket
         self.setup_command_socket()

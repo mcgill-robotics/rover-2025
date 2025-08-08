@@ -53,23 +53,37 @@ class CameraAPI:
             available_cameras = []
             current_time = time.time()
             
+            logger.debug(f"[API] Checking {len(self.backend.jetson_devices)} devices for available cameras")
+            
             for device_id, device_info in self.backend.jetson_devices.items():
-                # Only include devices that have sent recent heartbeats
-                if current_time - device_info['last_heartbeat'] < 30:
-                    cameras_data = device_info.get('cameras', {})
+                time_since_heartbeat = current_time - device_info['last_heartbeat']
+                logger.debug(f"[API] Device {device_id}: last_heartbeat={device_info['last_heartbeat']:.1f}, time_since_heartbeat={time_since_heartbeat:.1f}s")
+                
+                # Include all devices - no timeout removal
+                cameras_data = device_info.get('cameras', {})
+                logger.debug(f"[API] Including device {device_id} with {len(cameras_data)} cameras")
+                
+                for camera_id, camera_info in cameras_data.items():
+                    # Determine status based on heartbeat and activity
+                    status = "connected"
+                    if time_since_heartbeat > 60:
+                        status = "disconnected"
+                    elif time_since_heartbeat > 30:
+                        status = "warning"
                     
-                    for camera_id, camera_info in cameras_data.items():
-                        available_cameras.append({
-                            "camera_id": camera_id,
-                            "device_id": device_id,
-                            "name": camera_info.get('name', camera_id),
-                            "device_path": camera_info.get('device_path', ''),
-                            "is_active": camera_info.get('is_active', False),
-                            "rtp_port": camera_info.get('rtp_port'),
-                            "host": device_info['host'],
-                            "last_heartbeat": device_info['last_heartbeat'],
-                            "status": "connected"
-                        })
+                    available_cameras.append({
+                        "camera_id": camera_id,
+                        "device_id": device_id,
+                        "name": camera_info.get('name', camera_id),
+                        "device_path": camera_info.get('device_path', ''),
+                        "is_active": camera_info.get('is_active', False),
+                        "rtp_port": camera_info.get('rtp_port'),
+                        "host": device_info['host'],
+                        "last_heartbeat": device_info['last_heartbeat'],
+                        "status": status
+                    })
+            
+            logger.debug(f"[API] Returning {len(available_cameras)} available cameras from {len(self.backend.jetson_devices)} devices")
             
             return {
                 "available_cameras": available_cameras, 
@@ -380,9 +394,96 @@ class CameraAPI:
 
         @self.app.get("/api/health")
         async def health_check():
+            current_time = time.time()
+            connected_devices = 0
+            total_devices = len(self.backend.jetson_devices)
+            
+            for device_info in self.backend.jetson_devices.values():
+                if current_time - device_info['last_heartbeat'] < 30:
+                    connected_devices += 1
+            
             return {
                 "status": "healthy",
                 "cameras_count": len(self.backend.cameras),
                 "active_connections": sum(len(v) for v in self.backend.websocket_connections.values()),
+                "devices": {
+                    "total": total_devices,
+                    "connected": connected_devices,
+                    "disconnected": total_devices - connected_devices
+                },
                 "timestamp": time.time()
+            }
+
+        @self.app.delete("/api/devices/{device_id}")
+        async def remove_device(device_id: str):
+            """Explicitly remove a device and all its cameras."""
+            try:
+                if device_id not in self.backend.jetson_devices:
+                    return {"error": f"Device {device_id} not found"}
+                
+                logger.info(f"Explicitly removing device: {device_id}")
+                
+                # Remove all cameras from this device
+                device_cameras = []
+                for cam_id in list(self.backend.cameras):
+                    if self.backend.cameras[cam_id].device_id == device_id:
+                        device_cameras.append(cam_id)
+                
+                for cam_id in device_cameras:
+                    logger.info(f"Removing camera {cam_id} from device {device_id}")
+                    
+                    # Remove camera reader
+                    self.backend.camera_readers.remove_camera(cam_id)
+                    
+                    # Remove camera info and buffer
+                    del self.backend.cameras[cam_id]
+                    self.backend.frame_buffers.pop(cam_id, None)
+                    
+                    # Close WebSocket connections
+                    conns = self.backend.websocket_connections.pop(cam_id, set())
+                    for ws in conns:
+                        asyncio.run_coroutine_threadsafe(ws.close(), self.backend.loop)
+                
+                # Remove the device itself
+                del self.backend.jetson_devices[device_id]
+                
+                return {
+                    "success": True, 
+                    "message": f"Device {device_id} and {len(device_cameras)} cameras removed",
+                    "removed_cameras": device_cameras
+                }
+                
+            except Exception as e:
+                logger.error(f"Failed to remove device {device_id}: {e}")
+                return {"error": str(e)}
+
+        @self.app.get("/api/devices")
+        async def get_devices():
+            """Get all known devices and their status."""
+            current_time = time.time()
+            devices = []
+            
+            for device_id, device_info in self.backend.jetson_devices.items():
+                time_since_heartbeat = current_time - device_info['last_heartbeat']
+                
+                # Determine status based on heartbeat
+                status = "connected"
+                if time_since_heartbeat > 60:
+                    status = "disconnected"
+                elif time_since_heartbeat > 30:
+                    status = "warning"
+                
+                devices.append({
+                    "device_id": device_id,
+                    "host": device_info['host'],
+                    "command_port": device_info['command_port'],
+                    "last_heartbeat": device_info['last_heartbeat'],
+                    "time_since_heartbeat": time_since_heartbeat,
+                    "status": status,
+                    "cameras_count": len(device_info.get('cameras', {}))
+                })
+            
+            return {
+                "devices": devices,
+                "total_devices": len(devices)
             }

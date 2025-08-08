@@ -12,42 +12,42 @@ jetson_config:
   # Default JPEG quality (1-100) - legacy, now unused
   default_jpeg_quality: 80
   
-  # Default target FPS
-  default_fps: 20
+  # Default target FPS - reduced for multi-camera
+  default_fps: 15
   
-  # Camera capture settings
-  capture_width: 640
-  capture_height: 480
+  # Camera capture settings - reduced resolution for multi-camera
+  capture_width: 480
+  capture_height: 360
   
   # Heartbeat interval (seconds)
   heartbeat_interval: 5.0
   
   # Frame send interval (calculated from FPS)
-  frame_interval: 0.05  # 1.0 / 20 FPS default
+  frame_interval: 0.067  # 1.0 / 15 FPS default
   
-  # GStreamer settings for Jetson
+  # GStreamer settings for Jetson - optimized for multi-camera
   gstreamer_config:
-    h264_bitrate: 512  # kbps
+    h264_bitrate: 256  # Reduced bitrate for multi-camera
     h264_tune: "zerolatency"
     rtp_payload_type: 96
     rtp_config_interval: 1
-    udp_buffer_size: 1048576  # 1MB
-    frame_buffer_size: 65536
-    max_frame_size: 60000
-    min_bitrate: 128  # kbps
-    max_bitrate: 2048  # kbps
+    udp_buffer_size: 524288  # Reduced to 512KB
+    frame_buffer_size: 32768  # Reduced buffer size
+    max_frame_size: 30000  # Reduced max frame size
+    min_bitrate: 64  # kbps - lower minimum
+    max_bitrate: 1024  # kbps - lower maximum
     min_fps: 5
-    max_fps: 30
+    max_fps: 20  # Reduced max FPS
     pipeline_formats:
       mjpg:
-        caps: "image/jpeg,width=640,height=480,framerate=30/1"
+        caps: "image/jpeg,width=480,height=360,framerate=15/1"  # Reduced resolution
         elements: [
           "jpegdec",
           "videoconvert",
           "video/x-raw,format=NV12"
         ]
       yuyv:
-        caps: "video/x-raw,format=YUY2,width=640,height=480,framerate=20/1"
+        caps: "video/x-raw,format=YUY2,width=480,height=360,framerate=15/1"  # Reduced resolution
         elements: [
           "videoconvert",
           "video/x-raw,format=NV12"
@@ -58,10 +58,18 @@ jetson_config:
           "videoconvert"
         ]
     encoder_elements: [
-      "x264enc tune={tune} bitrate={bitrate}",
+      "x264enc tune={tune} bitrate={bitrate} speed-preset=ultrafast",  # Added ultrafast preset
       "h264parse",
       "rtph264pay config-interval=1 pt=96"
     ]
+    
+    # Memory optimization settings
+    memory_config:
+      max_concurrent_cameras: 3  # Limit concurrent cameras
+      buffer_pool_size: 2  # Reduced buffer pool
+      queue_size: 1  # Minimal queue size
+      drop_frames: true  # Drop frames to prevent memory buildup
+      sync: false  # Disable sync for better performance
 
 # Network Configuration
 network_config:

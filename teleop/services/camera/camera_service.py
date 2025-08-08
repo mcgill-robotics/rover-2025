@@ -189,7 +189,7 @@ class MultiCameraBackend:
         self.camera_readers = MultiGStreamerReader()
         self.running = False
 
-        self.inactive_timeout = 30.0
+        self.inactive_timeout = 60.0  # Increased from 30.0 to 60.0 seconds
 
         # UDP socket for receiving heartbeats
         self.udp_sock = None
@@ -290,12 +290,18 @@ class MultiCameraBackend:
             
             # Update Jetson device info
             if device_id:
+                is_new_device = device_id not in self.jetson_devices
                 self.jetson_devices[device_id] = {
                     'host': sender_addr[0],
                     'command_port': self.udp_port + 1,  # Jetson uses udp_port + 1 for commands
                     'last_heartbeat': time.time(),
                     'cameras': cameras  # Store camera information from heartbeat
                 }
+                
+                if is_new_device:
+                    logger.info(f"[HEARTBEAT] New device connected: {device_id} from {sender_addr[0]}")
+                else:
+                    logger.debug(f"[HEARTBEAT] Device heartbeat: {device_id} from {sender_addr[0]}")
             
             logger.info(f"Received heartbeat from {device_id} with {len(cameras)} cameras")
             
@@ -454,20 +460,17 @@ class MultiCameraBackend:
         
         frame_count = 0
         last_log_time = time.time()
+        no_frame_count = 0
         
         while self.running:
             try:
                 frame = reader.read_frame()
                 if frame is not None:
                     frame_count += 1
+                    no_frame_count = 0  # Reset no-frame counter
                     current_time = time.time()
                     
-                    # Log progress every 10 frames or every 5 seconds
-                    if frame_count % 10 == 0 or (current_time - last_log_time) > 5:
-                        logger.info(f"[{camera_id}] [POLLING] Received frame {frame_count}, shape: {frame.shape}")
-                        last_log_time = current_time
-                    
-                    # Update camera info
+                    # Update camera info immediately when frame is received
                     if camera_id in self.cameras:
                         self.cameras[camera_id].last_frame_time = time.time()
                         self.cameras[camera_id].is_active = True
@@ -475,6 +478,11 @@ class MultiCameraBackend:
                         if self.cameras[camera_id].resolution == (0, 0):
                             self.cameras[camera_id].resolution = (frame.shape[1], frame.shape[0])
                             logger.info(f"[{camera_id}] [POLLING] Updated resolution: {self.cameras[camera_id].resolution}")
+                    
+                    # Log progress every 10 frames or every 5 seconds
+                    if frame_count % 10 == 0 or (current_time - last_log_time) > 5:
+                        logger.info(f"[{camera_id}] [POLLING] Received frame {frame_count}, shape: {frame.shape}")
+                        last_log_time = current_time
                     
                     # Process frame with ArUco detection if enabled
                     processed_frame = frame
@@ -489,7 +497,7 @@ class MultiCameraBackend:
                     # Encode frame to JPEG
                     try:
                         config = get_backend_config()
-                        jpeg_quality = config["JPEG_CONFIG"]["QUALITY"]
+                        jpeg_quality = config["JPEG_CONFIG"]["quality"]  # Changed from "QUALITY" to "quality"
                         _, encoded = cv2.imencode(".jpg", processed_frame, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
                         b64 = base64.b64encode(encoded).decode("utf-8")
                         
@@ -507,6 +515,7 @@ class MultiCameraBackend:
                         if camera_id in self.frame_buffers:
                             frame_obj = CameraFrame(camera_id, message["timestamp"], encoded.tobytes(), message["received_time"])
                             self.frame_buffers[camera_id].add_frame(frame_obj)
+                            logger.debug(f"[{camera_id}] [BUFFER] Added frame to buffer")
                         
                         # Broadcast to WebSocket clients
                         asyncio.run_coroutine_threadsafe(
@@ -523,6 +532,9 @@ class MultiCameraBackend:
                         
                 else:
                     # No frame received, brief sleep
+                    no_frame_count += 1
+                    if no_frame_count % 100 == 0:  # Log every 100 no-frame cycles
+                        logger.warning(f"[{camera_id}] [POLLING] No frame received for {no_frame_count} cycles")
                     time.sleep(0.033)  # ~30 FPS
                     
             except Exception as e:
@@ -545,15 +557,24 @@ class MultiCameraBackend:
             logger.info(f"Started polling thread for camera {camera_id}")
 
     def cleanup_thread(self):
-        """Cleanup thread to remove inactive cameras."""
+        """Cleanup thread to remove inactive cameras only."""
         logger.info("Starting cleanup thread")
+        
         while self.running:
             try:
                 now = time.time()
+                
+                # Clean up inactive cameras only
                 for cam_id in list(self.cameras):
                     info = self.cameras[cam_id]
-                    if now - info.last_frame_time > self.inactive_timeout:
-                        logger.info(f"Removing inactive camera: {cam_id}")
+                    time_since_last_frame = now - info.last_frame_time
+                    
+                    # Log camera status every 30 seconds
+                    if int(now) % 30 == 0:
+                        logger.debug(f"[CLEANUP] Camera {cam_id}: last_frame_time={info.last_frame_time:.1f}, time_since_last_frame={time_since_last_frame:.1f}s, inactive_timeout={self.inactive_timeout}s")
+                    
+                    if time_since_last_frame > self.inactive_timeout:
+                        logger.info(f"Removing inactive camera: {cam_id} (no frames for {time_since_last_frame:.1f}s)")
                         
                         # Remove camera reader
                         self.camera_readers.remove_camera(cam_id)
@@ -566,6 +587,8 @@ class MultiCameraBackend:
                         conns = self.websocket_connections.pop(cam_id, set())
                         for ws in conns:
                             asyncio.run_coroutine_threadsafe(ws.close(), self.loop)
+                
+                # Note: Devices are never automatically removed - they stay until explicitly disconnected
                             
                 time.sleep(10)
             except Exception as e:

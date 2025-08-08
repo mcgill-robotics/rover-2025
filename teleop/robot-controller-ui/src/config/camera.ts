@@ -3,7 +3,7 @@
 // Central Backend Server Configuration
 export const MULTI_CAMERA_BACKEND = {
   // Backend server host (where central_backend.py runs)
-  HOST: "localhost", // Backend server IP (change to match your setup)
+  HOST: "192.168.1.100", // Backend server IP (change to match your setup)
   
   // HTTP port for REST API and WebSocket connections
   HTTP_PORT: 8001,
@@ -69,27 +69,11 @@ export const CAMERA_UI_CONFIG = {
   DPAD_CAMERA_PATTERN: "USB 2.0 Camera"
 };
 
-// Legacy WebRTC Configuration (for backward compatibility)
-export const LEGACY_WEBRTC_CONFIG = {
-  // Base station IP for WebRTC signaling
-  BASE_STATION_IP: "localhost",
-  BASE_STATION_PORT: 8081,
-  
-  // Jetson IP for legacy camera discovery
-  JETSON_IP: "192.168.1.69",
-  JETSON_PORT: 8000,
-  
-  // WebRTC stream settings
-  STALL_TIMEOUT: 3000, // milliseconds
-  RESTART_DELAY: 500 // milliseconds
-};
-
 // Export combined configuration for easy access
 export const CAMERA_CONFIG = {
   BACKEND: MULTI_CAMERA_BACKEND,
   STREAM: CAMERA_STREAM_CONFIG,
   UI: CAMERA_UI_CONFIG,
-  LEGACY: LEGACY_WEBRTC_CONFIG
 };
 
 // Helper functions
