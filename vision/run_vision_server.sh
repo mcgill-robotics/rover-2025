@@ -5,14 +5,14 @@
 eval $(python3 -c "
 from config import get_jetson_config
 config = get_jetson_config()
-gst_config = config['GSTREAMER_CONFIG']
-print(f'BACKEND_HOST=\"{config[\"DEFAULT_BACKEND_HOST\"]}\"')
-print(f'BACKEND_PORT={config[\"DEFAULT_BACKEND_PORT\"]}')
-print(f'FPS={config[\"DEFAULT_FPS\"]}')
-print(f'WIDTH={config[\"CAPTURE_WIDTH\"]}')
-print(f'HEIGHT={config[\"CAPTURE_HEIGHT\"]}')
-print(f'BITRATE={gst_config[\"H264_BITRATE\"]}')
-print(f'TUNE=\"{gst_config[\"H264_TUNE\"]}\"')
+gst_config = config.get('gstreamer_config', {})
+print(f'BACKEND_HOST=\"{config.get(\"default_backend_host\", \"192.168.1.100\")}\"')
+print(f'BACKEND_PORT={config.get(\"default_backend_port\", 9999)}')
+print(f'FPS={config.get(\"default_fps\", 20)}')
+print(f'WIDTH={config.get(\"capture_width\", 640)}')
+print(f'HEIGHT={config.get(\"capture_height\", 480)}')
+print(f'BITRATE={gst_config.get(\"h264_bitrate\", 512)}')
+print(f'TUNE=\"{gst_config.get(\"h264_tune\", \"zerolatency\")}\"')
 ")
 
 # Default device ID (not in config since it should be unique per device)
@@ -155,13 +155,8 @@ echo ""
 echo "Press Ctrl+C to stop"
 echo "=============================================="
 
-# Run the server
+# Run the server (only pass supported arguments)
 python3 vision_server.py \
     --backend-host "$BACKEND_HOST" \
     --backend-port "$BACKEND_PORT" \
-    --device-id "$DEVICE_ID" \
-    --width "$WIDTH" \
-    --height "$HEIGHT" \
-    --fps "$FPS" \
-    --bitrate "$BITRATE" \
-    --tune "$TUNE"
+    --device-id "$DEVICE_ID"
