@@ -1,68 +1,165 @@
-#!/usr/bin/env python3
-"""
-Configuration loader for camera services.
-Loads settings from service_config.yml.
-"""
+# Multi-Camera System Configuration
 
-import os
-import yaml
-import logging
-
-logger = logging.getLogger(__name__)
-
-def get_backend_config():
-    """Get backend configuration from service_config.yml."""
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'service_config.yml')
+# Central Backend Server Configuration
+BACKEND_CONFIG = {
+    # Backend server host (where central_backend.py runs)
+    "HOST": "0.0.0.0",  # Listen on all interfaces
     
-    try:
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
-        
-        camera_config = config['services']['camera_service']['config']
-        
-        # Convert to old format for compatibility
-        return {
-            "HOST": camera_config["host"],
-            "HTTP_PORT": 8001,  # This will be overridden by service manager
-            "UDP_PORT": 9999,
-            "INACTIVE_TIMEOUT": camera_config["inactive_timeout"],
-            "HEARTBEAT_TIMEOUT": 15.0,
-            "FRAME_BUFFER_SIZE": camera_config["frame_buffer_size"],
-            "MAX_UDP_PACKET_SIZE": 65507,
-            "CAMERA_DISCOVERY": camera_config["camera_discovery"],
-            "GSTREAMER_CONFIG": camera_config["gstreamer_config"],
-            "ARUCO_CONFIG": camera_config["aruco_config"],
-            "JPEG_CONFIG": camera_config["jpeg_config"]
+    # HTTP port for REST API and WebSocket connections
+    "HTTP_PORT": 8001,
+    
+    # UDP port for receiving frames from Jetson/Pi devices (legacy, now unused)
+    "UDP_PORT": 9999,
+    
+    # Camera inactive timeout (seconds)
+    "INACTIVE_TIMEOUT": 30.0,
+    
+    # Heartbeat timeout (seconds) - legacy, now unused
+    "HEARTBEAT_TIMEOUT": 15.0,
+    
+    # Frame buffer size per camera
+    "FRAME_BUFFER_SIZE": 10,
+    
+    # Maximum UDP packet size (legacy, now unused)
+    "MAX_UDP_PACKET_SIZE": 65507,
+    
+    # Default camera configuration for GStreamer RTP streams
+    "DEFAULT_CAMERAS": [
+        {
+            "camera_id": "jetson-01-cam00",
+            "port": 5000,
+            "device_id": "jetson-01",
+            "name": "Front Camera"
+        },
+        {
+            "camera_id": "jetson-01-cam01", 
+            "port": 5001,
+            "device_id": "jetson-01",
+            "name": "Left Camera"
+        },
+        {
+            "camera_id": "jetson-01-cam02",
+            "port": 5002, 
+            "device_id": "jetson-01",
+            "name": "Right Camera"
         }
-    except (FileNotFoundError, KeyError, yaml.YAMLError) as e:
-        logger.warning(f"Could not load service config: {e}")
-        # Return default config
-        return {
-            "HOST": "0.0.0.0",
-            "HTTP_PORT": 8001,
-            "UDP_PORT": 9999,
-            "INACTIVE_TIMEOUT": 30.0,
-            "HEARTBEAT_TIMEOUT": 15.0,
-            "FRAME_BUFFER_SIZE": 10,
-            "MAX_UDP_PACKET_SIZE": 65507,
-            "CAMERA_DISCOVERY": {"enabled": True, "scan_interval": 5.0, "auto_connect": True},
-            "GSTREAMER_CONFIG": {
-                "rtp_caps": "application/x-rtp,media=video,clock-rate=90000,encoding-name=H264,payload=96",
-                "pipeline_elements": ["rtph264depay", "h264parse", "avdec_h264", "videoconvert", "video/x-raw,format=BGR", "appsink drop=true max-buffers=2"],
-                "buffer_size": 1,
-                "drop_frames": True
-            },
-            "ARUCO_CONFIG": {
-                "dictionary": "DICT_4X4_100",
-                "marker_border_color": [0, 255, 0],
-                "marker_border_thickness": 2,
-                "text_color": [255, 255, 255],
-                "text_thickness": 2,
-                "text_font": "FONT_HERSHEY_SIMPLEX",
-                "text_scale": 0.7
-            },
-            "JPEG_CONFIG": {
-                "quality": 85,
-                "optimize": True
-            }
-        }
+    ],
+    
+    # GStreamer pipeline settings
+    "GSTREAMER_CONFIG": {
+        "RTP_CAPS": "application/x-rtp,media=video,clock-rate=90000,encoding-name=H264,payload=96",
+        "PIPELINE_ELEMENTS": [
+            "rtph264depay",
+            "h264parse", 
+            "avdec_h264",
+            "videoconvert",
+            "video/x-raw,format=BGR",
+            "appsink drop=true max-buffers=2"
+        ],
+        "BUFFER_SIZE": 1,  # Minimize latency
+        "DROP_FRAMES": True
+    },
+    
+    # ArUco detection settings
+    "ARUCO_CONFIG": {
+        "DICTIONARY": "DICT_4X4_100",
+        "MARKER_BORDER_COLOR": [0, 255, 0],  # Green
+        "MARKER_BORDER_THICKNESS": 2,
+        "TEXT_COLOR": [255, 255, 255],  # White
+        "TEXT_THICKNESS": 2,
+        "TEXT_FONT": "FONT_HERSHEY_SIMPLEX",
+        "TEXT_SCALE": 0.7
+    },
+    
+    # JPEG encoding settings
+    "JPEG_CONFIG": {
+        "QUALITY": 85,
+        "OPTIMIZE": True
+    }
+}
+
+# Jetson/Pi Device Configuration
+JETSON_CONFIG = {
+    # Default backend host for Jetson/Pi devices to send RTP streams to
+    "DEFAULT_BACKEND_HOST": "192.168.1.100",
+    
+    # Default backend UDP port for Jetson/Pi devices (legacy heartbeat)
+    "DEFAULT_BACKEND_PORT": 9999,
+    
+    # Default JPEG quality (1-100) - legacy, now unused
+    "DEFAULT_JPEG_QUALITY": 80,
+    
+    # Default target FPS
+    "DEFAULT_FPS": 20,
+    
+    # Camera capture settings
+    "CAPTURE_WIDTH": 640,
+    "CAPTURE_HEIGHT": 480,
+    
+    # Heartbeat interval (seconds)
+    "HEARTBEAT_INTERVAL": 5.0,
+    
+    # Frame send interval (calculated from FPS)
+    "FRAME_INTERVAL": 1.0 / 20,  # 20 FPS default
+    
+    # GStreamer settings for Jetson
+    "GSTREAMER_CONFIG": {
+        "H264_BITRATE": 512,  # kbps
+        "H264_TUNE": "zerolatency",
+        "RTP_PAYLOAD_TYPE": 96,
+        "RTP_CONFIG_INTERVAL": 1,
+        "UDP_BUFFER_SIZE": 1024 * 1024,  # 1MB
+        "FRAME_BUFFER_SIZE": 65536,
+        "MAX_FRAME_SIZE": 60000
+    },
+    
+    # Camera port mapping (matches backend default cameras)
+    "CAMERA_PORT_MAPPING": {
+        "cam00": 5000,  # Front Camera
+        "cam01": 5001,  # Left Camera  
+        "cam02": 5002   # Right Camera
+    }
+}
+
+# Network Configuration
+NETWORK_CONFIG = {
+    # Maximum retries for network operations
+    "MAX_RETRIES": 3,
+    
+    # Connection timeout (seconds)
+    "CONNECTION_TIMEOUT": 5.0,
+    
+    # Socket buffer sizes
+    "UDP_SEND_BUFFER_SIZE": 1024 * 1024,  # 1MB
+    "UDP_RECV_BUFFER_SIZE": 1024 * 1024,  # 1MB
+}
+
+# Logging Configuration
+LOGGING_CONFIG = {
+    "LEVEL": "INFO",
+    "FORMAT": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "DATE_FORMAT": "%Y-%m-%d %H:%M:%S",
+}
+
+# Helper functions
+def get_backend_config():
+    """Get backend configuration dictionary."""
+    return BACKEND_CONFIG.copy()
+
+def get_jetson_config():
+    """Get Jetson/Pi configuration dictionary."""
+    return JETSON_CONFIG.copy()
+
+def get_network_config():
+    """Get network configuration dictionary."""
+    return NETWORK_CONFIG.copy()
+
+def get_logging_config():
+    """Get logging configuration dictionary."""
+    return LOGGING_CONFIG.copy()
+
+# Update frame interval based on FPS
+def update_fps(fps):
+    """Update frame interval based on target FPS."""
+    JETSON_CONFIG["FRAME_INTERVAL"] = 1.0 / max(1, fps)
+    return JETSON_CONFIG["FRAME_INTERVAL"]
