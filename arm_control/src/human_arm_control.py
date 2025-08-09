@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import arm_kinematics
+import os
 
 joint_upper_limits = [ 
     118.76 * np.pi / 180, # Waist
@@ -26,12 +27,14 @@ joint_max_speed = [
     np.pi/3 # Hand
 ] # rad per method call
 
+joint_names = ["WAIST", "SHOULDER", "ELBOW", "WRIST", "HAND"]
+
 class HumanArmControl:
     def __init__(self):
         self.current_cycle_mode = 0  # Start with waist joint. 0 = waist, 1 = shoulder, 2 = elbow, 3 = wrist, 4 = hand, 5 = claw
         self.speed = 1.0  # TO BE SET LATER
-        self.speed_increment = 0.1  # TO BE SET LATER
-        self.distance = 0.05 # TO BE SET LATER
+        self.speed_increment = 0.5  # TO BE SET LATER
+        self.distance = 0.5 # TO BE SET LATER
         self.distance_increment = [self.distance, self.distance/2, self.distance/4] # TO BE SET LATER
         self.angle_increment = [np.pi/4, np.pi/8, np.pi/16] # TO BE SET LATER
         self.horizontal_lock = [0.0, 1.0] # DEFAULT
@@ -99,7 +102,8 @@ class HumanArmControl:
         """
         #assume button check is done before calling this
         self.current_cycle_mode += 1
-        self.current_cycle_mode %= 6
+        self.current_cycle_mode %= 5
+        #self.print_joint_menu()
         return self.current_cycle_mode
 
     def cycle_down(self):
@@ -113,7 +117,8 @@ class HumanArmControl:
         """
         #assume button check is done before calling this
         self.current_cycle_mode -= 1
-        self.current_cycle_mode %= 6
+        self.current_cycle_mode %= 5
+        #self.print_joint_menu()
         return self.current_cycle_mode
 
     def depth_motion(self, joystick_input: float, cur_angles: list[float]) -> list[float]:
@@ -237,3 +242,11 @@ class HumanArmControl:
                 pass
 
         return cur_angles
+    
+    def print_joint_menu(self):
+        print("JOINT CONTROL SELECTION:")
+        for i, joint in enumerate(joint_names[::-1]):
+            if (len(joint_names) - 1 - i) == self.current_cycle_mode:
+                print(joint + " <- Current Joint")
+            else:
+                print(joint)
