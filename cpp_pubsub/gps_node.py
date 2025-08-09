@@ -26,8 +26,8 @@ class WobblyTurnPublisher(Node):
         self.pub = self.create_publisher(Float32MultiArray, 'roverGPSData', 10)
 
         # --- Base params you can tweak ---
-        self.center_lat = 51.5000
-        self.center_lon = -112.6000
+        self.center_lat = 51.470500
+        self.center_lon = -112.75175
         self.depth_mean = 3.0                 # meters
         self.depth_noise = 0.05               # ±m
 
