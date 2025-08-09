@@ -38,7 +38,7 @@ class pantilt(Node):
         imu_msg.data = tuple(imu_data)
         self.imu_publisher.publish(imu_msg)
         # Get GPS data and publish it
-        gps_data = self.pantilt_firmware.get_gps()[1:]
+        gps_data = self.pantilt_firmware.get_gps()
         gps_msg = Float32MultiArray()
         gps_msg.data = tuple(gps_data)
         self.gps_publisher.publish(gps_msg)
