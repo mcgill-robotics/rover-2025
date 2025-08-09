@@ -145,6 +145,7 @@ class GStreamerCameraReader:
                 # Apply vertical flip if camera is inverted
                 if self.inverted:
                     frame = cv2.flip(frame, 0)  # 0 = flip vertically
+                    frame = cv2.flip(frame, 1)  # 1 = flip horizontally
                 
                 # Update frame statistics
                 self.frame_count += 1

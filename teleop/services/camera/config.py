@@ -79,7 +79,8 @@ BACKEND_CONFIG = {
 
     # Camera names that should be inverted (upside down)
     "INVERTED_CAMERAS": [
-        "Left Camera",  # This camera is mounted upside down
+        "CC HD webcam            : CC HD",  # This camera is mounted upside down
+        "HD Camera: HD Camera",
         # Add other camera names that need inversion here
     ]
 }
@@ -87,7 +88,7 @@ BACKEND_CONFIG = {
 # Jetson/Pi Device Configuration
 JETSON_CONFIG = {
     # Default backend host for Jetson/Pi devices to send RTP streams to
-    "DEFAULT_BACKEND_HOST": "192.168.1.100",
+    "DEFAULT_BACKEND_HOST": "192.168.1.23",
     
     # Default backend UDP port for Jetson/Pi devices (legacy heartbeat)
     "DEFAULT_BACKEND_PORT": 9999,
