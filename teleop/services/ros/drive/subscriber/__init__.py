@@ -1,3 +1,0 @@
-"""
-Drive system ROS subscribers.
-"""

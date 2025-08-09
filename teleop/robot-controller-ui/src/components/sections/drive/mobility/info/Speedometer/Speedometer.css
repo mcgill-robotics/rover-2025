@@ -1,5 +1,0 @@
-/* SVG Stroke Animation */
-.meter-bg-bar {
-  animation: dash 4s linear infinite;
-  stroke-dasharray: 615;
-}
