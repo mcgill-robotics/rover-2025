@@ -1,0 +1,16 @@
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="168 56 56 56">
+  <defs>
+    <style>
+      .svg-border { fill: #d3d3d3; }
+      .svg-inner-circle { fill: #ddd; }
+      .svg-triangle { fill: #bf1d5f; }
+    </style>
+  </defs>
+  <g>
+    <g>
+      <path class="svg-border" d="M196.8,111.3A26.3,26.3,0,1,1,223.1,85,26.33,26.33,0,0,1,196.8,111.3Z"/>
+      <path class="svg-inner-circle" d="M196.8,59.8a25.3,25.3,0,1,1-25.3,25.3,25.33,25.33,0,0,1,25.3-25.3Z"/>
+    </g>
+    <path class="svg-triangle" d="M212.8,93l-16-27.6L180.8,93l-1.6,2.8h35.2Zm-16,0H184.1l12.7-21.9L209.5,93Z"/>
+  </g>
+</svg>

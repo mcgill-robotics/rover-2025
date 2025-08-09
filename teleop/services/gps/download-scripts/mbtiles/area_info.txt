@@ -1,0 +1,14 @@
+Drumheller Badlands Offline Map
+================================
+Area: Drumheller, Alberta, Canada
+Type: Desert/Off-road testing area
+Bounds: 51.4000,-112.8000,51.6000,-112.4000
+Zoom Levels: 10 - 18
+Download Date: Fri Aug  8 05:16:48 PM EDT 2025
+Purpose: Rover 2025 offline navigation
+Features:
+- Canadian Badlands terrain
+- Desert/off-road paths
+- Geological formations
+- Dinosaur Provincial Park area
+- Red Deer River valley
