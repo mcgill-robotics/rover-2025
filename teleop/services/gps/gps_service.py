@@ -63,13 +63,27 @@ class GPSService(Node):
         
     def gps_callback(self, msg: Float32MultiArray):
         """Handle GPS fix messages"""
-        print(msg)
-        msg = msg.data
-        self.gps_data['latitude'] = msg[1]
-        self.gps_data['longitude'] = msg[2]
-        self.gps_data['timestamp'] = int(time.time() * 1000)  # Convert to milliseconds
-        # self.gps_data['fix_quality'] = msg.status.status
-        self.gps_data['satellites'] = msg[0]
+        print(f"[GPS_SERVICE] Received GPS data: {msg.data}")
+        msg_data = msg.data
+        
+        # Extract data: [depth/satellites, latitude, longitude]
+        if len(msg_data) >= 3:
+            self.gps_data['satellites'] = int(msg_data[0])  # depth is being used as satellite count
+            self.gps_data['latitude'] = float(msg_data[1])
+            self.gps_data['longitude'] = float(msg_data[2])
+            self.gps_data['timestamp'] = int(time.time() * 1000)  # Convert to milliseconds
+            
+            # Set fix quality based on whether we have valid coordinates
+            if (abs(self.gps_data['latitude']) > 0.0001 and 
+                abs(self.gps_data['longitude']) > 0.0001):
+                self.gps_data['fix_quality'] = 1  # Good fix
+                self.gps_data['accuracy'] = 5.0   # Assume 5m accuracy for simulation
+            else:
+                self.gps_data['fix_quality'] = 0  # No fix
+                self.gps_data['accuracy'] = 0.0
+            
+            print(f"[GPS_SERVICE] Updated GPS: lat={self.gps_data['latitude']:.6f}, "
+                  f"lng={self.gps_data['longitude']:.6f}, fix_quality={self.gps_data['fix_quality']}")
                 
     def imu_callback(self, msg: Imu):
         """Handle IMU messages for heading calculation"""
@@ -139,4 +153,4 @@ def main(args=None):
         rclpy.shutdown()
 
 if __name__ == '__main__':
-    main() 
+    main()
