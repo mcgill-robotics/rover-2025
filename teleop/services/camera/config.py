@@ -75,7 +75,13 @@ BACKEND_CONFIG = {
     "JPEG_CONFIG": {
         "QUALITY": 85,
         "OPTIMIZE": True
-    }
+    },
+
+    # Camera names that should be inverted (upside down)
+    "INVERTED_CAMERAS": [
+        "Left Camera",  # This camera is mounted upside down
+        # Add other camera names that need inversion here
+    ]
 }
 
 # Jetson/Pi Device Configuration

@@ -28,16 +28,22 @@ class GStreamerCameraReader:
     using GStreamer Python bindings (gi) for reliable UDP stream handling.
     """
     
-    def __init__(self, port: int, camera_id: str = None):
+    def __init__(self, port: int, camera_id: str = None, camera_name: str = None):
         """
         Initialize GStreamer camera reader.
         
         Args:
             port: UDP port to listen on for RTP stream
             camera_id: Optional camera identifier for logging
+            camera_name: Camera name to determine if it should be inverted
         """
         self.port = port
         self.camera_id = camera_id or f"camera_{port}"
+        self.camera_name = camera_name
+        
+        # Check if this camera should be inverted based on its name
+        self.inverted = self._should_invert_camera()
+        
         self.pipeline = None
         self.appsink = None
         self.loop = None
@@ -56,7 +62,7 @@ class GStreamerCameraReader:
         self.width = 0
         self.height = 0
         
-        logger.info(f"Initializing GStreamer reader for {self.camera_id} on port {port}")
+        logger.info(f"Initializing GStreamer reader for {self.camera_id} ({self.camera_name}) on port {port} (inverted: {self.inverted})")
         
         # Try to open the pipeline
         self._open_pipeline()
@@ -86,6 +92,20 @@ class GStreamerCameraReader:
         
         logger.debug(f"GStreamer pipeline for {self.camera_id}: {pipeline_str}")
         return pipeline_str
+    
+    def _should_invert_camera(self) -> bool:
+        """Check if camera should be inverted based on its name."""
+        if not self.camera_name:
+            return False
+            
+        try:
+            from config import get_backend_config
+            config = get_backend_config()
+            inverted_cameras = config.get("INVERTED_CAMERAS", [])
+            return self.camera_name in inverted_cameras
+        except Exception as e:
+            logger.error(f"Failed to check camera inversion config: {e}")
+            return False
     
     def _on_new_sample(self, sink):
         """
@@ -118,7 +138,13 @@ class GStreamerCameraReader:
             try:
                 # Convert buffer to numpy array
                 frame_data = np.frombuffer(mapinfo.data, dtype=np.uint8)
+                
+                # Reshape the frame data
                 frame = frame_data.reshape((self.height, self.width, 3))
+                
+                # Apply vertical flip if camera is inverted
+                if self.inverted:
+                    frame = cv2.flip(frame, 0)  # 0 = flip vertically
                 
                 # Update frame statistics
                 self.frame_count += 1
@@ -369,25 +395,26 @@ class MultiGStreamerReader:
         self.readers = {}
         self.running = False
     
-    def add_camera(self, camera_id: str, port: int) -> GStreamerCameraReader:
+    def add_camera(self, camera_id: str, port: int, camera_name: str = None) -> GStreamerCameraReader:
         """
         Add a new camera reader.
         
         Args:
             camera_id: Unique camera identifier
             port: UDP port for the camera stream
+            camera_name: Camera name to determine if it should be inverted
             
         Returns:
             GStreamerCameraReader instance
         """
         if camera_id in self.readers:
-            logger.warning(f"Camera {camera_id} already exists, replacing...")
-            self.remove_camera(camera_id)
+            logger.warning(f"Camera reader for {camera_id} already exists")
+            return self.readers[camera_id]
         
         try:
-            reader = GStreamerCameraReader(port, camera_id)
+            reader = GStreamerCameraReader(port, camera_id, camera_name)
             self.readers[camera_id] = reader
-            logger.info(f"Added camera reader for {camera_id} on port {port}")
+            logger.info(f"Added camera reader for {camera_id} ({camera_name}) on port {port}")
             return reader
         except Exception as e:
             logger.error(f"Failed to add camera reader for {camera_id}: {e}")

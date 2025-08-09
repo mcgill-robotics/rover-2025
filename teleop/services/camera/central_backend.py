@@ -241,8 +241,8 @@ class MultiCameraBackend:
                 if not camera_id or not port:
                     return {"error": "camera_id and port are required"}
                 
-                # Add camera reader
-                reader = self.camera_readers.add_camera(camera_id, port)
+                # Add camera reader with camera name for inversion logic
+                reader = self.camera_readers.add_camera(camera_id, port, name)
                 
                 # Create camera info
                 self.cameras[camera_id] = CameraInfo(
@@ -259,7 +259,7 @@ class MultiCameraBackend:
                 # Create frame buffer
                 self.frame_buffers[camera_id] = FrameBuffer()
                 
-                logger.info(f"Added camera {camera_id} on port {port}")
+                logger.info(f"Added camera {camera_id} ({name}) on port {port}")
                 return {"success": True, "camera_id": camera_id, "port": port}
                 
             except Exception as e:
@@ -451,7 +451,7 @@ class MultiCameraBackend:
                     if camera_id not in self.cameras:
                         # Add new active camera
                         try:
-                            reader = self.camera_readers.add_camera(camera_id, rtp_port)
+                            reader = self.camera_readers.add_camera(camera_id, rtp_port, name)
                             
                             self.cameras[camera_id] = CameraInfo(
                                 camera_id=camera_id,
@@ -474,7 +474,7 @@ class MultiCameraBackend:
                             )
                             thread.start()
                             
-                            logger.info(f"Added active camera {camera_id} from heartbeat on RTP port {rtp_port}")
+                            logger.info(f"Added active camera {camera_id} ({name}) from heartbeat on RTP port {rtp_port}")
                             
                         except Exception as e:
                             logger.error(f"Failed to add camera {camera_id} from heartbeat: {e}")
@@ -491,7 +491,7 @@ class MultiCameraBackend:
                             
                             # Add new reader with new port
                             try:
-                                reader = self.camera_readers.add_camera(camera_id, rtp_port)
+                                reader = self.camera_readers.add_camera(camera_id, rtp_port, name)
                                 camera.port = rtp_port
                                 camera.is_active = True
                                 camera.last_frame_time = time.time()
@@ -504,7 +504,7 @@ class MultiCameraBackend:
                                 )
                                 thread.start()
                                 
-                                logger.info(f"Updated camera {camera_id} to new RTP port {rtp_port}")
+                                logger.info(f"Updated camera {camera_id} ({name}) to new RTP port {rtp_port}")
                                 
                             except Exception as e:
                                 logger.error(f"Failed to update camera {camera_id} port: {e}")
