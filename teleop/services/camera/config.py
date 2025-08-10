@@ -81,6 +81,7 @@ BACKEND_CONFIG = {
     "INVERTED_CAMERAS": [
         "CC HD webcam            : CC HD",  # This camera is mounted upside down
         "HD Camera: HD Camera",
+        "Centerm Camera: Centerm Camera"
         # Add other camera names that need inversion here
     ]
 }
