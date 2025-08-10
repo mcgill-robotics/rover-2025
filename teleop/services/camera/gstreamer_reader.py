@@ -101,8 +101,8 @@ class GStreamerCameraReader:
         try:
             from config import get_backend_config
             config = get_backend_config()
-            inverted_cameras = config.get("INVERTED_CAMERAS", [])
-            return self.camera_name in inverted_cameras
+            inverted_cameras = config.get("INVERTED_CAMERAS", {})
+            return self.camera_name in inverted_cameras and self.camera_id in inverted_cameras.values()
         except Exception as e:
             logger.error(f"Failed to check camera inversion config: {e}")
             return False

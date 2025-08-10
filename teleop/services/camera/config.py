@@ -78,12 +78,11 @@ BACKEND_CONFIG = {
     },
 
     # Camera names that should be inverted (upside down)
-    "INVERTED_CAMERAS": [
-        "CC HD webcam            : CC HD",  # This camera is mounted upside down
-        "HD Camera: HD Camera",
-        "Centerm Camera: Centerm Camera"
-        # Add other camera names that need inversion here
-    ]
+    "INVERTED_CAMERAS": {
+        "CC HD webcam            : CC HD": "jetson-01-cam00", 
+        "HD Camera: HD Camera": "jetson-01-cam01",
+        "Centerm Camera: Centerm Camera": "jetson-01-cam02"
+    }
 }
 
 # Jetson/Pi Device Configuration
