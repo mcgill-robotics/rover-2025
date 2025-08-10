@@ -167,12 +167,16 @@ const MultiCameraView: React.FC = () => {
     
     try {
       const backendUrl = CAMERA_CONFIG.BACKEND.WEBSOCKET_URL.replace('ws://', 'http://');
+      console.log('[DEBUG] Fetching cameras from:', backendUrl);
       
       // Fetch both available cameras and active cameras to get FPS info
       const [availableResponse, activeCamerasResponse] = await Promise.all([
         fetch(`${backendUrl}/api/cameras/available`),
         fetch(`${backendUrl}/api/cameras`)
       ]);
+      
+      console.log('[DEBUG] Available cameras response status:', availableResponse.status);
+      console.log('[DEBUG] Active cameras response status:', activeCamerasResponse.status);
       
       if (!availableResponse.ok) {
         throw new Error(`HTTP ${availableResponse.status}: ${availableResponse.statusText}`);
@@ -185,9 +189,15 @@ const MultiCameraView: React.FC = () => {
         activeCamerasData = await activeCamerasResponse.json();
       }
       
+      console.log('[DEBUG] Available cameras data:', availableData);
+      console.log('[DEBUG] Active cameras data:', activeCamerasData);
+      
       // Merge available cameras with active camera data (FPS, resolution)
       const availableCameras: AvailableCamera[] = availableData.available_cameras || [];
       const activeCameras: Array<{ camera_id: string; fps?: number; resolution?: [number, number]; is_active?: boolean }> = activeCamerasData.cameras || [];
+      
+      console.log('[DEBUG] Available cameras count:', availableCameras.length);
+      console.log('[DEBUG] Active cameras count:', activeCameras.length);
       
       const enrichedCameras = availableCameras.map((availableCamera) => {
         const activeCamera = activeCameras.find((ac) => ac.camera_id === availableCamera.camera_id);
@@ -199,6 +209,8 @@ const MultiCameraView: React.FC = () => {
         };
       });
       
+      console.log('[DEBUG] Enriched cameras:', enrichedCameras);
+      
       setCameraManagement(prev => ({
         ...prev,
         availableCameras: enrichedCameras,
@@ -206,6 +218,7 @@ const MultiCameraView: React.FC = () => {
       }));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch available cameras';
+      console.error('[DEBUG] Error fetching cameras:', err);
       setCameraManagement(prev => ({ ...prev, error: errorMessage, loading: false }));
       console.error('Failed to fetch available cameras:', err);
     }
