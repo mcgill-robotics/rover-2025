@@ -288,6 +288,10 @@ class MultiCameraBackend:
             device_id = heartbeat_data.get('device_id')
             cameras = heartbeat_data.get('cameras', {})
             
+            logger.info(f"[HEARTBEAT] Processing heartbeat from {device_id} at {sender_addr}")
+            logger.info(f"[HEARTBEAT] Heartbeat data: {heartbeat_data}")
+            logger.info(f"[HEARTBEAT] Cameras in heartbeat: {list(cameras.keys())}")
+            
             # Update Jetson device info
             if device_id:
                 is_new_device = device_id not in self.jetson_devices
@@ -298,12 +302,16 @@ class MultiCameraBackend:
                     'cameras': cameras  # Store camera information from heartbeat
                 }
                 
+                logger.info(f"[HEARTBEAT] Updated jetson_devices[{device_id}] = {self.jetson_devices[device_id]}")
+                
                 if is_new_device:
                     logger.info(f"[HEARTBEAT] New device connected: {device_id} from {sender_addr[0]}")
                 else:
-                    logger.debug(f"[HEARTBEAT] Device heartbeat: {device_id} from {sender_addr[0]}")
+                    logger.info(f"[HEARTBEAT] Device heartbeat: {device_id} from {sender_addr[0]}")
             
             logger.info(f"Received heartbeat from {device_id} with {len(cameras)} cameras")
+            logger.info(f"[HEARTBEAT] Total devices now: {len(self.jetson_devices)}")
+            logger.info(f"[HEARTBEAT] Device keys: {list(self.jetson_devices.keys())}")
             
             # Track all available cameras from the device, not just active ones
             for camera_id, camera_info in cameras.items():
@@ -311,6 +319,8 @@ class MultiCameraBackend:
                 device_path = camera_info.get('device_path', '')
                 is_active = camera_info.get('is_active', False)
                 rtp_port = camera_info.get('rtp_port')
+                
+                logger.info(f"[HEARTBEAT] Camera {camera_id}: name={name}, is_active={is_active}, rtp_port={rtp_port}")
                 
                 # Store all cameras in device info for frontend to see
                 # Only start RTP streams for active cameras with RTP ports
@@ -405,6 +415,7 @@ class MultiCameraBackend:
         
         while self.running:
             if not self.udp_sock:
+                logger.warning("UDP socket not available, sleeping...")
                 time.sleep(1)
                 continue
                 
@@ -426,10 +437,12 @@ class MultiCameraBackend:
                             self.handle_heartbeat(heartbeat_data, addr)
                         except Exception as e:
                             logger.error(f"Failed to parse heartbeat JSON: {e}")
+                            logger.error(f"Payload: {packet_info['payload']}")
                     
                     # Note: We no longer handle frame data here since we use GStreamer RTP streams
                 else:
                     logger.warning(f"Failed to parse UDP packet from {addr}")
+                    logger.warning(f"Packet data (first 100 bytes): {data[:100]}")
                     
             except socket.timeout:
                 # Normal timeout, continue

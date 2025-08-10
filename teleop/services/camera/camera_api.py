@@ -53,17 +53,20 @@ class CameraAPI:
             available_cameras = []
             current_time = time.time()
             
-            logger.debug(f"[API] Checking {len(self.backend.jetson_devices)} devices for available cameras")
+            logger.info(f"[API] get_available_cameras called - checking {len(self.backend.jetson_devices)} devices")
+            logger.info(f"[API] jetson_devices keys: {list(self.backend.jetson_devices.keys())}")
             
             for device_id, device_info in self.backend.jetson_devices.items():
                 time_since_heartbeat = current_time - device_info['last_heartbeat']
-                logger.debug(f"[API] Device {device_id}: last_heartbeat={device_info['last_heartbeat']:.1f}, time_since_heartbeat={time_since_heartbeat:.1f}s")
+                logger.info(f"[API] Device {device_id}: last_heartbeat={device_info['last_heartbeat']:.1f}, time_since_heartbeat={time_since_heartbeat:.1f}s")
+                logger.info(f"[API] Device {device_id} info: {device_info}")
                 
                 # Include all devices - no timeout removal
                 cameras_data = device_info.get('cameras', {})
-                logger.debug(f"[API] Including device {device_id} with {len(cameras_data)} cameras")
+                logger.info(f"[API] Including device {device_id} with {len(cameras_data)} cameras: {list(cameras_data.keys())}")
                 
                 for camera_id, camera_info in cameras_data.items():
+                    logger.info(f"[API] Processing camera {camera_id}: {camera_info}")
                     # Determine status based on heartbeat and activity
                     status = "connected"
                     if time_since_heartbeat > 60:
@@ -83,7 +86,7 @@ class CameraAPI:
                         "status": status
                     })
             
-            logger.debug(f"[API] Returning {len(available_cameras)} available cameras from {len(self.backend.jetson_devices)} devices")
+            logger.info(f"[API] Returning {len(available_cameras)} available cameras from {len(self.backend.jetson_devices)} devices")
             
             return {
                 "available_cameras": available_cameras, 
