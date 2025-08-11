@@ -40,20 +40,20 @@ jetson_config:
     max_fps: 20  # Reduced max FPS
     pipeline_formats:
       mjpg:
-        caps: "image/jpeg,width=480,height=360,framerate=15/1"  # Reduced resolution
+        caps: "image/jpeg"  # Reduced resolution
         elements: [
           "jpegdec",
           "videoconvert",
-          "video/x-raw,format=NV12"
+          
         ]
       yuyv:
-        caps: "video/x-raw,format=YUY2,width=480,height=360,framerate=15/1"  # Reduced resolution
+        caps: "video/x-raw,format=YUY2"  # Reduced resolution
         elements: [
           "videoconvert",
-          "video/x-raw,format=NV12"
+          
         ]
       raw:
-        caps: "video/x-raw,width={width},height={height},framerate={fps}/1"
+        caps: "video/x-raw"
         elements: [
           "videoconvert"
         ]

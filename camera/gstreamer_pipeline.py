@@ -99,7 +99,7 @@ class GStreamerPipeline:
             
             # Detect camera format and set appropriate caps
             self.camera_type = self._detect_camera_format()
-            caps_str = self._get_format_caps()
+            caps_str = self._get_flexible_format_caps()
             caps = Gst.Caps.from_string(caps_str)
             capsfilter.set_property('caps', caps)
             
@@ -118,6 +118,15 @@ class GStreamerPipeline:
             if not converter:
                 raise RuntimeError("Failed to create videoconvert element")
             intermediate_elements.append(converter)
+
+            # Create NV12 caps filter - FIXED: Add the missing NV12 caps
+            nv12_capsfilter = Gst.ElementFactory.make('capsfilter')
+            if not nv12_capsfilter:
+                raise RuntimeError("Failed to create NV12 capsfilter element")
+            nv12_caps = Gst.Caps.from_string("video/x-raw,format=NV12")
+            nv12_capsfilter.set_property('caps', nv12_caps)
+            intermediate_elements.append(nv12_capsfilter)
+            
             
             # Create encoder
             encoder = Gst.ElementFactory.make('x264enc')
@@ -234,6 +243,24 @@ class GStreamerPipeline:
             )
         
         return caps
+
+    def _get_flexible_format_caps(self) -> str:
+        """
+        Get flexible GStreamer caps string that allows negotiation.
+        This fixes the issue where fixed caps force unsupported formats.
+        
+        Returns:
+            Flexible GStreamer caps string
+        """
+        if self.camera_type == 'mjpg':
+            # For MJPEG, allow any JPEG format with flexible resolution/framerate
+            return "image/jpeg"
+        elif self.camera_type == 'yuyv':
+            # For YUYV, allow any YUY2 format with flexible resolution/framerate
+            return "video/x-raw,format=YUY2"
+        else:
+            # For raw cameras, allow any raw format with flexible resolution/framerate
+            return "video/x-raw"
     
     def _on_bus_message(self, bus: Gst.Bus, message: Gst.Message):
         """Handle GStreamer bus messages."""
@@ -291,27 +318,40 @@ class GStreamerPipeline:
             self.stop()
             return False
     
+    
     def stop(self):
-        """Stop the GStreamer pipeline."""
+        """Stop the GStreamer pipeline with proper threading cleanup."""
         try:
             self.is_running = False
             
-            if self.mainloop:
-                self.mainloop.quit()
-            
-            if self.elements:
+            # Stop the pipeline first
+            if self.elements and self.elements.pipeline:
+                logger.info(f"[{self.camera_id}] [PIPELINE] Stopping pipeline...")
                 self.elements.pipeline.set_state(Gst.State.NULL)
             
+            # Stop the main loop
+            if self.mainloop:
+                logger.info(f"[{self.camera_id}] [PIPELINE] Stopping GLib loop...")
+                self.mainloop.quit()
+            
+            # Wait for main loop thread to finish (with timeout)
             if self.mainloop_thread and self.mainloop_thread.is_alive():
-                self.mainloop_thread.join(timeout=2.0)
+                # Check if we're not trying to join the current thread
+                if self.mainloop_thread != threading.current_thread():
+                    self.mainloop_thread.join(timeout=2.0)
+                    if self.mainloop_thread.is_alive():
+                        logger.warning(f"[{self.camera_id}] [PIPELINE] Main loop thread did not stop cleanly")
+                else:
+                    logger.warning(f"[{self.camera_id}] [PIPELINE] Cannot join current thread")
             
             self.mainloop = None
             self.mainloop_thread = None
             
-            logger.info(f"Stopped GStreamer pipeline for {self.camera_id}")
+            logger.info(f"[{self.camera_id}] [PIPELINE] Pipeline stopped")
             
         except Exception as e:
-            logger.error(f"Error stopping pipeline for {self.camera_id}: {e}")
+            logger.error(f"[{self.camera_id}] [PIPELINE] Error stopping pipeline: {e}")
+
     
     def _run_mainloop(self):
         """Run GLib main loop in separate thread."""

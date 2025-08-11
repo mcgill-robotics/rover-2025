@@ -77,7 +77,7 @@ class GStreamerCameraReader:
     using GStreamer Python bindings (gi) for reliable UDP stream handling.
     """
     
-    def __init__(self, port: int, camera_id: str = None):
+    def __init__(self, port: int, camera_id: str = None, camera_type: str = 'raw'):
         """
         Initialize GStreamer camera reader.
         
@@ -87,6 +87,7 @@ class GStreamerCameraReader:
         """
         self.port = port
         self.camera_id = camera_id or f"camera_{port}"
+        self.camera_type = camera_type
         self.pipeline = None
         self.appsink = None
         self.loop = None
@@ -527,7 +528,7 @@ class MultiGStreamerReader:
         self.readers: Dict[str, GStreamerCameraReader] = {}
         self.running = False
     
-    def add_camera(self, camera_id: str, port: int) -> GStreamerCameraReader:
+    def add_camera(self, camera_id: str, port: int, camera_type: str = 'raw') -> GStreamerCameraReader:
         """
         Add a new camera reader.
         
@@ -543,9 +544,9 @@ class MultiGStreamerReader:
             self.remove_camera(camera_id)
         
         try:
-            reader = GStreamerCameraReader(port, camera_id)
+            reader = GStreamerCameraReader(port, camera_id, camera_type)
             self.readers[camera_id] = reader
-            logger.info(f"Added camera reader for {camera_id} on port {port}")
+            logger.info(f"Added camera reader for {camera_id} on port {port} with type {camera_type}")
             return reader
         except Exception as e:
             logger.error(f"Failed to add camera reader for {camera_id}: {e}")

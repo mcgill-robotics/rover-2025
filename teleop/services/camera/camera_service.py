@@ -16,6 +16,7 @@ from dataclasses import dataclass
 import base64
 import cv2
 import os
+import yaml
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -81,7 +82,6 @@ def get_backend_config():
     config_path = os.path.join(os.path.dirname(__file__), '..', 'service_config.yml')
     
     try:
-        import yaml
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
         
@@ -319,8 +319,9 @@ class MultiCameraBackend:
                 device_path = camera_info.get('device_path', '')
                 is_active = camera_info.get('is_active', False)
                 rtp_port = camera_info.get('rtp_port')
+                camera_type = camera_info.get('camera_type', 'raw')
                 
-                logger.info(f"[HEARTBEAT] Camera {camera_id}: name={name}, is_active={is_active}, rtp_port={rtp_port}")
+                logger.info(f"[HEARTBEAT] Camera {camera_id}: name={name}, is_active={is_active}, rtp_port={rtp_port}, camera_type={camera_type}")
                 
                 # Store all cameras in device info for frontend to see
                 # Only start RTP streams for active cameras with RTP ports
@@ -328,8 +329,8 @@ class MultiCameraBackend:
                     if camera_id not in self.cameras:
                         # Add new active camera
                         try:
-                            logger.info(f"[{camera_id}] [CAMERA] Adding new active camera on RTP port {rtp_port}")
-                            reader = self.camera_readers.add_camera(camera_id, rtp_port)
+                            logger.info(f"[{camera_id}] [CAMERA] Adding new active camera on RTP port {rtp_port} with type {camera_type}")
+                            reader = self.camera_readers.add_camera(camera_id, rtp_port, camera_type)
                             
                             self.cameras[camera_id] = CameraInfo(
                                 camera_id=camera_id,
@@ -370,7 +371,7 @@ class MultiCameraBackend:
                             
                             # Add new reader with new port
                             try:
-                                reader = self.camera_readers.add_camera(camera_id, rtp_port)
+                                reader = self.camera_readers.add_camera(camera_id, rtp_port, camera_type)
                                 camera.port = rtp_port
                                 camera.is_active = True
                                 camera.last_frame_time = time.time()
