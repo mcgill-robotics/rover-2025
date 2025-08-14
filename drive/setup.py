@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 import os
 from glob import glob
 
-package_name = "control"
+package_name = "drive"
 
 setup(
     name=package_name,

@@ -9,8 +9,8 @@ Context:
 * Waits for the ROS Service to get information about the current state of the motors.
 
 To run:
-1st Terminal -> python3 drive_firmware_node.py # in the control/scripts directory
-2nd Terminal -> python3 motor_status_test.py   # in the control/test directory
+1st Terminal -> python3 drive_firmware_node.py # in the drive/scripts directory
+2nd Terminal -> python3 motor_status_test.py   # in the drive/test directory
 """
 
 def main():

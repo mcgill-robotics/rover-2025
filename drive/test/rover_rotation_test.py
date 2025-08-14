@@ -1,4 +1,4 @@
-# Run this file from rover_2025 with command line: python3 -m control.test.rover_rotation_test
+# Run this file from rover_2025 with command line: python3 -m drive.test.rover_rotation_test
 
 from ..scripts.steering import Steering
 import math
