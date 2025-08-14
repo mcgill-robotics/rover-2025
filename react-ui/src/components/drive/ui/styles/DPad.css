@@ -1,9 +1,0 @@
-.arrow {
-  fill: lightgrey;
-  transition: transform 0.3s ease-in-out;
-}
-
-.arrow:hover {
-  fill: gray;
-  transform: scale(1.1);
-}
