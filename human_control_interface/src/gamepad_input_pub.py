@@ -24,7 +24,7 @@ class gamepad_input_publisher(Node):
             self.gamepad_init_successful = True
             self.get_logger().info("Controller connected successfully") 
         except:
-            self.get_logger().error(f"Controller not found. Trying again to connect again. Exiting...")
+            self.get_logger().error(f"Controller not found. Exiting...")
             sys.exit()
 
         #Declare publishers for Joystick msgs to drive and arm nodes

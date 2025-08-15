@@ -5,7 +5,7 @@ package_name = 'arm_control'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=find_packages(exclude=['test']),
+    packages=find_packages(),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'arm_control_node = src.arm_control_node:main',
+            'arm_firmware_node = src.arm_firmware_node:main',
             'sim_bridge_node = test.sim_bridge_node:main',
             'mock_gamepad_publisher = test.mock_gamepad_publisher:main',
         ],
