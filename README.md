@@ -51,3 +51,43 @@ Contains UI and backend services for teleoperation:
 Docker setup for building and running the workspace in a containerized environment. Needed to run ROS2 on the Raspberry Pi 5. Includes Dockerfile, compose files, and setup scripts.
 
 ---
+
+## Launching Drive, Arm, and UI
+
+To start multiple nodes at once, use the provided launch files in the `human_control_interface/launch/` directory.
+
+### How to Launch
+
+**Build the workspace (if not already built):**
+   ```
+   # In ~/rover25_ws directory
+   colcon build
+   source install/setup.bash
+  ```
+
+### Launch Drive Nodes (Jetson)
+
+```
+ros2 launch human_control_interface arm_launch.py
+```
+
+### Launch Arm Nodes (Pi)
+
+```
+ros2 launch human_control_interface arm_launch.py
+```
+
+### Launch Basestation UI Backend + Gamepad Input Publisher Node
+```
+# Assuming you are in the src/ directory
+cd human_control_interface/launch/
+./basestation_launch.sh
+```
+
+### Launch Jetson and Pi Backend for camera UI
+
+```
+# You have to run this for both Jetson and Pi
+cd ~/rover25_ws/src/teleop/services/camera
+./run_jetson.sh --device-id <jetson/pi>-01 # replace <jetson/pi> with the device you are running the backend on, ex. jetson-01
+```
