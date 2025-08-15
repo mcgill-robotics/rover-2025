@@ -68,7 +68,7 @@ To start multiple nodes at once, use the provided launch files in the `human_con
 ### Launch Drive Nodes (Jetson)
 
 ```
-ros2 launch human_control_interface arm_launch.py
+ros2 launch human_control_interface drive_launch.py
 ```
 
 ### Launch Arm Nodes (Pi)
