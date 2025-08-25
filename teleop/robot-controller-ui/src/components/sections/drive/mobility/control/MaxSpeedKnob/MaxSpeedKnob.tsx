@@ -46,27 +46,21 @@ export default function Knob() {
     }
   };
 
-  return (
-    <div className="w-full h-full text-center select-none">
+   return (
+    <div className="h-full w-full flex items-center justify-center select-none">
       <div className="relative w-[7.5rem] h-[7.5rem] mx-auto rounded-full border-[0.25em] border-[#0e0e0e] bg-[#181818] shadow-[inset_0_0.2em_0.1em_0.05em_rgba(255,255,255,0.1),inset_0_-0.2em_0.1em_0.05em_rgba(0,0,0,0.5),0_0.5em_0.65em_0_rgba(0,0,0,0.3)]">
         <div
           ref={knobRef}
           onClick={handleKnobClick}
           className="absolute w-full h-full rounded-full z-10 cursor-pointer wheel"
         />
-        <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#d63f3f] font-bold text-sm">
+        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#d63f3f] font-bold text-sm pointer-events-none">
           {speedValues[speedIndex]} km/h
         </span>
-        <span
-          ref={minRef}
-          className="absolute bottom-[1em] left-[-2.5em] text-[70%] uppercase text-white/40 opacity-50"
-        >
+        <span ref={minRef} className="absolute bottom-[1em] left-[-2.5em] text-[70%] uppercase text-white/40 opacity-50">
           Min
         </span>
-        <span
-          ref={maxRef}
-          className="absolute bottom-[1em] right-[-2.5em] text-[70%] uppercase text-white/40 opacity-50"
-        >
+        <span ref={maxRef} className="absolute bottom-[1em] right-[-2.5em] text-[70%] uppercase text-white/40 opacity-50">
           Max
         </span>
         <div ref={tickContainerRef} className="ticks" />

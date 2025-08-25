@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useEffect } from 'react';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import {
   DriveMotorsData,
@@ -386,11 +387,17 @@ export const useROSError = () => useROSStore((state) => state.connection.error);
 export const useAutoConnect = () => {
   const actions = useROSActions();
   const isConnected = useIsROSConnected();
-  
-  // Auto-connect on mount
-  if (typeof window !== 'undefined' && !isConnected) {
-    setTimeout(() => actions.connect(), 100);
-  }
-  
-  return { connect: actions.connect, disconnect: actions.disconnect, reconnect: actions.reconnect };
+
+  useEffect(() => {
+    if (!isConnected) {
+      const t = setTimeout(() => actions.connect(), 100);
+      return () => clearTimeout(t);
+    }
+  }, [isConnected, actions]);
+
+  return {
+    connect: actions.connect,
+    disconnect: actions.disconnect,
+    reconnect: actions.reconnect,
+  };
 };
