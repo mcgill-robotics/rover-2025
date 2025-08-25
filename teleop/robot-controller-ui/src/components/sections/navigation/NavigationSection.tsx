@@ -5,7 +5,7 @@ import { MapPin, Download, Upload } from 'lucide-react';
 import { useGPSData } from '@/hooks/useGPSData';
 import { Waypoint, MapStyle } from '@/types/navigation';
 import { OfflineMap } from './OfflineMap';
-import { GPSDisplay } from './GPSDisplay';
+import GPSDisplay from './GPSDisplay';
 import { WaypointManager } from './WaypointManager';
 
 const NavigationSection: React.FC = () => {
