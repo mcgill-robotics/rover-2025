@@ -78,7 +78,8 @@ class Node_ArmControl(Node):
 
         q_dDeg = tuple(q_d_i * (180 / np.pi) for q_d_i in self.q_d)
         cmd_brushed.data = [self.claw_state, q_dDeg[4], q_dDeg[3]]
-        cmd_brushless.data = [q_dDeg[2], q_dDeg[1], q_dDeg[0]]
+        #cmd_brushless.data = [q_dDeg[2], q_dDeg[1], q_dDeg[0]]
+        cmd_brushless.data = [10, 20, 30]
         msg_q.data = self.q
 
         self.get_logger().debug("Publishing on /arm_joint_states_2d: " + str(msg_q.data))
