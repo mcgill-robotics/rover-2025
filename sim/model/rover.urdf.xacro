@@ -66,9 +66,9 @@
         <origin xyz="-0.5125 0.306875 ${wheel_z_offset}" rpy="0 ${M_PI/2} 0" />
     </xacro:wheel>
 
-    <!-- <xacro:depth_camera parent_link="chassis_link">
-        <origin xyz="0 -0.41 0.32" rpy="0 0 -1.57079" />
-    </xacro:depth_camera> -->
+    <xacro:depth_camera parent_link="chassis_link"
+                    origin_xyz="0 -0.8 0.32"
+                    origin_rpy="0 0 -1.5708" />
 
     <!-- TODO FIXME arm collision crashes gazebo -->
     <xacro:MR_arm parent_link="chassis_link">

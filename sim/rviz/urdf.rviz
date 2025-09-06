@@ -35,6 +35,16 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /camera
       Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Name: PointCloud2
+      Enabled: true
+      Topic:
+        Value: /camera/depth/image_raw/points
+      Queue Size: 10
+      Style: Points
+      Size (Pixels): 3
+      Color Transformer: AxisColor
+
   Global Options:
     Fixed Frame: base_link
     Frame Rate: 30

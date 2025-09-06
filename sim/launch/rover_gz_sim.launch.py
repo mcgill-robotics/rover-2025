@@ -44,7 +44,7 @@ def generate_launch_description():
     world = LaunchConfiguration("world")
     declare_world_cmd = DeclareLaunchArgument(
         "world",
-        default_value="depot.sdf",
+        default_value="maze.sdf",
         description="World file to use in Gazebo",
     )
     gz_world_arg = PathJoinSubstitution(
@@ -90,6 +90,9 @@ def generate_launch_description():
             "/imu/data@sensor_msgs/msg/Imu@gz.msgs.IMU",
             "/camera@sensor_msgs/msg/Image@ignition.msgs.Image",
             '/camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo',
+            "/camera/depth/image_raw@sensor_msgs/msg/Image[ignition.msgs.Image",
+            "/camera/depth/camera_info@sensor_msgs/msg/CameraInfo[ignition.msgs.CameraInfo",
+            "/camera/depth/image_raw/points@sensor_msgs/msg/PointCloud2@ignition.msgs.PointCloudPacked"
         ],
     )
 
