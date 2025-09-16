@@ -31,7 +31,7 @@ waist_speed_dps = 100.0
 WAIST_DELTA = waist_speed_dps / frequency_hz
 DEADZONE = 0.1
 
-station = CANStation(interface="slcan", channel="COM7", bitrate=500000)
+station = CANStation(interface="slcan", channel="/dev/ttyACM1", bitrate=500000)
 arm = ArmESCInterface(station)
 
 def read_calibration_status_v2(station: CANStation, joint: ArmNodeID, retries=20, wait_s=0.25):
@@ -80,14 +80,22 @@ def run_mode(elbow_pos, shoulder_pos, waist_pos):
     arm.run_follower(ArmNodeID.WAIST, waist_pos)
     time.sleep(0.025)
 
+def run_mode_manual (elbow_pos, shoulder_pos, waist_pos):
+    arm.run_position(ArmNodeID.ELBOW, elbow_pos)
+    time.sleep(0.025)
+    arm.run_position(ArmNodeID.SHOULDER, shoulder_pos)
+    time.sleep(0.025)
+    arm.run_position(ArmNodeID.WAIST, waist_pos)
+    time.sleep(0.025)
+
 def go_to_preset(preset):
     run_mode(preset["elbow"], preset["shoulder"], preset["waist"])
     print(f"Moved to preset: {preset}")
 
 #default positions
-elbow_pos    = 0.0
-shoulder_pos = 0.0
-waist_pos    = 0.0
+# elbow_pos = 35.0
+# shoulder_pos = 25.0
+# waist_pos = 5.0
 
 
 class arm_backup_node(Node):
@@ -102,6 +110,12 @@ class arm_backup_node(Node):
         # TODO: Tune values
         self.deadzone = 0.1
         self.active = False
+        self.manual_mode= False
+
+        self.elbow_pos = 35.0
+        self.shoulder_pos = 25.0
+        self.waist_pos = 5.0
+
                 
         self.init_calibration()
         time.sleep(0.5)
@@ -109,7 +123,7 @@ class arm_backup_node(Node):
         self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_arm", self.update_gamepad_input, 10)
 
         # # IMPORTANT: Timer period cannot be too high that it exceeds router buffer 
-        timer_period = 0.025
+        timer_period = 0.25
         self.timer = self.create_timer(timer_period, self.run)
 
     def not_in_deadzone_check(self, x_axis: float, y_axis: float) -> bool:
@@ -127,8 +141,8 @@ class arm_backup_node(Node):
 
             # Choose which joints you want to calibrate
             # If you only want elbow: joints = [ArmNodeID.ELBOW]
-            # joints = [ArmNodeID.WAIST, ArmNodeID.SHOULDER, ArmNodeID.ELBOW]
-            joints = [ArmNodeID.ELBOW]
+            joints = [ArmNodeID.SHOULDER, ArmNodeID.ELBOW]
+            #joints = [ArmNodeID.ELBOW]
             calibrate_blocking(arm, station, joints)
         except Exception as e:
             print(f"[Calibration] Error during calibration: {e}")
@@ -136,11 +150,57 @@ class arm_backup_node(Node):
     def update_gamepad_input(self, gamepad_input: GamePadInput):
         self.gamepad_input = gamepad_input
     
+    
+    
     def run(self):
         """
         Main control loop that processes gamepad input and updates arm angles accordingly
         """
-        
+        if self.manual_mode:
+            print("\n[MANUAL MODE] Enter setpoints for WAIST, SHOULDER, ELBOW in degrees.")
+            print("Type 'c' and press Enter at any prompt to cancel and return to pause.")
+            try:
+                # val = input("Waist setpoint (deg): ")
+                # if val.strip().lower() in ['c', 'cancel', 'exit']:
+                #     print("[Manual Mode Cancelled: Returning to PAUSED]")
+                #     active = False
+                #     manual_mode = False
+                #     continue
+                # waist_manual = float(val)
+
+                val = input("Shoulder setpoint (deg): ")
+                if val.strip().lower() in ['c', 'cancel', 'exit']:
+                    print("[Manual Mode Cancelled: Returning to PAUSED]")
+                    active = False
+                    self.manual_mode = False
+                    #continue
+                shoulder_manual = float(val)
+
+                val = input("Elbow setpoint (deg): ")
+                if val.strip().lower() in ['c', 'cancel', 'exit']:
+                    print("[Manual Mode Cancelled: Returning to PAUSED]")
+                    active = False
+                    self.manual_mode = False
+                    #continue
+                elbow_manual = float(val)
+            except Exception as e:
+                print("Invalid input, try again.")
+                #continue
+
+            # waist_pos = waist_manual
+            self.shoulder_pos = shoulder_manual
+            self.elbow_pos = elbow_manual
+
+            run_mode_manual(self.elbow_pos, self.shoulder_pos, self.waist_pos)
+            print(f"Setpoints sent: Waist={self.waist_pos}°, Shoulder={self.shoulder_pos}°, Elbow={self.elbow_pos}°")
+            active = False
+            self.manual_mode = False
+            #continue
+
+        if self.gamepad_input.square_button:
+            self.manual_mode = True
+
+
         #Check if there is input value for cycling between joints
         if self.gamepad_input.triangle_button:
             self.init_calibration()
@@ -152,27 +212,35 @@ class arm_backup_node(Node):
             waist_delta = WAIST_DELTA
 
         if self.gamepad_input.l2_button:
-            elbow_pos    = PRESET1["elbow"]
-            shoulder_pos = PRESET1["shoulder"]
-            waist_pos    = PRESET1["waist"]
+            self.elbow_pos    = PRESET1["elbow"]
+            self.shoulder_pos = PRESET1["shoulder"]
+            self.waist_pos    = PRESET1["waist"]
             go_to_preset(PRESET1)
 
         if self.gamepad_input.r2_button:
-            elbow_pos    = PRESET2["elbow"]
-            shoulder_pos = PRESET2["shoulder"]
-            waist_pos    = PRESET2["waist"]
+            self.elbow_pos    = PRESET2["elbow"]
+            self.shoulder_pos = PRESET2["shoulder"]
+            self.waist_pos    = PRESET2["waist"]
             go_to_preset(PRESET2)
         
         if self.gamepad_input.x_button:
-            self.active = not self.active
+            self.active = True
+            print("Activated: " + str(self.active))
 
         if self.active:
-            if self.not_in_deadzone_check(self.gamepad_input.r_stick_y, 0) or self.not_in_deadzone_check(self.gamepad_input.l_stick_y, 0):
-                elbow_pos    = np.clip(elbow_pos    + self.gamepad_input.r_stick_y * JOYSTICK_SCALE, elbow_angle_threshold[0], elbow_angle_threshold[1])
-                shoulder_pos = np.clip(shoulder_pos + self.gamepad_input.l_stick_y * JOYSTICK_SCALE, waist_angle_threshold[0], waist_angle_threshold[1])
-                waist_pos    = np.clip(waist_pos    + waist_delta, shoulder_angle_threshold[0], shoulder_angle_threshold[1])
+            if self.manual_mode:
+                run_mode_manual(self.elbow_pos, self.shoulder_pos, self.waist_pos)
+            elif self.not_in_deadzone_check(self.gamepad_input.r_stick_y, 0) or self.not_in_deadzone_check(self.gamepad_input.l_stick_y, 0):
+                print("Using Joysticks to move:")
+                # self.elbow_pos    = np.clip(self.elbow_pos    + self.gamepad_input.r_stick_y * JOYSTICK_SCALE, elbow_angle_threshold[0], elbow_angle_threshold[1])
+                # self.shoulder_pos = np.clip(self.shoulder_pos + self.gamepad_input.l_stick_y * JOYSTICK_SCALE, waist_angle_threshold[0], waist_angle_threshold[1])
+                # self.waist_pos    = np.clip(self.waist_pos    + waist_delta, shoulder_angle_threshold[0], shoulder_angle_threshold[1])
+
+                self.elbow_pos += (- self.gamepad_input.r_stick_y) * JOYSTICK_SCALE
+                self.shoulder_pos += (- self.gamepad_input.l_stick_y) * JOYSTICK_SCALE
+                self.waist_pos += waist_delta
                 
-            run_mode(elbow_pos, shoulder_pos, waist_pos)
+                run_mode(self.elbow_pos, self.shoulder_pos, self.waist_pos)
 
 
 def main(args=None):
