@@ -157,9 +157,21 @@ class SystemInterface:
     def read_state(self, node: NodeID):
         self.read_spec(ReadSpec.GET_CURRENT_STATE, node)
 
+def pingMotors():
+    arm_interface.ping_motor(NodeID.ELBOW)
+    station.recv_msg(0.04)
+    time.sleep(0.05)
+    arm_interface.ping_motor(NodeID.SHOULDER)
+    station.recv_msg(0.04)
+
+def calibrateCombo():
+    arm_interface.calibrate_motor(NodeID.ELBOW)
+    time.sleep(0.05)
+    arm_interface.calibrate_motor(NodeID.SHOULDER)
+
 # Example usage
 if __name__ == "__main__":
-    station = CANStation(interface="slcan", channel="COM7", bitrate=500000)
+    station = CANStation(interface="slcan", channel="/dev/ttyACM1", bitrate=500000)
     esc_interface = ESCInterface(station)
 
     # Drive system interface
@@ -173,9 +185,13 @@ if __name__ == "__main__":
 # that position is where the limits switches are
 
 
-    arm_interface.ping_motor(NodeID.ELBOW)
-    # arm_interface.stop_motor(NodeID.ELBOW)
+    arm_interface.ping_motor(NodeID.SHOULDER)
+    # pingMotors()
+    
     # arm_interface.calibrate_motor(NodeID.ELBOW)
+    
+    # arm_interface.stop_motor(NodeID.ELBOW)
+    # arm_interface.calibrate_motor(NodeID.SHOULDER)
     # arm_interface.ping_motor(NodeID.ELBOW)
 
     # arm_interface.ping_motor(NodeID.ELBOW)

@@ -49,7 +49,7 @@ DEADZONE = 0.1
 mode = "run"
  
 if mode == 'run':
-    station = CANStation(interface="slcan", channel="COM7", bitrate=500000)
+    station = CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
     arm = ArmESCInterface(station)
 else:
     station = None
@@ -150,9 +150,9 @@ def go_to_preset(preset, mode):
     print(f"Moved to preset: {preset}")
 
 #default positions
-elbow_pos = 0.0
-shoulder_pos = 0.0
-waist_pos = 0.0
+elbow_pos = 35.0
+shoulder_pos = 25.0
+waist_pos = 5.0
 
 print("Move your joysticks to control the motors.")
 print("Press 'X' on the controller to start/stop updating.")
@@ -194,13 +194,13 @@ try:
                 #     continue
                 # waist_manual = float(val)
 
-                # val = input("Shoulder setpoint (deg): ")
-                # if val.strip().lower() in ['c', 'cancel', 'exit']:
-                #     print("[Manual Mode Cancelled: Returning to PAUSED]")
-                #     active = False
-                #     manual_mode = False
-                #     continue
-                # shoulder_manual = float(val)
+                val = input("Shoulder setpoint (deg): ")
+                if val.strip().lower() in ['c', 'cancel', 'exit']:
+                    print("[Manual Mode Cancelled: Returning to PAUSED]")
+                    active = False
+                    manual_mode = False
+                    continue
+                shoulder_manual = float(val)
 
                 val = input("Elbow setpoint (deg): ")
                 if val.strip().lower() in ['c', 'cancel', 'exit']:
@@ -214,7 +214,7 @@ try:
                 continue
 
             # waist_pos = waist_manual
-            # shoulder_pos = shoulder_manual
+            shoulder_pos = shoulder_manual
             elbow_pos = elbow_manual
 
             if mode == 'test':
@@ -256,7 +256,7 @@ try:
                     # Choose which joints you want to calibrate
                     # If you only want elbow: joints = [ArmNodeID.ELBOW]
                     # joints = [ArmNodeID.WAIST, ArmNodeID.SHOULDER, ArmNodeID.ELBOW]
-                    joints = [ArmNodeID.ELBOW]
+                    joints = [ArmNodeID.SHOULDER, ArmNodeID.ELBOW]
                     calibrate_blocking(arm, station, joints)
                 except Exception as e:
                     print(f"[Calibration] Error during calibration: {e}")

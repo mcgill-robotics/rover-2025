@@ -35,7 +35,8 @@ RUN apt-get update && \
     # TODO: Needed in GUI node, but very large package, determine if needed later
     # RUN pip3 install PyQt5
     RUN pip3 install pygame
-    RUN pip3 install odrive 
+    RUN pip3 install odrive
+    RUN pip3 install pyserial
 
 # Source ROS setup script
 RUN echo "alias sros='source /opt/ros/humble/setup.bash && [ -f install/setup.bash ] && source install/setup.bash'" >> ~/.bashrc
