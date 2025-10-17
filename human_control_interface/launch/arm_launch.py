@@ -2,17 +2,15 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 
 def generate_launch_description() -> LaunchDescription:
-
-
     arm_control = Node(
-        package='arm_control',
+        package='arm',
         executable='arm_control_node',
         name='arm_control',
         output='screen'
     )
 
     arm_firmware = Node(
-        package='arm_control',
+        package='arm',
         executable='arm_firmware_node',
         name='arm_firmware',
         output='screen'

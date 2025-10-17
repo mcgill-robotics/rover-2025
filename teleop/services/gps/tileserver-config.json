@@ -1,0 +1,42 @@
+{
+  "options": {
+    "paths": {
+      "root": "/usr/src/app",
+      "fonts": "fonts",
+      "styles": "styles",
+      "mbtiles": "mbtiles"
+    },
+    "serveAllFonts": true,
+    "formatQuality": {
+      "jpeg": 80,
+      "webp": 90
+    },
+    "maxSize": 2048,
+    "pbfAlias": "pbf"
+  },
+  "styles": {
+    "osm-bright": {
+      "style": "osm-bright/style.json",
+      "tilejson": {
+        "bounds": [-180, -85.051129, 180, 85.051129]
+      }
+    },
+    "satellite": {
+      "style": "satellite/style.json", 
+      "tilejson": {
+        "bounds": [-180, -85.051129, 180, 85.051129]
+      }
+    },
+    "terrain": {
+      "style": "terrain/style.json",
+      "tilejson": {
+        "bounds": [-180, -85.051129, 180, 85.051129]
+      }
+    }
+  },
+  "data": {
+    "v3": {
+      "mbtiles": "v3.mbtiles"
+    }
+  }
+}

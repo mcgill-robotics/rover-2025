@@ -2,185 +2,104 @@
 """
 ArUco marker detection module for multi-camera streaming system.
 Processes OpenCV frames and overlays detected ArUco markers.
-Supports simultaneous detection of multiple ArUco dictionary types.
 """
 
 import cv2
 import numpy as np
 import logging
-from typing import Optional, Tuple, List, Dict, Set
+from typing import Optional, Tuple, List
 import base64
-from dataclasses import dataclass
-from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-@dataclass
-class MarkerInfo:
-    """Information about a detected ArUco marker."""
-    id: int
-    corners: np.ndarray
-    dictionary_name: str
-    size: int  # e.g., 4 for 4x4 markers
-
-class MultiDictArucoDetector:
-    """ArUco detector that supports multiple dictionaries simultaneously."""
-    
-    def __init__(self, dictionary_names: List[str] = None):
+class ArucoDetector:
+    def __init__(self, dictionary_type=cv2.aruco.DICT_4X4_100):
         """
-        Initialize ArUco detector with multiple dictionaries.
+        Initialize ArUco detector.
         
         Args:
-            dictionary_names: List of dictionary names to use (default: ["DICT_4X4_100", "DICT_5X5_100", "DICT_6X6_100"])
+            dictionary_type: ArUco dictionary type (default: DICT_4X4_100)
         """
-        if dictionary_names is None:
-            dictionary_names = ["DICT_4X4_100", "DICT_5X5_100", "DICT_6X6_100"]
-        
-        self.dictionary_map = {
-            "DICT_4X4_50": cv2.aruco.DICT_4X4_50,
-            "DICT_4X4_100": cv2.aruco.DICT_4X4_100,
-            "DICT_4X4_250": cv2.aruco.DICT_4X4_250,
-            "DICT_4X4_1000": cv2.aruco.DICT_4X4_1000,
-            "DICT_5X5_50": cv2.aruco.DICT_5X5_50,
-            "DICT_5X5_100": cv2.aruco.DICT_5X5_100,
-            "DICT_5X5_250": cv2.aruco.DICT_5X5_250,
-            "DICT_5X5_1000": cv2.aruco.DICT_5X5_1000,
-            "DICT_6X6_50": cv2.aruco.DICT_6X6_50,
-            "DICT_6X6_100": cv2.aruco.DICT_6X6_100,
-            "DICT_6X6_250": cv2.aruco.DICT_6X6_250,
-            "DICT_6X6_1000": cv2.aruco.DICT_6X6_1000,
-            "DICT_7X7_50": cv2.aruco.DICT_7X7_50,
-            "DICT_7X7_100": cv2.aruco.DICT_7X7_100,
-            "DICT_7X7_250": cv2.aruco.DICT_7X7_250,
-            "DICT_7X7_1000": cv2.aruco.DICT_7X7_1000,
-        }
-        
-        # Initialize detectors for each dictionary
-        self.detectors = {}
-        self.dictionary_sizes = {}  # Maps dictionary name to marker size (e.g., 4 for 4x4)
-        
-        for name in dictionary_names:
-            if name not in self.dictionary_map:
-                logger.warning(f"Unknown dictionary type: {name}, skipping")
-                continue
-            
-            dict_type = self.dictionary_map[name]
-            aruco_dict = cv2.aruco.getPredefinedDictionary(dict_type)
-            detector_params = cv2.aruco.DetectorParameters()
-            
-            self.detectors[name] = {
-                "dictionary": aruco_dict,
-                "params": detector_params
-            }
-            
-            # Extract marker size from name (e.g., "DICT_4X4_100" -> 4)
-            size = int(name.split('X')[0].split('_')[-1])
-            self.dictionary_sizes[name] = size
+        self.aruco_dict = cv2.aruco.getPredefinedDictionary(dictionary_type)
+        self.aruco_params = cv2.aruco.DetectorParameters()
         
         # Detection settings
-        self.marker_colors = {
-            4: (0, 255, 0),    # 4x4 markers in green
-            5: (255, 0, 0),    # 5x5 markers in blue
-            6: (0, 0, 255),    # 6x6 markers in red
-            7: (255, 255, 0)   # 7x7 markers in cyan
-        }
+        self.marker_border_color = (0, 255, 0)  # Green
         self.marker_border_thickness = 2
         self.text_color = (255, 255, 255)  # White
         self.text_thickness = 2
         self.text_font = cv2.FONT_HERSHEY_SIMPLEX
         self.text_scale = 0.7
         
-        logger.info(f"Multi-dictionary ArUco detector initialized with dictionaries: {list(self.detectors.keys())}")
+        logger.info(f"ArUco detector initialized with dictionary type: {dictionary_type}")
     
-    def detect_markers(self, image: np.ndarray) -> Tuple[List[MarkerInfo], np.ndarray]:
+    def detect_markers(self, image: np.ndarray) -> Tuple[List, List, np.ndarray]:
         """
-        Detect ArUco markers from all configured dictionaries in image.
+        Detect ArUco markers in image.
         
         Args:
             image: OpenCV image array
             
         Returns:
-            Tuple of (list of MarkerInfo, processed_image)
+            Tuple of (corners, ids, processed_image)
         """
         try:
             # Convert to grayscale for detection
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             
-            # Process image
-            processed_image = image.copy()
-            all_markers: List[MarkerInfo] = []
+            # Detect markers
+            corners, ids, rejected = cv2.aruco.detectMarkers(
+                gray, self.aruco_dict, parameters=self.aruco_params
+            )
             
-            # Detect markers from each dictionary
-            for dict_name, detector in self.detectors.items():
-                corners, ids, rejected = cv2.aruco.detectMarkers(
-                    gray, detector["dictionary"], parameters=detector["params"]
+            # Draw detected markers on the image
+            processed_image = image.copy()
+            if ids is not None and len(ids) > 0:
+                # Draw marker borders
+                cv2.aruco.drawDetectedMarkers(
+                    processed_image, corners, ids,
+                    borderColor=self.marker_border_color
                 )
                 
-                if ids is not None and len(ids) > 0:
-                    # Create MarkerInfo objects for detected markers
-                    size = self.dictionary_sizes[dict_name]
-                    for i, marker_id in enumerate(ids.flatten()):
-                        marker = MarkerInfo(
-                            id=int(marker_id),
-                            corners=corners[i],
-                            dictionary_name=dict_name,
-                            size=size
-                        )
-                        all_markers.append(marker)
+                # Add marker ID labels
+                for i, marker_id in enumerate(ids.flatten()):
+                    # Get marker center
+                    corner = corners[i][0]
+                    center_x = int(np.mean(corner[:, 0]))
+                    center_y = int(np.mean(corner[:, 1]))
                     
-                    # Draw markers with dictionary-specific color
-                    color = self.marker_colors[size]
-                    cv2.aruco.drawDetectedMarkers(
-                        processed_image, corners, ids,
-                        borderColor=color
+                    # Draw marker ID text
+                    text = f"ID: {marker_id}"
+                    text_size = cv2.getTextSize(text, self.text_font, self.text_scale, self.text_thickness)[0]
+                    
+                    # Position text above marker
+                    text_x = center_x - text_size[0] // 2
+                    text_y = center_y - 10
+                    
+                    # Draw text background
+                    cv2.rectangle(
+                        processed_image,
+                        (text_x - 5, text_y - text_size[1] - 5),
+                        (text_x + text_size[0] + 5, text_y + 5),
+                        (0, 0, 0),  # Black background
+                        -1
                     )
                     
-                    # Add marker labels
-                    for marker in all_markers[-len(ids):]:  # Process only newly added markers
-                        # Get marker center
-                        corner = marker.corners[0]
-                        center_x = int(np.mean(corner[:, 0]))
-                        center_y = int(np.mean(corner[:, 1]))
-                        
-                        # Create label text
-                        text = f"{marker.size}x{marker.size} #{marker.id}"
-                        text_size = cv2.getTextSize(text, self.text_font, self.text_scale, self.text_thickness)[0]
-                        
-                        # Position text above marker
-                        text_x = center_x - text_size[0] // 2
-                        text_y = center_y - 10
-                        
-                        # Draw text background
-                        cv2.rectangle(
-                            processed_image,
-                            (text_x - 5, text_y - text_size[1] - 5),
-                            (text_x + text_size[0] + 5, text_y + 5),
-                            (0, 0, 0),  # Black background
-                            -1
-                        )
-                        
-                        # Draw text
-                        cv2.putText(
-                            processed_image, text,
-                            (text_x, text_y),
-                            self.text_font, self.text_scale,
-                            self.text_color, self.text_thickness
-                        )
-            
-            # Log detection results
-            if all_markers:
-                markers_by_type = defaultdict(list)
-                for marker in all_markers:
-                    markers_by_type[f"{marker.size}x{marker.size}"].append(marker.id)
+                    # Draw text
+                    cv2.putText(
+                        processed_image, text,
+                        (text_x, text_y),
+                        self.text_font, self.text_scale,
+                        self.text_color, self.text_thickness
+                    )
                 
-                detection_summary = [f"{size}: {ids}" for size, ids in markers_by_type.items()]
-                logger.debug(f"Detected markers: {', '.join(detection_summary)}")
+                logger.debug(f"Detected {len(ids)} ArUco markers: {ids.flatten().tolist()}")
             
-            return all_markers, processed_image
+            return corners, ids, processed_image
             
         except Exception as e:
             logger.error(f"Failed to detect ArUco markers: {e}")
-            return [], image
+            return [], [], image
     
     def process_frame(self, image: np.ndarray) -> Tuple[np.ndarray, bool]:
         """
@@ -194,10 +113,10 @@ class MultiDictArucoDetector:
         """
         try:
             # Detect and draw ArUco markers
-            markers, processed_image = self.detect_markers(image)
+            corners, ids, processed_image = self.detect_markers(image)
             
             # Return processed image and detection status
-            aruco_detected = len(markers) > 0
+            aruco_detected = ids is not None and len(ids) > 0
             return processed_image, aruco_detected
                 
         except Exception as e:
@@ -257,21 +176,37 @@ class MultiDictArucoDetector:
 
 
 # Factory function to create detector with different configurations
-def create_aruco_detector(dictionary_names: str | List[str] = None) -> MultiDictArucoDetector:
+def create_aruco_detector(dictionary_name: str = "DICT_4X4_100") -> ArucoDetector:
     """
-    Create ArUco detector with specified dictionaries.
+    Create ArUco detector with specified dictionary.
     
     Args:
-        dictionary_names: Single dictionary name or list of dictionary names
-            (default: ["DICT_4X4_100", "DICT_5X5_100", "DICT_6X6_100"])
+        dictionary_name: Name of ArUco dictionary
         
     Returns:
-        MultiDictArucoDetector instance
+        ArucoDetector instance
     """
-    if isinstance(dictionary_names, str):
-        dictionary_names = [dictionary_names]
-    return MultiDictArucoDetector(dictionary_names)
-
+    dictionary_map = {
+        "DICT_4X4_50": cv2.aruco.DICT_4X4_50,
+        "DICT_4X4_100": cv2.aruco.DICT_4X4_100,
+        "DICT_4X4_250": cv2.aruco.DICT_4X4_250,
+        "DICT_4X4_1000": cv2.aruco.DICT_4X4_1000,
+        "DICT_5X5_50": cv2.aruco.DICT_5X5_50,
+        "DICT_5X5_100": cv2.aruco.DICT_5X5_100,
+        "DICT_5X5_250": cv2.aruco.DICT_5X5_250,
+        "DICT_5X5_1000": cv2.aruco.DICT_5X5_1000,
+        "DICT_6X6_50": cv2.aruco.DICT_6X6_50,
+        "DICT_6X6_100": cv2.aruco.DICT_6X6_100,
+        "DICT_6X6_250": cv2.aruco.DICT_6X6_250,
+        "DICT_6X6_1000": cv2.aruco.DICT_6X6_1000,
+        "DICT_7X7_50": cv2.aruco.DICT_7X7_50,
+        "DICT_7X7_100": cv2.aruco.DICT_7X7_100,
+        "DICT_7X7_250": cv2.aruco.DICT_7X7_250,
+        "DICT_7X7_1000": cv2.aruco.DICT_7X7_1000,
+    }
+    
+    dictionary_type = dictionary_map.get(dictionary_name, cv2.aruco.DICT_4X4_100)
+    return ArucoDetector(dictionary_type)
 
 if __name__ == "__main__":
     # Test the ArUco detector
@@ -279,29 +214,18 @@ if __name__ == "__main__":
     
     logging.basicConfig(level=logging.INFO)
     
-    # Create detector with all three sizes
-    detector = create_aruco_detector(["DICT_4X4_100", "DICT_5X5_100", "DICT_6X6_100"])
+    detector = create_aruco_detector()
     
     # Test with a sample image if provided
     if len(sys.argv) > 1:
         image_path = sys.argv[1]
         image = cv2.imread(image_path)
         if image is not None:
-            markers, processed_image = detector.detect_markers(image)
+            corners, ids, processed_image = detector.detect_markers(image)
             
-            if markers:
-                # Group markers by size
-                markers_by_size = defaultdict(list)
-                for marker in markers:
-                    markers_by_size[f"{marker.size}x{marker.size}"].append(marker.id)
-                
-                # Print detection results
-                print("Detected markers:")
-                for size, ids in markers_by_size.items():
-                    print(f"  {size}: {ids}")
-                
-                # Display result
-                cv2.imshow("Multi-Dictionary ArUco Detection", processed_image)
+            if ids is not None:
+                print(f"Detected markers: {ids.flatten().tolist()}")
+                cv2.imshow("ArUco Detection", processed_image)
                 cv2.waitKey(0)
                 cv2.destroyAllWindows()
             else:
@@ -309,5 +233,5 @@ if __name__ == "__main__":
         else:
             print(f"Failed to load image: {image_path}")
     else:
-        print("Multi-dictionary ArUco detector module loaded successfully")
+        print("ArUco detector module loaded successfully")
         print("Usage: python3 aruco_detector.py <image_path>")

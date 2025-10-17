@@ -16,8 +16,6 @@
 **/.venv/
 **/venv/
 **rosEnv/
-**/camera_venv/
-**/.python-version
 
 # === CMake and Build Artifacts ===
 
@@ -51,7 +49,6 @@
 
 # Node modules
 node_modules/
-/node_modules/
 **/node_modules/
 
 # Optional npm cache directory

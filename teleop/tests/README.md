@@ -1,344 +1,355 @@
-# Integration Tests
+# Teleop System Testing Guide
 
-This folder contains the comprehensive integration test suite for the Rover 2025 teleop system.
+This directory contains comprehensive testing tools for the teleop system, including both camera management and drive data simulation.
 
-## Overview
+## 🐍 **Python Environment Setup**
 
-The Integration Tests provide end-to-end testing of the complete teleop system, including the React UI, all backend services, and their interactions. This is the **single integration test** that verifies the entire system works together.
+**IMPORTANT**: Before running any tests, make sure to set up and activate the Python environment:
 
-## Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Test Runner   │    │   Full System   │    │   Mock Hardware │
-│   (Pytest)      │───►│   (All Services)│───►│   (Simulated)   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Test Results   │    │  UI + Services  │    │  Mock Rover     │
-│  (Reports)      │    │  (Ports 3000+)  │    │  (ROS Topics)   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-## Key Components
-
-### Test Files
-- **`integration_test.py`** - Main integration test suite
-- **`mock_jetson_server.py`** - Mock Jetson camera server
-- **`full_integration_test.py`** - Complete system test
-
-### Test Utilities
-- **Selenium WebDriver** - UI automation and testing
-- **Mock services** - Simulated backend services
-- **Test fixtures** - System-wide test data
-
-## Features
-
-### System Integration
-- ✅ **Full Stack Testing** - UI + Backend + Services
-- ✅ **End-to-End Workflows** - Complete user journeys
-- ✅ **Service Communication** - Inter-service messaging
-- ✅ **Real-time Features** - WebSocket and SSE testing
-
-### UI Testing
-- ✅ **React Component Testing** - UI functionality
-- ✅ **User Interaction Testing** - Click, type, navigation
-- ✅ **Responsive Design Testing** - Different screen sizes
-- ✅ **Cross-browser Testing** - Multiple browsers
-
-### Service Testing
-- ✅ **Service Startup** - All services initialization
-- ✅ **Health Monitoring** - Service status verification
-- ✅ **Data Flow Testing** - End-to-end data processing
-- ✅ **Error Recovery** - System failure scenarios
-
-## Integration with Teleop System
-
-### React UI (`robot-controller-ui/`)
-- **All pages** - Drive, Arm, Mapping, Status
-- **All components** - Navigation, controls, displays
-- **Real-time features** - WebSocket connections, SSE streams
-
-### Backend Services (`services/`)
-- **Service Manager** - Orchestration and health monitoring
-- **ROS Manager** - ROS communication bridge
-- **GPS Service** - GPS data and mapping
-- **Camera Service** - Multi-camera streaming
-- **TileServer** - Offline map serving
-
-### Individual Tests (`services/tests/`)
-- **Unit tests** - Individual service testing
-- **Different scope** - Component vs. system testing
-
-## Test Structure
-
-### Main Integration Test (`integration_test.py`)
-```python
-class TestTeleopSystem:
-    def test_system_startup(self):
-        """Test complete system initialization."""
-        
-    def test_drive_control_workflow(self):
-        """Test drive control from UI to hardware."""
-        
-    def test_arm_control_workflow(self):
-        """Test arm control from UI to hardware."""
-        
-    def test_mapping_functionality(self):
-        """Test GPS and mapping features."""
-        
-    def test_camera_streaming(self):
-        """Test multi-camera video streaming."""
-        
-    def test_service_health_monitoring(self):
-        """Test service health and status."""
-```
-
-### Mock Services
-```python
-class MockJetsonServer:
-    """Simulates Jetson camera server."""
-    
-class MockROSSystem:
-    """Simulates ROS hardware system."""
-    
-class MockGPSSystem:
-    """Simulates GPS hardware."""
-```
-
-## Configuration
-
-### Test Configuration
-```yaml
-# integration_test_config.yml
-test_settings:
-  ui_url: "http://localhost:3000"
-  service_manager_url: "http://localhost:8083"
-  ros_manager_url: "http://localhost:8082"
-  gps_service_url: "http://localhost:5001"
-  camera_service_url: "http://localhost:8001"
-  tileserver_url: "http://localhost:8080"
-  
-browser_settings:
-  headless: true
-  window_size: "1920x1080"
-  timeout: 30
-  
-mock_services:
-  jetson_server: true
-  ros_system: true
-  gps_hardware: true
-```
-
-### Selenium Configuration
-```python
-# WebDriver setup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-
-driver = webdriver.Chrome(options=chrome_options)
-```
-
-## Usage
-
-### Running Integration Tests
 ```bash
-# Run all integration tests
-cd tests
-python3 -m pytest integration_test.py -v
+# Navigate to teleop directory
+cd teleop
 
-# Run specific test
-python3 -m pytest integration_test.py::TestTeleopSystem::test_drive_control_workflow -v
+# Set up the environment (first time only)
+./setup_env.sh
 
-# Run with UI visible (not headless)
-python3 -m pytest integration_test.py --headed
+# Activate the environment (every time you start testing)
+source ./activate_env.sh
+
+# For ROS-based tests, also source ROS2 environment
+source /opt/ros/humble/setup.bash  # or your ROS distro
 ```
 
-### Test Modes
+All the commands below assume you have the Python environment activated. You'll see `(venv)` in your terminal prompt when it's active. For ROS-based tests, you also need to source the ROS2 environment.
+
+## 🎯 **Interactive Testing with Frontend (Recommended)**
+
+You can run the mock systems alongside your frontend to see real-time behavior and test the complete user experience.
+
+### **Camera System Testing**
+
+Test the on-demand camera management system:
+
+1. **Start the camera backend:**
+   ```bash
+   cd teleop/services/camera
+   python3 central_backend.py
+   ```
+
+2. **Start mock Jetson devices:**
+   ```bash
+   cd teleop/tests
+   python3 mock_jetson_server.py
+   ```
+
+3. **Start your frontend:**
+   ```bash
+   cd teleop/robot-controller-ui
+   npm run dev
+   ```
+
+4. **Navigate to `/drive`** and you'll see:
+   - Available cameras from mock Jetson devices
+   - Ability to start/stop cameras on demand
+   - Real camera feeds (mock video patterns)
+   - Device status and connection info
+
+### **Drive System Testing**
+
+Test the ROS-based drive data pipeline:
+
+1. **Start the ROS mock data:**
+   ```bash
+   cd teleop/tests
+   python3 mock_ros_drive_data.py --scenario normal
+   ```
+
+2. **Start ROS manager** (if available):
+   ```bash
+   cd teleop/services/ros
+   python3 ros_manager.py
+   ```
+
+3. **Frontend will show:**
+   - Real-time motor diagnostics (voltage, current, temperature)
+   - Speed information updating continuously
+   - Connection status for each motor
+   - Realistic data that changes based on scenario
+
+### **Combined System Testing**
+
+Run both systems simultaneously:
+
 ```bash
-# Full system test
-python3 -m pytest integration_test.py -m "full_system"
+# Terminal 1: Camera backend
+cd teleop/services/camera && python3 central_backend.py
 
-# UI-only test
-python3 -m pytest integration_test.py -m "ui_only"
+# Terminal 2: Mock Jetson devices
+cd teleop/tests && python3 mock_jetson_server.py
 
-# Service-only test
-python3 -m pytest integration_test.py -m "services_only"
+# Terminal 3: Mock drive data
+cd teleop/tests && python3 mock_ros_drive_data.py --scenario normal
 
-# Quick test (basic functionality)
-python3 -m pytest integration_test.py -m "quick"
+# Terminal 4: Frontend
+cd teleop/robot-controller-ui && npm run dev
 ```
 
-### Debugging Tests
+Then navigate to `http://localhost:3000/drive` to see both systems working together.
+
+## **Automated Testing (Edge Cases)**
+
+For comprehensive automated testing that checks edge cases and system behavior:
+
+### **Full Integration Test**
+
 ```bash
-# Run with debug output
-python3 -m pytest integration_test.py -v -s
-
-# Run with browser visible
-python3 -m pytest integration_test.py --headed --slow
-
-# Run with screenshots on failure
-python3 -m pytest integration_test.py --screenshot-on-failure
+cd teleop/tests
+python3 full_integration_test.py --test-types full
 ```
 
-## File Structure
+This automatically:
+- Starts all required services
+- Tests various failure scenarios
+- Validates data accuracy between systems
+- Checks system recovery capabilities
+- Tests concurrent camera and drive operations
+- Reports detailed results
 
-```
-tests/
-├── __init__.py                    # Python package marker
-├── integration_test.py           # Main integration test
-├── full_integration_test.py      # Complete system test
-├── mock_jetson_server.py         # Mock Jetson server
-├── conftest.py                   # Pytest configuration
-├── fixtures/                     # Test fixtures
-│   ├── system_setup.py          # System initialization
-│   ├── mock_services.py         # Mock service setup
-│   └── test_data.py             # Test data generation
-├── utils/                        # Test utilities
-│   ├── ui_helpers.py            # UI interaction helpers
-│   ├── service_helpers.py       # Service interaction helpers
-│   └── assertions.py            # Custom assertions
-└── README.md                     # This documentation
-```
+### **Individual System Tests**
 
-## Dependencies
-
-### Testing Dependencies
-- **pytest** - Test framework
-- **selenium** - Web browser automation
-- **pytest-selenium** - Selenium integration
-- **pytest-asyncio** - Async test support
-
-### Browser Dependencies
-- **Chrome/Chromium** - Web browser for testing
-- **ChromeDriver** - Chrome automation driver
-- **GeckoDriver** - Firefox automation driver (optional)
-
-### Mock Dependencies
-- **unittest.mock** - Mock objects
-- **responses** - HTTP mocking
-- **websockets** - WebSocket testing
-- **aiohttp** - Async HTTP testing
-
-## Test Scenarios
-
-### Drive Control Workflow
-1. **Start system** - Launch all services
-2. **Open UI** - Navigate to drive page
-3. **Connect to services** - Verify WebSocket connections
-4. **Send drive command** - Use UI controls
-5. **Verify ROS message** - Check ROS topic
-6. **Check motor response** - Verify hardware response
-
-### Arm Control Workflow
-1. **Navigate to arm page** - Open arm interface
-2. **Load arm model** - Initialize 3D visualization
-3. **Send joint commands** - Use UI controls
-4. **Verify IK calculations** - Check inverse kinematics
-5. **Test trajectory planning** - Verify smooth movement
-
-### Mapping Workflow
-1. **Start mapping services** - GPS + TileServer
-2. **Open mapping page** - Navigate to map interface
-3. **Load offline tiles** - Verify map display
-4. **Stream GPS data** - Check real-time updates
-5. **Test waypoint creation** - Add and manage waypoints
-
-### Camera Workflow
-1. **Start camera services** - Camera + Jetson mock
-2. **Open camera interface** - Navigate to camera page
-3. **Connect to streams** - Establish WebSocket connections
-4. **Display video feeds** - Verify multi-camera display
-5. **Test ArUco detection** - Verify marker detection
-
-## Mock Services
-
-### Mock Jetson Server
-```python
-class MockJetsonServer:
-    def __init__(self, device_id):
-        self.device_id = device_id
-        self.cameras = []
-        self.streams = {}
-    
-    def start_camera_stream(self, camera_id, port):
-        """Start mock camera stream."""
-        
-    def send_rtp_frame(self, camera_id, frame_data):
-        """Send mock RTP video frame."""
-```
-
-### Mock ROS System
-```python
-class MockROSSystem:
-    def __init__(self):
-        self.topics = {}
-        self.publishers = {}
-        self.subscribers = {}
-    
-    def publish_gps_data(self, latitude, longitude):
-        """Publish mock GPS data."""
-        
-    def publish_motor_status(self, motor_id, status):
-        """Publish mock motor status."""
-```
-
-### Mock GPS Hardware
-```python
-class MockGPSHardware:
-    def __init__(self):
-        self.position = (45.5048, -73.5772)
-        self.heading = 0.0
-        self.accuracy = 5.0
-    
-    def get_gps_fix(self):
-        """Get mock GPS fix."""
-        
-    def simulate_movement(self, distance, direction):
-        """Simulate GPS movement."""
-```
-
-## Troubleshooting
-
-### Common Test Issues
-1. **Browser not found** - Install Chrome/Chromium and ChromeDriver
-2. **Service startup failures** - Check port availability and dependencies
-3. **UI element not found** - Check page loading and element selectors
-4. **Timeout errors** - Increase timeout values or check system performance
-
-### Debug Commands
+Test camera system only:
 ```bash
-# Check system status
-curl http://localhost:8083/api/health
-curl http://localhost:3000
-
-# Check browser setup
-which google-chrome
-which chromedriver
-
-# Run with verbose output
-python3 -m pytest integration_test.py -v -s --headed
-
-# Check test environment
-python3 -c "import selenium; print(selenium.__version__)"
+python3 full_integration_test.py --test-types camera
 ```
 
-## Integration Notes
+Test drive system only:
+```bash
+python3 full_integration_test.py --test-types drive
+```
 
-This integration test suite is designed to work with:
-- **Complete teleop system** - All services and UI
-- **Mock hardware** - Simulated rover components
-- **Real browsers** - Actual web browser testing
-- **Service tests** - Individual service testing in `services/tests/`
+## **Test Scenarios**
 
-The tests provide comprehensive end-to-end verification of the entire teleop system functionality.
+### **Camera Test Scenarios**
 
----
+#### **Multiple Devices:**
+```bash
+# Simulate 3 Jetson devices with 2 cameras each
+python3 mock_jetson_server.py --num-devices 3 --cameras-per-device 2
+```
 
-**Note**: This is the main integration testing component. For individual service testing, see the `services/tests/` folder documentation. 
+#### **Connection Issues:**
+```bash
+# Simulate unstable connections
+python3 mock_jetson_server.py --scenario unstable_connection
+
+# Simulate device failures
+python3 mock_jetson_server.py --scenario device_failure
+```
+
+#### **Different Camera Types:**
+```bash
+# Mix of different camera types and resolutions
+python3 mock_jetson_server.py --scenario mixed_cameras
+```
+
+### **Drive Test Scenarios**
+
+#### **Normal Operation:**
+```bash
+python3 mock_ros_drive_data.py --scenario normal
+```
+
+#### **Motor Fault:**
+```bash
+# Simulates RB motor disconnection
+python3 mock_ros_drive_data.py --scenario motor_fault
+```
+
+#### **Low Battery:**
+```bash
+# Simulates reduced voltage and performance
+python3 mock_ros_drive_data.py --scenario low_battery
+```
+
+#### **Overheating:**
+```bash
+# Simulates high temperatures and thermal throttling
+python3 mock_ros_drive_data.py --scenario overheating
+```
+
+#### **Custom Parameters:**
+```bash
+# Custom rates and fault injection
+python3 mock_ros_drive_data.py \
+  --scenario normal \
+  --diagnostics-rate 15.0 \
+  --speeds-rate 30.0 \
+  --enable-faults
+```
+
+## **Interactive Testing Workflow**
+
+**Recommended workflow for development and testing:**
+
+### **Setup (4 terminals):**
+
+1. **Terminal 1 - Camera Backend:**
+   ```bash
+   cd teleop/services/camera
+   python3 central_backend.py
+   ```
+
+2. **Terminal 2 - Mock Jetson Server:**
+   ```bash
+   cd teleop/tests
+   python3 mock_jetson_server.py --num-devices 2
+   ```
+
+3. **Terminal 3 - Mock Drive Data:**
+   ```bash
+   cd teleop/tests
+   python3 mock_ros_drive_data.py --scenario normal
+   ```
+
+4. **Terminal 4 - Frontend:**
+   ```bash
+   cd teleop/robot-controller-ui
+   npm run dev
+   ```
+
+### **Testing Actions:**
+
+1. **Navigate to** `http://localhost:3000/drive`
+2. **Camera Testing:**
+   - Click cameras on/off to see real-time start/stop
+   - Watch video feeds appear/disappear
+   - Check device status indicators
+   - Test with multiple cameras simultaneously
+
+3. **Drive Testing:**
+   - Monitor real-time motor diagnostics
+   - Watch speed gauges update
+   - Check connection status indicators
+   - Switch scenarios to test different conditions
+
+4. **Scenario Testing:**
+   - Restart mock services with different scenarios
+   - Test system recovery by stopping/starting services
+   - Verify UI handles connection failures gracefully
+
+## **What You'll See in the UI**
+
+### **Camera Section:**
+- **Device Grid:** Shows all discovered Jetson devices
+- **Camera Cards:** Individual cameras with start/stop controls
+- **Live Feeds:** Real video streams with test patterns
+- **Status Indicators:** Connection status, frame rates, device info
+- **Dynamic Management:** Cameras start only when requested
+
+### **Drive Section:**
+- **Motor Diagnostics:** Real-time voltage, current, temperature
+- **Speed Gauges:** Continuously updating motor speeds
+- **Status Panel:** Connection status for each motor (RF, RB, LB, LF)
+- **Scenario Behavior:** Data changes based on selected scenario
+
+## **Test Files Overview**
+
+### **Core Test Files:**
+
+- **`mock_jetson_server.py`** - Simulates multiple Jetson devices with cameras
+- **`mock_ros_drive_data.py`** - Launches ROS-based drive data simulation
+- **`full_integration_test.py`** - Comprehensive automated testing
+
+### **Enhanced System Files:**
+
+- **`../services/camera/jetson_server.py`** - Service-based camera management
+- **`../services/camera/central_backend.py`** - Request orchestration
+- **`../sim/mock_nodes/mock_drive_firmware_node.py`** - Enhanced ROS mock node
+
+## **Troubleshooting**
+
+### **Common Issues:**
+
+1. **ROS Environment:**
+   ```bash
+   # Make sure ROS2 is sourced
+   source /opt/ros/humble/setup.bash  # or your ROS distro
+   
+   # Build custom messages if needed
+   cd /path/to/workspace
+   colcon build --packages-select msg_srv_interface
+   source install/setup.bash
+   ```
+
+2. **Port Conflicts:**
+   - Camera backend: `localhost:8081`
+   - ROS manager: `localhost:8082`
+   - Frontend: `localhost:3000`
+
+3. **Python Environment Issues:**
+   ```bash
+   # Make sure you're in the teleop directory and environment is activated
+   cd teleop
+   source ./activate_env.sh
+   
+   # Check if environment is active (should show (venv) in prompt)
+   which python  # Should point to teleop/venv/bin/python
+   
+   # Reinstall dependencies if needed
+   pip install -r requirements.txt
+   
+   # Install Node.js dependencies (separate from Python)
+   cd robot-controller-ui
+   npm install
+   ```
+
+### **Debug Mode:**
+
+Enable verbose logging:
+```bash
+python3 mock_jetson_server.py --log-level DEBUG
+python3 mock_ros_drive_data.py --log-level DEBUG
+python3 full_integration_test.py --log-level DEBUG
+```
+
+## **Testing Checklist**
+
+### **Camera System:**
+- [ ] Multiple devices discovered
+- [ ] Cameras start on demand
+- [ ] Video feeds display correctly
+- [ ] Cameras stop when not needed
+- [ ] Device connection/disconnection handling
+- [ ] Multiple simultaneous camera streams
+
+### **Drive System:**
+- [ ] Motor diagnostics updating
+- [ ] Speed data flowing
+- [ ] Connection status accurate
+- [ ] Different scenarios working
+- [ ] Data ranges realistic
+- [ ] Fault conditions handled
+
+### **Integration:**
+- [ ] Both systems work simultaneously
+- [ ] No interference between systems
+- [ ] Frontend responsive to both data streams
+- [ ] System recovery after failures
+- [ ] Performance under load
+
+## **Performance Testing**
+
+Test system performance with high loads:
+
+```bash
+# High-frequency updates
+python3 mock_ros_drive_data.py --diagnostics-rate 50.0 --speeds-rate 100.0
+
+# Many cameras
+python3 mock_jetson_server.py --num-devices 5 --cameras-per-device 4
+
+# Stress test
+python3 full_integration_test.py --test-types full --log-level DEBUG
+```
+
+This testing framework provides comprehensive coverage of the teleop system, allowing you to test both individual components and the complete integrated system with realistic scenarios and edge cases.

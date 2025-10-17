@@ -1,7 +1,6 @@
 from setuptools import find_packages, setup
 import os
 from glob import glob
-
 package_name = 'human_control_interface'
 
 setup(
@@ -26,7 +25,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "gamepad_input_pub = human_control_interface.gamepad_input_pub:main",
+            "gamepad_input_pub = src.gamepad_input_pub:main",
         ],
     },
 )

@@ -19,7 +19,7 @@ export const getMapStyle = (style: MapStyle): MapStyleConfig => {
       sources: {
         'osm': {
           type: 'raster',
-          tiles: [`${baseUrl}/styles/osm-bright/{z}/{x}/{y}.png`],
+          tiles: [`localhost:8080/styles/osm-bright/{z}/{x}/{y}.png`],
           tileSize: 256,
           attribution: '© OpenStreetMap contributors'
         }

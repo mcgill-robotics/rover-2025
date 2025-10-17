@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import DriveInfo from './info/DriveInfo';
 import DriveControl from './control/DriveControl';
+import GPSPanel from './navigation/GPSPanel';
 
-type Mode = 'info' | 'control';
+type Mode = 'info' | 'control' | 'gps';
 
 const TABS: { key: Mode; label: string }[] = [
   { key: 'info', label: 'Information' },
   { key: 'control', label: 'Controls' },
+  { key: 'gps', label: 'GPS' },
 ];
 
 const MobilityPanel: React.FC = () => {
@@ -20,6 +22,8 @@ const MobilityPanel: React.FC = () => {
         return <DriveInfo />;
       case 'control':
         return <DriveControl />;
+      case 'gps':
+        return <GPSPanel />;
       default:
         return null;
     }

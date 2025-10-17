@@ -1,0 +1,23 @@
+{
+  "version": 8,
+  "name": "Terrain - Desert Optimized",
+  "sources": {
+    "terrain": {
+      "type": "raster",
+      "tiles": ["http://localhost:8080/styles/terrain/{z}/{x}/{y}.png"],
+      "tileSize": 256
+    }
+  },
+  "layers": [
+    {
+      "id": "terrain",
+      "type": "raster",
+      "source": "terrain",
+      "minzoom": 0,
+      "maxzoom": 22,
+      "paint": {
+        "raster-opacity": 0.8
+      }
+    }
+  ]
+}
