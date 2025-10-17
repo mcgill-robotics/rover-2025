@@ -83,4 +83,4 @@ echo -e "${YELLOW}Press Ctrl+C to stop the service${NC}"
 echo ""
 
 # Start the GPS service
-python3 gps_service.py 2>&1 | tee logs/gps_service.log 
+python3 gps_api.py 2>&1 | tee logs/gps_service.log 

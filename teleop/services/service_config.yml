@@ -77,13 +77,13 @@ services:
   # Camera Service - Multi-camera backend with RTP streaming
   camera_service:
     port: 8001
-    enabled: false
+    enabled: true
     health_check_url: "/api/health"
     description: "Camera Service - Multi-camera backend with RTP streaming"
     config:
       host: "0.0.0.0"
       inactive_timeout: 30.0
-      frame_buffer_size: 10
+      frame_buffer_size: 20  # Increased from 10 to 20
       # Dynamic camera configuration - no port restrictions
       camera_discovery:
         enabled: true

@@ -25,7 +25,7 @@ You can download docker-desktop via the following [link](https://www.docker.com/
 To build the docker image, run the following command in the **docker**  directory. This will take a while to build, but you only need to do it once unless you change the dockerfile.
 
 ```
-sudo docker compose --build
+docker compose build
 ```
 
 ## Running the Docker Container
@@ -33,14 +33,14 @@ sudo docker compose --build
 To access the container based on the image we made, open a terminal in the **docker** directory and run :
 
 ```
-sudo docker compose up
+docker compose up
 ```
 
 This will create a container using the setup flags specified in `docker-compose.yml`. While this container is running, you can access it by:
 - Opening a new terminal
 - Run the following command
 ```
-sudo docker compose exec halley bash
+docker compose exec halley bash
 ```
 
 This should place you in the rover25_ws directory. Afterwards you should run the following two commands:

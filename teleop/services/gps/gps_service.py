@@ -3,6 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import NavSatFix, Imu
+from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import TwistStamped
 import math
 import time
@@ -30,8 +31,8 @@ class GPSService(Node):
         
         # ROS subscribers
         self.gps_subscription = self.create_subscription(
-            NavSatFix,
-            '/gps/fix',  # Adjust topic name as needed
+            Float32MultiArray,
+            'roverGPSData',  # Adjust topic name as needed
             self.gps_callback,
             10
         )
@@ -60,17 +61,30 @@ class GPSService(Node):
         self.last_velocity = {'linear_x': 0.0, 'linear_y': 0.0}
         self.last_imu_yaw = 0.0
         
-    def gps_callback(self, msg: NavSatFix):
+    def gps_callback(self, msg: Float32MultiArray):
         """Handle GPS fix messages"""
-        self.gps_data['latitude'] = msg.latitude
-        self.gps_data['longitude'] = msg.longitude
-        self.gps_data['accuracy'] = self.calculate_accuracy(msg)
-        self.gps_data['timestamp'] = int(time.time() * 1000)  # Convert to milliseconds
-        self.gps_data['fix_quality'] = msg.status.status
-        self.gps_data['satellites'] = len(msg.status.service) if hasattr(msg.status, 'service') else 0
+        print(f"[GPS_SERVICE] Received GPS data: {msg.data}")
+        msg_data = msg.data
         
-        self.get_logger().debug(f'GPS: {msg.latitude:.6f}, {msg.longitude:.6f}')
-        
+        # Extract data: [depth/satellites, latitude, longitude]
+        if len(msg_data) >= 3:
+            self.gps_data['satellites'] = int(msg_data[0])  # depth is being used as satellite count
+            self.gps_data['latitude'] = float(msg_data[1])
+            self.gps_data['longitude'] = float(msg_data[2])
+            self.gps_data['timestamp'] = int(time.time() * 1000)  # Convert to milliseconds
+            
+            # Set fix quality based on whether we have valid coordinates
+            if (abs(self.gps_data['latitude']) > 0.0001 and 
+                abs(self.gps_data['longitude']) > 0.0001):
+                self.gps_data['fix_quality'] = 1  # Good fix
+                self.gps_data['accuracy'] = 5.0   # Assume 5m accuracy for simulation
+            else:
+                self.gps_data['fix_quality'] = 0  # No fix
+                self.gps_data['accuracy'] = 0.0
+            
+            print(f"[GPS_SERVICE] Updated GPS: lat={self.gps_data['latitude']:.6f}, "
+                  f"lng={self.gps_data['longitude']:.6f}, fix_quality={self.gps_data['fix_quality']}")
+                
     def imu_callback(self, msg: Imu):
         """Handle IMU messages for heading calculation"""
         # Extract yaw from quaternion
@@ -97,20 +111,6 @@ class GPSService(Node):
             heading = math.degrees(math.atan2(msg.twist.linear.y, msg.twist.linear.x))
             heading = (heading + 360) % 360
             self.gps_data['heading'] = heading
-    
-    def calculate_accuracy(self, msg: NavSatFix) -> float:
-        """Calculate GPS accuracy based on position covariance"""
-        if msg.position_covariance_type == 0:  # COVARIANCE_TYPE_UNKNOWN
-            return 50.0  # Default accuracy in meters
-        
-        # Extract diagonal elements of covariance matrix
-        var_x = msg.position_covariance[0]
-        var_y = msg.position_covariance[4]
-        
-        # Calculate 95% confidence interval (2-sigma)
-        accuracy = 2.0 * math.sqrt(max(var_x, var_y))
-        
-        return max(accuracy, 1.0)  # Minimum accuracy of 1 meter
     
     def timer_callback(self):
         """Periodic callback to update GPS data"""
@@ -153,4 +153,4 @@ def main(args=None):
         rclpy.shutdown()
 
 if __name__ == '__main__':
-    main() 
+    main()
