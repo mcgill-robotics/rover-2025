@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+#POTENTIAL ERRORS TO FIX:
+# broadcast speed direction go # RF, LF, LB, RB
+# steering angle direction go # RF, RB, LB, LF
+#not sure if this is on purpose or a mistake
+
 #imports from drive control node
 import os
 import sys
@@ -23,7 +28,7 @@ from msg_srv_interface.srv import DriveMotorStatus
 
 class drive_control_V2(Node):
     def __init__(self):
-        super().__init__("drive_control_firmware_node")
+        super().__init__("drive_control_V2_node")
 
         #Declare fields corresponging to controller input
         self.gamepad_input = GamePadInput()
