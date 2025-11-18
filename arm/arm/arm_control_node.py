@@ -32,7 +32,7 @@ class arm_control_node(Node):
         # TODO: Tune values
         self.deadzone = 0.1 
 
-        self.cur_angles = [0.0,0.0,0.0,0.0,0.0] #Dummy  value, update with API call
+        self.cur_angles = [0.0,0.0,0.0,0.0,0.0] #Dummy value, update with API call
         self.current_schema = JOINT_CONTROL  # Start with Inverse Kinematics control
        
         self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_arm", self.run, 10)
