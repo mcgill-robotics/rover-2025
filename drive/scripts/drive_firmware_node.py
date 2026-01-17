@@ -166,8 +166,8 @@ class drive_firmware(Node):
         response.lf_ok = status_motors[3]
         return response
 
-def main():
-    rclpy.init(args=None)
+def main(args=None):
+    rclpy.init(args=args)
     drive_firmware_node = drive_firmware()
     rclpy.spin(drive_firmware_node)
 
