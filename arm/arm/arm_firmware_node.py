@@ -4,12 +4,16 @@ import time
 
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
+parent = currentdir.rfind("/", 0, currentdir.rfind("/")) # also add the top level folder as a path
+sys.path.append(currentdir[:parent])
+
 import armCANCommunicationV2 as aCAN
 import rclpy
 from allArmJointsv2 import calibrate_blocking
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
 from std_srvs.srv import Trigger
+from utils.get_acm_port import get_ACM_port
 
 # from msg_srv_interface.msg import DriveMotorDiagnostic
 # from msg_srv_interface.srv import DriveMotorStatus
@@ -25,7 +29,7 @@ class arm_firmware(Node):
 
         self.calibration_service = self.create_service(Trigger, "calibration_service", self.calibration_callback)
 
-        station = aCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
+        station = aCAN.CANStation(interface="slcan", channel=f"/dev/ttyACM{get_ACM_port()}", bitrate=500000)
         #esc_interface = aCAN.ESCInterface(station) # armCANV1
         self.arm_interface = aCAN.ArmESCInterface(station) #armCANV2
         self.nodes = [aCAN.ArmNodeID.WAIST, aCAN.ArmNodeID.SHOULDER, aCAN.ArmNodeID.ELBOW]

@@ -2,6 +2,9 @@ import os
 import sys
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
+parent = currentdir.rfind("/", 0, currentdir.rfind("/")) # also add the top level folder as a path
+sys.path.append(currentdir[:parent])
+
 import driveCANCommunication as dCAN
 import rclpy
 from rclpy.node import Node
@@ -9,6 +12,7 @@ from std_msgs.msg import Float32MultiArray
 from msg_srv_interface.msg import DriveMotorDiagnostic
 from msg_srv_interface.srv import DriveMotorStatus
 from std_msgs.msg import Bool
+from utils.get_acm_port import get_ACM_port
 
 
 class drive_firmware(Node):
@@ -23,7 +27,7 @@ class drive_firmware(Node):
         self.drive_motors_speeds_publisher = self.create_publisher(Float32MultiArray,    "drive_speeds_info", 10)
         self.drive_ping_service            = self.create_service(DriveMotorStatus,       "drive_motors_status", self.drive_ping_callback)
 
-        station              = dCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
+        station              = dCAN.CANStation(interface="slcan", channel=f"/dev/ttyACM{get_ACM_port()}", bitrate=500000)
         esc_interface        = dCAN.ESCInterface(station)
         self.drive_interface = dCAN.DriveInterface(esc_interface)
         self.nodes           = [dCAN.NodeID.RF_DRIVE, dCAN.NodeID.RB_DRIVE, dCAN.NodeID.LB_DRIVE, dCAN.NodeID.LF_DRIVE] #Steering motors should be appended
@@ -162,8 +166,8 @@ class drive_firmware(Node):
         response.lf_ok = status_motors[3]
         return response
 
-def main(args=None):
-    rclpy.init(args=args)
+def main():
+    rclpy.init(args=None)
     drive_firmware_node = drive_firmware()
     rclpy.spin(drive_firmware_node)
 
