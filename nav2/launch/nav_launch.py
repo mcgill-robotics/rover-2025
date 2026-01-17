@@ -43,9 +43,9 @@ def generate_launch_description() -> LaunchDescription:
     use_speed_zones = LaunchConfigAsBool('use_speed_zones')
 
     lifecycle_nodes = [
-        'controller_server',
-        'smoother_server',
-        'planner_server',
+        'controller_server', # controls robot movement using local costmap
+        'smoother_server', 
+        'planner_server', # generates local costmap and plan
         'route_server',
         'behavior_server',
         'velocity_smoother',
