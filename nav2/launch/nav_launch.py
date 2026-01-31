@@ -47,10 +47,10 @@ def generate_launch_description() -> LaunchDescription:
         'smoother_server', 
         'planner_server', # generates local costmap and plan
         'route_server',
-        'behavior_server',
-        'velocity_smoother',
+        'behavior_server', # stores all available robot behaviours
+        'velocity_smoother', 
         'collision_monitor',
-        'bt_navigator',
+        'bt_navigator', # behaviour tree 
         'waypoint_follower',
         'docking_server',
         'following_server',
