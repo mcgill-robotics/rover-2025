@@ -10,15 +10,18 @@ import os
 import sys
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
+parent = currentdir.rfind("/", 0, currentdir.rfind("/")) # also add the top level folder as a path
+sys.path.append(currentdir[:parent])
 import rclpy
 from speed_control import SpeedController
 from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
 from steering import Steering
-import math
+import math 
 import numpy as np
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Bool
+from utils.get_acm_port import get_ACM_port
 
 #imports from firmwear node
 import driveCANCommunication as dCAN
@@ -52,7 +55,7 @@ class drive_control_V2(Node):
         self.drive_motors_speeds_publisher = self.create_publisher(Float32MultiArray,    "drive_speeds_info", 10)
         self.drive_ping_service            = self.create_service(DriveMotorStatus,       "drive_motors_status", self.drive_ping_callback)
 
-        station              = dCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
+        station              = dCAN.CANStation(interface="slcan", channel=f"/dev/ttyACM{get_ACM_port()}", bitrate=500000)
         esc_interface        = dCAN.ESCInterface(station)
         self.drive_interface = dCAN.DriveInterface(esc_interface)
         self.nodes           = [dCAN.NodeID.RF_DRIVE, dCAN.NodeID.RB_DRIVE, dCAN.NodeID.LB_DRIVE, dCAN.NodeID.LF_DRIVE] #Steering motors should be appended
