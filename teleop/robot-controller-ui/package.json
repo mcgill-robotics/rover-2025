@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.2.0",
     "axios": "^1.10.0",
     "lucide-react": "^0.515.0",
     "maplibre-gl": "^3.6.2",
