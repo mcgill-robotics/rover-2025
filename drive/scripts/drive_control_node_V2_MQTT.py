@@ -100,7 +100,7 @@ class drive_control_V2_MQTT:
         return not ((-self.deadzone <= x_axis <= self.deadzone) and (-self.deadzone <= y_axis <= self.deadzone)) 
 
     def handle_drive_input(self, data):
-        acknowledge_msg = Bool()
+        acknowledge_msg = False
         if data.get('square_button', 0.0):
             acknowledge_msg.data = True
             self.clear_motor_faults(acknowledge_msg)
@@ -124,9 +124,9 @@ class drive_control_V2_MQTT:
         if data.get('triangle_button', 0.0):
             self.tank_drive_mode = not self.tank_drive_mode
             if self.tank_drive_mode:
-                self.get_logger().info("TANK DRIVE MODE ACTIVATED - left stick controls left wheel & right stick controls right wheel")
+                print("TANK DRIVE MODE ACTIVATED - left stick controls left wheel & right stick controls right wheel")
             else:
-                self.get_logger().info("TANK DRIVE MODE DEACTIVATED - left stick controls rover rotation")
+                print("TANK DRIVE MODE DEACTIVATED - left stick controls rover rotation")
 
         if self.tank_drive_mode:
             if self.not_in_deadzone_check(data.get('l_stick_x', 0.0), data.get('l_stick_y', 0.0)):
