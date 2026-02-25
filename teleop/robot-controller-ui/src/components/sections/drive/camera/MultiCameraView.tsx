@@ -354,7 +354,7 @@ const MultiCameraView: React.FC = () => {
       {/* Main Content Area */}
       {viewMode === 'single' ? (
         /* Single Camera View */
-        selectedCamera && isStreaming ? (
+        selectedAvailableCamera && isStreaming ? (
           <div className="relative w-full h-full overflow-hidden">
             <video
               ref={webrtcVideoRefs[selectedAvailableCamera.camera_id]}
@@ -364,7 +364,7 @@ const MultiCameraView: React.FC = () => {
               className="w-full h-full object-cover"
             />
             <div className="absolute top-4 left-4 text-white text-base bg-black/50 px-4 py-2 rounded-lg">
-              <strong>{selectedCamera.name}</strong><br />
+              <strong>{selectedAvailableCamera.name}</strong><br />
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-block w-2.5 h-2.5 rounded-full ${
@@ -389,7 +389,7 @@ const MultiCameraView: React.FC = () => {
             <ArrowButton direction="left" onClick={handlePrevious} />
             <ArrowButton direction="right" onClick={handleNext} />
 
-            {selectedCamera.name.includes("USB 2.0 Camera") && (
+            {selectedAvailableCamera.name?.includes("USB 2.0 Camera") && (
               <div className="absolute bottom-4 right-8 w-[100px] h-[100px]">
                 <DPad inputStream="up" />
               </div>

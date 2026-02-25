@@ -68,21 +68,25 @@ class DummyVideoTrack(VideoStreamTrack):
 class CameraVideoTrack(VideoStreamTrack):
     def __init__(self, reader=None, fps: int = 20):
         super().__init__()
+        self.reader = reader
         self.fps = fps
         self._pts = 0
         self._time_base = Fraction(1, fps)
 
     async def recv(self):
-        frame = None
-        while frame is None:
-            frame = self.reader.read_frame()
-            if frame is None:
-                await asyncio.sleep(0.005)
+        while True:
+            with self.reader.frame_lock:
+                frame = self.reader.latest_frame
+            if frame is not None:
+                break
+            await asyncio.sleep(0.005)
 
         vf = VideoFrame.from_ndarray(frame, format="bgr24")
         vf.pts = self._pts
         vf.time_base = self._time_base
         self._pts += 1
+        await asyncio.seep(1 / self.fps)
+        logger.debug(f"[CameraVideoTrack] sending frame pts={self._pts} shape={frame.shape} camera={self.reader.camera_id}")
         return vf
 
 
