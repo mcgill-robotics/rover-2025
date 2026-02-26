@@ -102,10 +102,10 @@ class drive_control_V2_MQTT:
     def handle_drive_input(self, data):
         acknowledge_msg = False
         if data.get('square_button', 0.0):
-            acknowledge_msg.data = True
+            acknowledge_msg = True
             self.clear_motor_faults(acknowledge_msg)
         else:
-            acknowledge_msg.data = False
+            acknowledge_msg = False
 
         speed = self.steering.speed_controller.update_speed(data.get('x_button', 0.0), data.get('o_button', 0.0))
         speed = [speed for _ in range(4)]
@@ -165,7 +165,7 @@ class drive_control_V2_MQTT:
 
 
     def clear_motor_faults(self, acknowledge_faults: bool): 
-        if acknowledge_faults.data:
+        if acknowledge_faults:
             for motor in self.nodes:
                 self.drive_interface.acknowledge_motor_fault(motor)
 
