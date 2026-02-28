@@ -85,7 +85,7 @@ class CameraVideoTrack(VideoStreamTrack):
         vf.pts = self._pts
         vf.time_base = self._time_base
         self._pts += 1
-        await asyncio.seep(1 / self.fps)
+        await asyncio.sleep(1 / self.fps)
         logger.debug(f"[CameraVideoTrack] sending frame pts={self._pts} shape={frame.shape} camera={self.reader.camera_id}")
         return vf
 
