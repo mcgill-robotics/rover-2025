@@ -153,7 +153,7 @@
     <child
       link="wheel_1" />
     <axis
-      xyz="0.014692 0 0.99989" />
+      xyz="-0.014692 0 -0.99989" />
   </joint>
   <link
     name="wheel_2">
@@ -206,7 +206,7 @@
     <child
       link="wheel_2" />
     <axis
-      xyz="0.014692 0 0.99989" />
+      xyz="-0.014692 0 -0.99989" />
   </joint>
   <link
     name="rocker_B">
@@ -379,9 +379,9 @@
     name="ignition::gazebo::systems::DiffDrive">
     <left_joint>wheel_3_joint</left_joint>
     <left_joint>wheel_4_joint</left_joint>
-    <right_joint>wheel_1_joint</right_joint>
     <right_joint>wheel_2_joint</right_joint>
-    <wheel_separation>0.8</wheel_separation>
+    <right_joint>wheel_1_joint</right_joint>
+    <wheel_separation>0.87</wheel_separation>
     <wheel_radius>0.1</wheel_radius>
     <odom_publish_frequency>10</odom_publish_frequency>
     <topic>cmd_vel</topic>

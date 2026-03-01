@@ -25,7 +25,7 @@ def generate_launch_description():
 
     declare_world_cmd = DeclareLaunchArgument(
         "world",
-        default_value="empty_world.sdf",
+        default_value="depot.sdf",
         description="World file to use in Gazebo",
     )
 
