@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="halley_rover">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="4.96447104346925E-08 -7.84730879877618E-07 0.106932727839304"
+        rpy="0 0 0" />
+      <mass
+        value="24.2992794477249" />
+      <inertia
+        ixx="0.625395710077919"
+        ixy="-1.77917570291495E-16"
+        ixz="1.01475481994297E-07"
+        iyy="0.563460131457929"
+        iyz="1.68877637186446E-09"
+        izz="1.08555187113614" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.698039215686274 0.698039215686274 0.698039215686274 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="rocker_A">
+    <inertial>
+      <origin
+        xyz="8.32522812726159E-05 -0.147269024850282 -0.0811434518509352"
+        rpy="0 0 0" />
+      <mass
+        value="1.90632025011904" />
+      <inertia
+        ixx="0.0024055653668215"
+        ixy="-2.25203642045734E-07"
+        ixz="4.65580919302209E-06"
+        iyy="0.00337313249293529"
+        iyz="-3.2273478880458E-05"
+        izz="0.00463883579871685" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/rocker_A.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/rocker_A.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rocker_A_joint"
+    type="revolute">
+    <origin
+      xyz="0.26017 0 0.1"
+      rpy="1.5708 0.0057843 -1.5708" />
+    <parent
+      link="base_link" />
+    <child
+      link="rocker_A" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-0.8"
+      upper="0.8"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="wheel_1">
+    <inertial>
+      <origin
+        xyz="0.00107224208052464 -6.28594493568002E-07 0.0730360615524874"
+        rpy="0 0 0" />
+      <mass
+        value="0.725939419912147" />
+      <inertia
+        ixx="0.00657121165975527"
+        ixy="-4.28904778897871E-08"
+        ixz="6.49439247965823E-05"
+        iyy="0.00657019485255481"
+        iyz="2.11245720918373E-08"
+        izz="0.0109897349234948" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/wheel_1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/wheel_1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_1_joint"
+    type="continuous">
+    <origin
+      xyz="0.43761 -0.37919 -0.027992"
+      rpy="3.1392 0.010543 -2.6244" />
+    <parent
+      link="rocker_A" />
+    <child
+      link="wheel_1" />
+    <axis
+      xyz="-0.014692 0 -0.99989" />
+  </joint>
+  <link
+    name="wheel_2">
+    <inertial>
+      <origin
+        xyz="0.00108763769188547 -7.85144161574713E-07 0.0740629281033747"
+        rpy="0 0 0" />
+      <mass
+        value="0.725939183152754" />
+      <inertia
+        ixx="0.00657121491227081"
+        ixy="-4.44550284539776E-08"
+        ixz="6.4947573328502E-05"
+        iyy="0.00657018573855055"
+        iyz="1.88882135655049E-08"
+        izz="0.0109897369470644" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/wheel_2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/wheel_2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_2_joint"
+    type="continuous">
+    <origin
+      xyz="-0.43721 -0.37901 -0.027012"
+      rpy="-3.1414 0.013879 2.6357" />
+    <parent
+      link="rocker_A" />
+    <child
+      link="wheel_2" />
+    <axis
+      xyz="-0.014692 0 -0.99989" />
+  </joint>
+  <link
+    name="rocker_B">
+    <inertial>
+      <origin
+        xyz="-0.000749398361764469 -0.147265317626908 -0.0832199187750876"
+        rpy="0 0 0" />
+      <mass
+        value="1.90632023371694" />
+      <inertia
+        ixx="0.00240452055278867"
+        ixy="1.48376969742968E-06"
+        ixz="2.31219248883724E-05"
+        iyy="0.0033731174628454"
+        iyz="-3.23055107481587E-05"
+        izz="0.00463989564240729" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/rocker_B.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/rocker_B.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rocker_B_joint"
+    type="revolute">
+    <origin
+      xyz="-0.25812 0 0.1"
+      rpy="1.5708 -0.00047264 1.5708" />
+    <parent
+      link="base_link" />
+    <child
+      link="rocker_B" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-0.8"
+      upper="0.8"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="wheel_3">
+    <inertial>
+      <origin
+        xyz="0.00154782604379033 -5.1823002419904E-07 0.105398564091559"
+        rpy="0 0 0" />
+      <mass
+        value="0.725939320962901" />
+      <inertia
+        ixx="0.0065712203406547"
+        ixy="-4.46497959636066E-08"
+        ixz="6.49451363025271E-05"
+        iyy="0.00657019086755074"
+        iyz="2.31205667549673E-08"
+        izz="0.0109897353565984" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/wheel_3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/wheel_3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_3_joint"
+    type="continuous">
+    <origin
+      xyz="0.429572016530207 -0.379126086523962 0.00204178383992604"
+      rpy="3.09360028675538 0.0697897372527829 2.41572436648763" />
+    <parent
+      link="rocker_B" />
+    <child
+      link="wheel_3" />
+    <axis
+      xyz="0.0146918517422921 0 0.999892068921632" />
+  </joint>
+  <link
+    name="wheel_4">
+    <inertial>
+      <origin
+        xyz="0.0012035091034725 -5.4198605453637E-07 0.0819411732481566"
+        rpy="0 0 0" />
+      <mass
+        value="0.725939522988228" />
+      <inertia
+        ixx="0.00657121506355262"
+        ixy="-4.58310698441043E-08"
+        ixz="6.49485651467909E-05"
+        iyy="0.00657018890763009"
+        iyz="2.17433706910998E-08"
+        izz="0.0109897314283355" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/wheel_4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find sim)/halley/meshes/wheel_4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel_4_joint"
+    type="continuous">
+    <origin
+      xyz="-0.439250495366676 -0.379026776297446 -0.0212098545176108"
+      rpy="3.13993275556105 0.0389044432012653 3.09204317199691" />
+    <parent
+      link="rocker_B" />
+    <child
+      link="wheel_4" />
+    <axis
+      xyz="0.0146918517422938 0 0.999892068921632" />
+  </joint>
+
+
+<gazebo>
+  <plugin filename="ignition-gazebo-diff-drive-system"
+    name="ignition::gazebo::systems::DiffDrive">
+    <left_joint>wheel_3_joint</left_joint>
+    <left_joint>wheel_4_joint</left_joint>
+    <right_joint>wheel_2_joint</right_joint>
+    <right_joint>wheel_1_joint</right_joint>
+    <wheel_separation>0.87</wheel_separation>
+    <wheel_radius>0.1</wheel_radius>
+    <odom_publish_frequency>10</odom_publish_frequency>
+    <topic>cmd_vel</topic>
+  </plugin>
+</gazebo>
+</robot>
+
