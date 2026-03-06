@@ -15,18 +15,81 @@ import logging
 from dataclasses import dataclass
 import base64
 import cv2
+import numpy as np
+
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+from aiortc import RTCPeerConnection, RTCSessionDescription
+from aiortc.mediastreams import VideoStreamTrack
+from av import VideoFrame
+from fractions import Fraction
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from config import get_backend_config
 from aruco_detector import create_aruco_detector
 from gstreamer_reader import GStreamerCameraReader, MultiGStreamerReader
+from fastapi.middleware.cors import CORSMiddleware
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+class DummyVideoTrack(VideoStreamTrack):
+    def __init__(self, fps: int = 20, width: int = 640, height: int = 480):
+        super().__init__()
+        self.fps = fps
+        self.width = width
+        self.height = height
+        self._pts = 0
+        self._time_base = Fraction(1, fps)
+
+    async def recv(self):
+        frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+        cv2.putText(
+            frame,
+            "WebRTC Dummy Stream",
+            (30, self.height // 2),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            2,
+        )
+        vf = VideoFrame.from_ndarray(frame, format="bgr24")
+        vf.pts = self._pts
+        vf.time_base = self._time_base
+        self._pts += 1
+        await asyncio.sleep(1 / self.fps)
+        return vf
+
+class CameraVideoTrack(VideoStreamTrack):
+    def __init__(self, reader=None, fps: int = 20):
+        super().__init__()
+        self.reader = reader
+        self.fps = fps
+        self._pts = 0
+        self._time_base = Fraction(1, fps)
+
+    async def recv(self):
+        while True:
+            with self.reader.frame_lock:
+                frame = self.reader.latest_frame
+            if frame is not None:
+                break
+            await asyncio.sleep(0.005)
+
+        vf = VideoFrame.from_ndarray(frame, format="bgr24")
+        vf.pts = self._pts
+        vf.time_base = self._time_base
+        self._pts += 1
+        await asyncio.sleep(1 / self.fps)
+        logger.debug(f"[CameraVideoTrack] sending frame pts={self._pts} shape={frame.shape} camera={self.reader.camera_id}")
+        return vf
+
+
 
 @dataclass
 class CameraFrame:
@@ -68,6 +131,7 @@ class MultiCameraBackend:
         self.http_port = http_port
         self.enable_aruco = enable_aruco
         self.loop = loop or asyncio.get_event_loop()
+        self.peer_connections = set()
 
         self.cameras: Dict[str, CameraInfo] = {}
         self.frame_buffers: Dict[str, FrameBuffer] = {}
@@ -99,8 +163,24 @@ class MultiCameraBackend:
                 self.enable_aruco = False
 
         self.app = FastAPI(title="Multi-Camera Backend", version="1.0.0")
+        from fastapi.middleware.cors import CORSMiddleware
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
         self.setup_routes()
         self.setup_cors()
+
+    async def _wait_for_ice_complete(self, pc: RTCPeerConnection, timeout: float = 2.0):
+        start = time.time()
+        while pc.iceGatheringState != "complete":
+            await asyncio.sleep(0.05)
+            if time.time() - start > timeout:
+                break
 
     def setup_cors(self):
         self.app.add_middleware(
@@ -343,6 +423,36 @@ class MultiCameraBackend:
                 logger.error(f"WebSocket error for {camera_id}: {e}")
             finally:
                 self.websocket_connections[camera_id].discard(websocket)
+        
+        @self.app.post("/offer")
+        async def offer(request: Request, id: str):
+            params = await request.json()
+            if "sdp" not in params or "type" not in params:
+                return JSONResponse({"error": "Invalid SDP payload"}, status_code=400)
+
+            pc = RTCPeerConnection()
+            self.peer_connections.add(pc)
+
+            @pc.on("connectionstatechange")
+            async def on_connectionstatechange():
+                if pc.connectionState in ("failed", "closed", "disconnected"):
+                    await pc.close()
+                    self.peer_connections.discard(pc)
+
+            reader = self.camera_readers.get_reader(id)
+            if reader is None:
+                pc.addTrack(DummyVideoTrack(fps=20))
+            else:
+                pc.addTrack(CameraVideoTrack(reader, fps=20))
+
+            remote_offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+            await pc.setRemoteDescription(remote_offer)
+            answer = await pc.createAnswer()
+            await pc.setLocalDescription(answer)
+
+            await self._wait_for_ice_complete(pc)
+
+            return {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
 
 
         @self.app.get("/api/health")
