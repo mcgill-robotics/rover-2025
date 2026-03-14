@@ -28,6 +28,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'BT = rover_nav2.BT:main'
         ],
     },
 )

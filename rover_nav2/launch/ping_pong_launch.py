@@ -6,7 +6,7 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from pathlib import Path
+from pathlib import Path 
 
 import pdb
 
@@ -49,7 +49,7 @@ def generate_launch_description():
     primary_ping_pong_node = Node(
         condition=IfCondition(LaunchConfiguration("node1_enable")),
         package='rover_nav2',
-        executable='behavior_tree_example',
+        executable='BT',
         name='primary_ping_pong',
         output='screen',
         remappings=[('incoming_pong', 'secondary_to_primary'),('outgoing_ping', 'primary_to_secondary')],
@@ -65,8 +65,8 @@ def generate_launch_description():
 
     secondary_ping_pong_node = Node(
         condition=IfCondition(LaunchConfiguration("node2_enable")),
-        package='ros2_behavior_tree_example',
-        executable='behavior_tree_example',
+        package='rover_nav2',
+        executable='BT',
         name='secondary_ping_pong',
         output='screen',
         remappings=[('incoming_pong', 'primary_to_secondary'),('outgoing_ping', 'secondary_to_primary')],
