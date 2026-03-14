@@ -11,7 +11,7 @@ from pathlib import Path
 import pdb
 
 def generate_launch_description():
-    package_dir = Path(get_package_share_directory('ros2_behavior_tree_example'))
+    package_dir = Path(get_package_share_directory('rover_nav2'))
     behavior_tree_dir = package_dir / 'behavior_trees'
 
     # limit choices so we can only have available files
@@ -48,7 +48,7 @@ def generate_launch_description():
 
     primary_ping_pong_node = Node(
         condition=IfCondition(LaunchConfiguration("node1_enable")),
-        package='ros2_behavior_tree_example',
+        package='rover_nav2',
         executable='behavior_tree_example',
         name='primary_ping_pong',
         output='screen',
