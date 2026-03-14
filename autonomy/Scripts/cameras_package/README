@@ -1,0 +1,4 @@
+1.pip install requirements.txt
+2.Run script(check pcd or ply)
+3.generated point clouds are the pointclouds folder
+4.Run clear_pointclouds to reset the pointclouds folder
