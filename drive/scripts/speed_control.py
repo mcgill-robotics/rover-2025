@@ -13,6 +13,9 @@ class SpeedController():
 
     """
 
+    # SET BEFORE TESTING
+    csa_speed_limit = True
+
     def __init__(self, json_filename="max_wheel_speed_levels.json"):
         
         # (Mar.1, 2025) Max speed is 2000 rpm
@@ -35,6 +38,8 @@ class SpeedController():
                         "gear": 6,
                         "speed": 3200.0
                     }]
+        if csa_speed_limit:
+            self.gears = self.gears[:2]
 
         self.history_size : int = 3 # How many previous wheels we average over
 
