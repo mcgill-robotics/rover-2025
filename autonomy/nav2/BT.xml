@@ -1,0 +1,29 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RecoveryNode number_of_retries="6" name="NavigateRecovery">
+      
+      <PipelineSequence name="NavigateWithReplanning">
+        <ControllerSelector selected_controller="{selected_controller}" default_controller="FollowPathController" topic_name="controller_selector"/>
+        <PlannerSelector selected_planner="{selected_planner}" default_planner="GridPlanner" topic_name="planner_selector"/>
+
+        <DistanceController distance="1.0">
+           <ComputePathToPose goal="{goal}" path="{path}" planner_id="{selected_planner}"/>
+        </DistanceController>
+        
+        <Sequence name="ExternalIntegration">
+           <WaitForServiceState service_name="/vending_machine_ready" timeout="10"/>
+           <FollowPath path="{path}" controller_id="{selected_controller}"/>
+        </Sequence>
+      </PipelineSequence>
+
+      <ReactiveFallback name="RecoveryActions">
+        <Condition name="CheckIfStuck" service_name="is_robot_stuck"/>
+        <Sequence name="StuckRecovery">
+           <ClearEntireCostmap name="ClearLocalCostmap" service_name="local_costmap/clear_entirely_local_costmap"/>
+           <BackUp backup_dist="0.5" backup_speed="0.1"/> <Spin spin_dist="1.57"/> </Sequence>
+        <SubTree ID="DockingBehavior" _skipIf="!is_docking_goal"/>
+        <Wait wait_duration="5.0"/>
+      </ReactiveFallback>
+      
+    </RecoveryNode>
+  </BehaviorTree>
