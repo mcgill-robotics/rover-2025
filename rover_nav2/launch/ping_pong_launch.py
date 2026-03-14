@@ -49,7 +49,7 @@ def generate_launch_description():
     primary_ping_pong_node = Node(
         condition=IfCondition(LaunchConfiguration("node1_enable")),
         package='rover_nav2',
-        executable='BT',
+        executable='ping_pong',
         name='primary_ping_pong',
         output='screen',
         remappings=[('incoming_pong', 'secondary_to_primary'),('outgoing_ping', 'primary_to_secondary')],
@@ -66,7 +66,7 @@ def generate_launch_description():
     secondary_ping_pong_node = Node(
         condition=IfCondition(LaunchConfiguration("node2_enable")),
         package='rover_nav2',
-        executable='BT',
+        executable='ping_pong',
         name='secondary_ping_pong',
         output='screen',
         remappings=[('incoming_pong', 'primary_to_secondary'),('outgoing_ping', 'secondary_to_primary')],

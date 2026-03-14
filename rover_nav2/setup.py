@@ -28,7 +28,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'BT = rover_nav2.BT:main'
+            'ping_pong = rover_nav2.ping_pong_launch:main'
         ],
     },
 )

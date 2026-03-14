@@ -79,8 +79,7 @@ def generate_launch_description() -> LaunchDescription:
         RewrittenYaml(
             source_file=params_file,
             root_key=namespace,
-            param_rewrites=param_substitutions,
-            value_rewrites=yaml_substitutions,
+            param_rewrites={param_substitutions, yaml_substitutions},
             convert_types=True,
         ),
         allow_substs=True,
