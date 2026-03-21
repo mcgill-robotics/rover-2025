@@ -84,7 +84,9 @@ const MultiCameraView: React.FC = () => {
     const ids: string[] = [];
 
     if (viewMode === "single") {
-      if (selectedAvailableCamera?.camera_id) ids.push(selectedAvailableCamera.camera_id);
+      if (selectedAvailableCamera?.camera_id && selectedAvailableCamera.is_active) {
+        ids.push(selectedAvailableCamera.camera_id);
+      }
     } else {
       for (const slot of multiCameraSlots) {
         if (slot.camera && slot.isActive) ids.push(slot.camera.camera_id);
@@ -93,9 +95,8 @@ const MultiCameraView: React.FC = () => {
 
     // Dev fallback: keep WebRTC verifiable even with no cameras
     if (ids.length === 0 && ENABLE_WEBRTC_DUMMY) ids.push(DEV_TEST_ID);
-
     return Array.from(new Set(ids));
-  }, [viewMode, selectedAvailableCamera?.camera_id, multiCameraSlots]);
+  }, [viewMode, selectedAvailableCamera?.camera_id, selectedAvailableCamera?.is_active, multiCameraSlots]);
   
   const { videoRefs: webrtcVideoRefs, state: webrtcState } =
     useWebRTCMultiCameraStream({
@@ -259,6 +260,7 @@ const MultiCameraView: React.FC = () => {
       // Refresh cameras after a short delay
       setTimeout(() => {
         fetchCameras();
+        fetchAvailableCameras();
       }, 2000);
       
     } catch (err) {

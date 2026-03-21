@@ -323,6 +323,7 @@ class MultiCameraBackend:
                 
                 # Add camera reader with camera name for inversion logic
                 reader = self.camera_readers.add_camera(camera_id, port, name)
+                logger.info(f"CAMERA READER: {reader}")
                 
                 # Create camera info
                 self.cameras[camera_id] = CameraInfo(
@@ -441,9 +442,9 @@ class MultiCameraBackend:
 
             reader = self.camera_readers.get_reader(id)
             if reader is None:
-                pc.addTrack(DummyVideoTrack(fps=20))
-            else:
-                pc.addTrack(CameraVideoTrack(reader, fps=20))
+                return JSONResponse({"error": f"Camera {id} not ready yet"}, status_code=503)
+
+            pc.addTrack(CameraVideoTrack(reader, fps=20))
 
             remote_offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
             await pc.setRemoteDescription(remote_offer)
@@ -562,7 +563,7 @@ class MultiCameraBackend:
                         # Add new active camera
                         try:
                             reader = self.camera_readers.add_camera(camera_id, rtp_port, name)
-                            
+                            logger.info(f"ADDED 2: {reader}")
                             self.cameras[camera_id] = CameraInfo(
                                 camera_id=camera_id,
                                 device_id=device_id,
@@ -601,6 +602,7 @@ class MultiCameraBackend:
                             
                             # Add new reader with new port
                             try:
+                                logger.info(f"[heartbeat] camera_readers id={id(self.camera_readers)}")
                                 reader = self.camera_readers.add_camera(camera_id, rtp_port, name)
                                 camera.port = rtp_port
                                 camera.is_active = True
@@ -760,6 +762,7 @@ class MultiCameraBackend:
 
     def start_camera_polling_threads(self):
         """Start polling threads for all cameras."""
+        logger.info(self.camera_readers.get_all_readers())
         for camera_id, reader in self.camera_readers.get_all_readers().items():
             thread = threading.Thread(
                 target=self.camera_polling_loop, 
@@ -853,4 +856,5 @@ def main():
 
 
 if __name__ == "__main__":
+    print("HAPPENED")
     main()

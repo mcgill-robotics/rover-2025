@@ -62,7 +62,7 @@ class GStreamerCameraReader:
         self.width = 0
         self.height = 0
         
-        logger.info(f"Initializing GStreamer reader for {self.camera_id} ({self.camera_name}) on port {port} (inverted: {self.inverted})")
+        logger.info(f"Initializing GStreamerreader for {self.camera_id} ({self.camera_name}) on port {port} (inverted: {self.inverted})")
         
         # Try to open the pipeline
         self._open_pipeline()
@@ -220,12 +220,13 @@ class GStreamerCameraReader:
             ret = self.pipeline.set_state(Gst.State.PLAYING)
             if ret == Gst.StateChangeReturn.FAILURE:
                 raise RuntimeError(f"Failed to start GStreamer pipeline for {self.camera_id}")
-            
             # Wait for pipeline to reach PLAYING state
-            ret, state, pending = self.pipeline.get_state(Gst.CLOCK_TIME_NONE)
-            if ret == Gst.StateChangeReturn.FAILURE or state != Gst.State.PLAYING:
+            timeout_ns = 5 * Gst.SECOND
+            ret, state, pending = self.pipeline.get_state(timeout_ns)
+            if ret == Gst.StateChangeReturn.FAILURE:
                 raise RuntimeError(f"Pipeline failed to reach PLAYING state for {self.camera_id}")
-            
+            logger.info(f"Pipeline state: ret={ret}, state={state}, pending={pending}")
+
             self.is_opened = True
             logger.info(f"GStreamer pipeline opened successfully for {self.camera_id} on port {self.port}")
             
@@ -529,7 +530,6 @@ def test_gstreamer_reader(port: int = 5004, duration: int = 10):
 
 if __name__ == "__main__":
     import sys
-    
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     
     if len(sys.argv) > 1:

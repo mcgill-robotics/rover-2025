@@ -41,8 +41,8 @@ export function useWebRTCMultiCameraStream({ backendBaseUrl, cameraIds }: Args) 
 
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
-          setState((p) => ({ ...p, [cameraId]: { status: "connected" } }));
-          
+          setState((p) => ({ ...p, [cameraId]: { ...p[cameraId], status: "connected" } }));
+
           const videoEl = videoRefs[cameraId]?.current;
           if (videoEl) {
             videoEl.play().catch((e) => {
@@ -93,11 +93,6 @@ export function useWebRTCMultiCameraStream({ backendBaseUrl, cameraIds }: Args) 
             console.warn("[webrtc] video.play() failed for", cameraId, e);
           });
         }
-
-        // Ensure playback starts (autoplay can fail without this)
-        videoEl.play().catch((e) => {
-          console.warn("[webrtc] video.play() failed for", cameraId, e);
-        });
       };
       
       pc.addTransceiver("video", { direction: "recvonly" });
@@ -107,15 +102,24 @@ export function useWebRTCMultiCameraStream({ backendBaseUrl, cameraIds }: Args) 
         await pc.setLocalDescription(offer);
 
         const base = backendBaseUrl.replace(/\/$/, "");
-        const res = await fetch(`${base}/offer?id=${encodeURIComponent(cameraId)}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(pc.localDescription),
-        });
+        let res: Response | null = null;
+        for (let attempt = 0; attempt < 10; attempt++) {
+          res = await fetch(`${base}/offer?id=${encodeURIComponent(cameraId)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pc.localDescription),
+          });
+          if (res.status === 503) {
+            console.log(`[webrtc] camera not ready, retrying in 2s... (attempt ${attempt + 1})`);
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
+          }
+          break;
+        }
 
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`offer failed: ${res.status} ${text}`);
+        if (!res || !res.ok) {
+          const text = await res?.text();
+          throw new Error(`offer failed: ${res?.status} ${text}`);
         }
 
         const answer = await res.json();
