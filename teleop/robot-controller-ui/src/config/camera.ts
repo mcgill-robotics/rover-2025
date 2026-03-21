@@ -25,7 +25,7 @@ export const MULTI_CAMERA_BACKEND = {
 // Jetson/Pi Device Configuration
 export const JETSON_DEVICES = {
   // Default backend host for Jetson/Pi devices to send frames to
-  DEFAULT_BACKEND_HOST: "192.168.1.100", // Change to your backend server IP
+  DEFAULT_BACKEND_HOST: "192.168.1.50", // Change to your backend server IP
   
   // Default backend UDP port for Jetson/Pi devices
   DEFAULT_BACKEND_PORT: 9999,
