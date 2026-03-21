@@ -428,8 +428,9 @@ const MultiCameraView: React.FC = () => {
                 if (!slot.camera || !slot.isActive) return null;
                 
                 const streamState = streamStates[slot.camera.camera_id];
-                const isConnected = streamState?.isConnected || false;
-                const isReceiving = streamState?.isReceivingFrames || false;
+                const webrtcCamState = webrtcState[slot.camera.camera_id];
+                const isConnected = webrtcCamState?.status === "connected";
+                const isReceiving = !!webrtcCamState?.stream;
                 const fps = streamState?.fps || 0;
                 
                 return (

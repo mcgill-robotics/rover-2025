@@ -3,6 +3,7 @@ import { createRef, useEffect, useMemo, useRef, useState } from "react";
 type CameraStreamState = {
   status: "idle" | "connecting" | "connected" | "error";
   error?: string;
+  stream?: MediaStream;
 };
 
 type Args = {
@@ -39,12 +40,15 @@ export function useWebRTCMultiCameraStream({ backendBaseUrl, cameraIds }: Args) 
       pcsRef.current[cameraId] = pc;
 
       pc.onconnectionstatechange = () => {
-        if (cancelled) return;
-        const st = pc.connectionState;
-        console.log("[webrtc]", cameraId, "pc.connectionState =", st);
-        if (st === "connected") setState((p) => ({ ...p, [cameraId]: { status: "connected" } }));
-        if (st === "failed" || st === "disconnected" || st === "closed") {
-          setState((p) => ({ ...p, [cameraId]: { status: "error", error: `WebRTC state: ${st}` } }));
+        if (pc.connectionState === "connected") {
+          setState((p) => ({ ...p, [cameraId]: { status: "connected" } }));
+          
+          const videoEl = videoRefs[cameraId]?.current;
+          if (videoEl) {
+            videoEl.play().catch((e) => {
+              console.warn("[webrtc] play() failed on connection", cameraId, e);
+            });
+          }
         }
       };
 
@@ -59,19 +63,35 @@ export function useWebRTCMultiCameraStream({ backendBaseUrl, cameraIds }: Args) 
           "readyState=", ev.track?.readyState
         );
 
-        const videoEl = videoRefs[cameraId]?.current;
-        if (!videoEl) {
-          console.warn("[webrtc] no video ref for", cameraId);
-          return;
-        }
+        // const videoEl = videoRefs[cameraId]?.current;
+        // if (!videoEl) {
+        //   console.warn("[webrtc] no video ref for", cameraId);
+        //   return;
+        // }
 
         // Some browsers / setups do not populate ev.streams; fall back to a MediaStream
         const stream = (ev.streams && ev.streams.length > 0)
           ? ev.streams[0]
           : new MediaStream([ev.track])
 
-        if (videoEl.srcObject !== stream) {
+        // if (videoEl.srcObject !== stream) {
+        //   videoEl.srcObject = stream;
+        // }
+
+        setState((p) => ({
+          ...p,
+          [cameraId]: { 
+            ...p[cameraId], 
+            stream 
+          }
+        }));
+
+        const videoEl = videoRefs[cameraId]?.current;
+        if (videoEl && videoEl.srcObject !== stream) {
           videoEl.srcObject = stream;
+          videoEl.play().catch((e) => {
+            console.warn("[webrtc] video.play() failed for", cameraId, e);
+          });
         }
 
         // Ensure playback starts (autoplay can fail without this)
@@ -121,6 +141,20 @@ export function useWebRTCMultiCameraStream({ backendBaseUrl, cameraIds }: Args) 
       }
     };
   }, [backendBaseUrl, cameraIds.join("|")]);
+
+  useEffect(() => {
+    cameraIds.forEach((id) => {
+      const videoEl = videoRefs[id]?.current;
+      const stream = state[id]?.stream;
+
+      if (videoEl && stream && videoEl.srcObject !== stream) {
+        videoEl.srcObject = stream;
+        videoEl.play().catch((e) => {
+          console.warn("[webrtc] video.play() failed for", id, e);
+        });
+      }
+    });
+  });
 
   return { videoRefs, state };
 }
