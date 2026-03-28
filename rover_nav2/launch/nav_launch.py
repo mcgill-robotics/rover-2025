@@ -17,30 +17,30 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction, SetEnvironmentVariable
-from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import LoadComposableNodes, Node, PushRosNamespace, SetParameter
 from launch_ros.descriptions import ComposableNode, ParameterFile
 from nav2_common.launch import RewrittenYaml
+from launch.conditions import IfCondition
 
 
 def generate_launch_description() -> LaunchDescription:
     # Get the launch directory
-    bringup_dir = get_package_share_directory('rover_nav2')
+    bringup_dir = get_package_share_directory('nav2_bringup')
 
     namespace = LaunchConfiguration('namespace')
-    use_sim_time = IfCondition(LaunchConfiguration('use_sim_time'))
-    autostart = IfCondition(LaunchConfiguration('autostart'))
+    use_sim_time = LaunchConfiguration('use_sim_time')
+    autostart = LaunchConfiguration('autostart')
     graph_filepath = LaunchConfiguration('graph')
     params_file = LaunchConfiguration('params_file')
-    use_composition = IfCondition(LaunchConfiguration('use_composition'))
-    use_intra_process_comms = IfCondition(LaunchConfiguration('use_intra_process_comms'))
+    use_composition = LaunchConfiguration('use_composition')
+    use_intra_process_comms = LaunchConfiguration('use_intra_process_comms')
     container_name = LaunchConfiguration('container_name')
     container_name_full = (namespace, '/', container_name)
-    use_respawn = IfCondition(LaunchConfiguration('use_respawn'))
+    use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
-    use_keepout_zones = IfCondition(LaunchConfiguration('use_keepout_zones'))
-    use_speed_zones = IfCondition(LaunchConfiguration('use_speed_zones'))
+    use_keepout_zones = LaunchConfiguration('use_keepout_zones')
+    use_speed_zones = LaunchConfiguration('use_speed_zones')
 
     lifecycle_nodes = [
         'controller_server', # controls robot movement using local costmap
@@ -75,11 +75,13 @@ def generate_launch_description() -> LaunchDescription:
     # IMPORTANT: to make your yaml file dynamic you can refer to humble branch under
     # nav2_bringup/launch/bringup_launch.py to see how the parameters file is configured
     # using ReplaceString <robot_namespace>
+
+    rewrites = {**param_substitutions, **yaml_substitutions}
     configured_params = ParameterFile(
         RewrittenYaml(
             source_file=params_file,
             root_key=namespace,
-            param_rewrites={param_substitutions, yaml_substitutions},
+            param_rewrites=rewrites,
             convert_types=True,
         ),
         allow_substs=True,
@@ -101,7 +103,7 @@ def generate_launch_description() -> LaunchDescription:
 
     declare_params_file_cmd = DeclareLaunchArgument(
         'params_file',
-        default_value=os.path.join(bringup_dir, 'params', 'rover_params.yaml'),
+        default_value=os.path.join(get_package_share_directory('rover_nav2'), 'config', 'rover_params.yaml'),
         description='Full path to the ROS2 parameters file to use for all launched nodes',
     )
 
