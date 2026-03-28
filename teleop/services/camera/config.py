@@ -88,7 +88,7 @@ BACKEND_CONFIG = {
 # Jetson/Pi Device Configuration
 JETSON_CONFIG = {
     # Default backend host for Jetson/Pi devices to send RTP streams to
-    "DEFAULT_BACKEND_HOST": "192.168.1.23",
+    "DEFAULT_BACKEND_HOST": "192.168.1.50",
     
     # Default backend UDP port for Jetson/Pi devices (legacy heartbeat)
     "DEFAULT_BACKEND_PORT": 9999,

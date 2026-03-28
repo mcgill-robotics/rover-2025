@@ -292,8 +292,11 @@ class MultiCameraStreamer:
             return False
         
         try:
-            # Get free UDP port for RTP stream to backend
-            rtp_port = self.get_free_udp_port()
+            # Use fixed port from config based on camera suffix
+            from config import get_jetson_config
+            config = get_jetson_config()
+            cam_suffix = camera_id.split('-')[-1]  # e.g. "cam00"
+            rtp_port = config["CAMERA_PORT_MAPPING"].get(cam_suffix, 5000)
             camera_info.rtp_port = rtp_port
             
             # Get free UDP port for local GStreamer capture

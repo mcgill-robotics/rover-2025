@@ -81,3 +81,4 @@ pids/
 # Temporary files from editors and operating systems
 .DS_Store
 Thumbs.db
+camera_venv/

@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useMultiCameraStream, CameraInfo } from "@/hooks/useMultiCameraStream";
 import { useBandwidthStats } from "@/hooks/useBandwidthStats";
 import { CAMERA_CONFIG } from "@/config/camera";
+import { useWebRTCMultiCameraStream } from "@/hooks/useWebRTCMultiCameraStream";
 
 import DPad from "./DPadController";
 import ArrowButton from "@/components/ui/ArrowButton";
+
 
 interface AvailableCamera {
   camera_id: string;
@@ -37,6 +39,7 @@ interface CameraSlot {
 }
 
 const MultiCameraView: React.FC = () => {
+  const WEBRTC_BACKEND = CAMERA_CONFIG.BACKEND.WEBSOCKET_URL.replace(/^ws:\/\//, "http://").replace(/\/$/, "");
   const [viewMode, setViewMode] = useState<ViewMode>('single');
   const [selectedCameraIndex, setSelectedCameraIndex] = useState(0);
   const [multiCameraSlots, setMultiCameraSlots] = useState<CameraSlot[]>([]);
@@ -55,9 +58,7 @@ const MultiCameraView: React.FC = () => {
     isLoading,
     error,
     fetchCameras,
-    connectCamera,
     disconnectCamera,
-    registerCanvas,
   } = useMultiCameraStream({
     backendUrl: CAMERA_CONFIG.BACKEND.WEBSOCKET_URL,
   });
@@ -75,6 +76,33 @@ const MultiCameraView: React.FC = () => {
 
   // Get active cameras in multi mode (dynamic slots)
   const activeCameras = multiCameraSlots.filter(slot => slot.camera && slot.isActive);
+  // Dev fallback ID for testing WebRTC without a physical camera
+  const DEV_TEST_ID = "dummy";
+  const ENABLE_WEBRTC_DUMMY = process.env.NEXT_PUBLIC_WEBRTC_DUMMY === "1";
+
+  const webrtcCameraIds = useMemo(() => {
+    const ids: string[] = [];
+
+    if (viewMode === "single") {
+      if (selectedAvailableCamera?.camera_id && selectedAvailableCamera.is_active) {
+        ids.push(selectedAvailableCamera.camera_id);
+      }
+    } else {
+      for (const slot of multiCameraSlots) {
+        if (slot.camera && slot.isActive) ids.push(slot.camera.camera_id);
+      }
+    }
+
+    // Dev fallback: keep WebRTC verifiable even with no cameras
+    if (ids.length === 0 && ENABLE_WEBRTC_DUMMY) ids.push(DEV_TEST_ID);
+    return Array.from(new Set(ids));
+  }, [viewMode, selectedAvailableCamera?.camera_id, selectedAvailableCamera?.is_active, multiCameraSlots]);
+  
+  const { videoRefs: webrtcVideoRefs, state: webrtcState } =
+    useWebRTCMultiCameraStream({
+      backendBaseUrl: WEBRTC_BACKEND,
+      cameraIds: webrtcCameraIds,
+    });
 
   // Handle single camera navigation - cycle through ALL available cameras
   const handleNext = async () => {
@@ -112,7 +140,6 @@ const MultiCameraView: React.FC = () => {
     // Add camera to a new slot
     const newSlot: CameraSlot = { camera, isActive: true };
     setMultiCameraSlots(prev => [...prev, newSlot]);
-    connectCamera(camera.camera_id);
   };
 
   const removeCameraFromSlot = (slotIndex: number) => {
@@ -140,9 +167,9 @@ const MultiCameraView: React.FC = () => {
 
 
   // Check if streaming
-  const isStreaming = viewMode === 'single' 
-    ? selectedCamera && streamStates[selectedCamera.camera_id]?.isConnected
-    : activeCameras.some(slot => slot.camera && streamStates[slot.camera.camera_id]?.isConnected);
+  const isStreaming = viewMode === "single"
+    ? !!selectedAvailableCamera && webrtcState[selectedAvailableCamera.camera_id]?.status === "connected"
+    : activeCameras.some((slot) => slot.camera && webrtcState[slot.camera.camera_id]?.status === "connected");
 
   // Get overall FPS for display
   const overallFPS = viewMode === 'single' && selectedCamera
@@ -155,11 +182,10 @@ const MultiCameraView: React.FC = () => {
       }, 0);
 
   // Check if any camera is live
-  const isLive = viewMode === 'single' && selectedCamera
-    ? streamStates[selectedCamera.camera_id]?.isReceivingFrames || false
-    : activeCameras.some(slot => 
-        slot.camera && streamStates[slot.camera.camera_id]?.isReceivingFrames
-      );
+  const isLive = viewMode === "single" && selectedAvailableCamera
+    ? webrtcState[selectedAvailableCamera.camera_id]?.status === "connected"
+    : activeCameras.some((slot) => slot.camera && webrtcState[slot.camera.camera_id]?.status === "connected");
+        
 
   // Camera management functions
   const fetchAvailableCameras = async () => {
@@ -234,6 +260,7 @@ const MultiCameraView: React.FC = () => {
       // Refresh cameras after a short delay
       setTimeout(() => {
         fetchCameras();
+        fetchAvailableCameras();
       }, 2000);
       
     } catch (err) {
@@ -306,6 +333,8 @@ const MultiCameraView: React.FC = () => {
   }, [showCameraManager]);
 
   return (
+    
+
     <div className="relative w-full h-screen bg-black flex flex-col">
       {/* Top Controls */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-4">
@@ -316,20 +345,28 @@ const MultiCameraView: React.FC = () => {
         >
           {showCameraManager ? 'Hide Manager' : 'Manage Cameras'}
         </button>
+        <div className="text-white text-xs bg-black/50 px-3 py-1 rounded-lg">
+          WebRTC ({DEV_TEST_ID}): {webrtcState[DEV_TEST_ID]?.status || "idle"}
+          {webrtcState[DEV_TEST_ID]?.error
+            ? ` - ${webrtcState[DEV_TEST_ID]?.error}`
+            : ""}
+        </div>
       </div>
 
       {/* Main Content Area */}
       {viewMode === 'single' ? (
         /* Single Camera View */
-        selectedCamera && isStreaming ? (
+        selectedAvailableCamera && isStreaming ? (
           <div className="relative w-full h-full overflow-hidden">
-            <canvas
-              ref={(canvas) => registerCanvas(selectedCamera.camera_id, canvas)}
+            <video
+              ref={webrtcVideoRefs[selectedAvailableCamera.camera_id]}
+              autoPlay
+              playsInline
+              muted
               className="w-full h-full object-cover"
             />
-
             <div className="absolute top-4 left-4 text-white text-base bg-black/50 px-4 py-2 rounded-lg">
-              <strong>{selectedCamera.name}</strong><br />
+              <strong>{selectedAvailableCamera.name}</strong><br />
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-block w-2.5 h-2.5 rounded-full ${
@@ -354,7 +391,7 @@ const MultiCameraView: React.FC = () => {
             <ArrowButton direction="left" onClick={handlePrevious} />
             <ArrowButton direction="right" onClick={handleNext} />
 
-            {selectedCamera.name.includes("USB 2.0 Camera") && (
+            {selectedAvailableCamera.name?.includes("USB 2.0 Camera") && (
               <div className="absolute bottom-4 right-8 w-[100px] h-[100px]">
                 <DPad inputStream="up" />
               </div>
@@ -393,8 +430,9 @@ const MultiCameraView: React.FC = () => {
                 if (!slot.camera || !slot.isActive) return null;
                 
                 const streamState = streamStates[slot.camera.camera_id];
-                const isConnected = streamState?.isConnected || false;
-                const isReceiving = streamState?.isReceivingFrames || false;
+                const webrtcCamState = webrtcState[slot.camera.camera_id];
+                const isConnected = webrtcCamState?.status === "connected";
+                const isReceiving = !!webrtcCamState?.stream;
                 const fps = streamState?.fps || 0;
                 
                 return (
@@ -403,15 +441,23 @@ const MultiCameraView: React.FC = () => {
                     className="relative bg-gray-900 rounded-lg overflow-hidden"
                   >
                     {isConnected ? (
-                      <canvas
-                        ref={(canvas) => registerCanvas(slot.camera!.camera_id, canvas)}
+                      <video
+                        ref={webrtcVideoRefs[slot.camera!.camera_id]}
+                        autoPlay
+                        playsInline
+                        muted
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-white">
                         <div className="text-center">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                          <p>Connecting...</p>
+                          <p>{status === "error" ? "Error" : "Connecting..."}</p>
+                          {slot.camera && webrtcState[slot.camera.camera_id]?.error ? (
+                            <p className="text-xs text-red-300 mt-2 px-2">
+                              {webrtcState[slot.camera.camera_id]?.error}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                     )}
@@ -439,11 +485,6 @@ const MultiCameraView: React.FC = () => {
                     </button>
 
                     {/* Waiting State */}
-                    {!isReceiving && isConnected && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
-                        <p>Waiting for camera...</p>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -595,7 +636,6 @@ const MultiCameraView: React.FC = () => {
                                       
                                       if (cameraIndex !== -1) {
                                         setSelectedCameraIndex(cameraIndex);
-                                        connectCamera(availableCamera.camera_id);
                                       }
                                     } else {
                                       const camera = cameras.find(cam => cam.camera_id === availableCamera.camera_id);
