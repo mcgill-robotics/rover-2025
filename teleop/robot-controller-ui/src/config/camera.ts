@@ -3,7 +3,9 @@
 // Central Backend Server Configuration
 export const MULTI_CAMERA_BACKEND = {
   // Backend server host (where central_backend.py runs)
-  HOST: "localhost", // Backend server IP (change to match your setup)
+  get Host(): string {
+    return typeof window !== "undefined" ? window.location.hostname : "localhost";
+  },
   
   // HTTP port for REST API and WebSocket connections
   HTTP_PORT: 8001,
@@ -11,14 +13,12 @@ export const MULTI_CAMERA_BACKEND = {
   // UDP port for receiving frames from Jetson/Pi devices
   UDP_PORT: 9999,
   
-  // WebSocket URL (constructed from above)
-  get WEBSOCKET_URL() {
-    return `ws://${this.HOST}:${this.HTTP_PORT}`;
+  get WEBSOCKET_URL(): string {
+    return 'ws://${this.HOST}:${this.HTTP_PORT}';
   },
-  
-  // HTTP API base URL (constructed from above)
-  get API_BASE_URL() {
-    return `http://${this.HOST}:${this.HTTP_PORT}`;
+
+  get API_BASE_URL(): string {
+    return 'http://${this.HOST}:${this.HTTP_PORT}';
   }
 };
 
