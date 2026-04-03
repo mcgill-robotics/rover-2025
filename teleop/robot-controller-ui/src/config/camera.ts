@@ -3,7 +3,7 @@
 // Central Backend Server Configuration
 export const MULTI_CAMERA_BACKEND = {
   // Backend server host (where central_backend.py runs)
-  get Host(): string {
+  get HOST(): string {
     return typeof window !== "undefined" ? window.location.hostname : "localhost";
   },
   
@@ -14,11 +14,11 @@ export const MULTI_CAMERA_BACKEND = {
   UDP_PORT: 9999,
   
   get WEBSOCKET_URL(): string {
-    return 'ws://${this.HOST}:${this.HTTP_PORT}';
+    return `ws://${this.HOST}:${this.HTTP_PORT}`;
   },
 
   get API_BASE_URL(): string {
-    return 'http://${this.HOST}:${this.HTTP_PORT}';
+    return `http://${this.HOST}:${this.HTTP_PORT}`;
   }
 };
 
