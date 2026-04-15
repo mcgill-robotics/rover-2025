@@ -28,6 +28,7 @@ setup(
             "test_pub = test.pub:main",
             "test_sub = test.sub:main",
             "drive_control_node = scripts.drive_control_node:main",
+            "drive_control_node_V2 = scripts.drive_control_node_V2:main",
             "odrive_node = scripts.node_odrive_drive:main",
             "gui_node = scripts.node_control_gui:main",
             "drive_firmware_node = scripts.drive_firmware_node:main",
