@@ -3,15 +3,20 @@ import serial
 class PanTiltGPS():
 
     ''' This class represents the pan tilt/gps/servo board.
+        
     
     Attributes
     ----------
-    port: str
-        The port to connect to.
+    gps_port: str
+        The port to connect to for the gps (read only).
+    pantilt_port: str
+        The port to connect to for pantilt (write only).
     baud_rate: int
         The baud rate of the connection
-    ser: serial.Serial
-        The serial object from pyserial
+    pantilt_ser: serial.Serial
+        The serial object from pyserial for the connection to pantilt
+    gps_ser: serial.Serial
+        The serial object from pyserial for the connection to gps
     is_connected: bool
         Whether the board is connected to the computer
     buffer: bytes
@@ -26,21 +31,26 @@ class PanTiltGPS():
     Notes
     ------
     The board has been limited to a 100Hz loop. To increase this rate, it needs to be changed on the firmware.
+    2 Serial ports are available, gps is read only while pantilt is write only
     '''
 
-    def __init__(self, port: str, baud_rate: int = 115200):
+    def __init__(self, gps_port: str, pantilt_port:str, baud_rate: int = 115200):
         ''' The initializer for the PanTiltGPS object.
         
         Parameters
         ----------
-        port: str
-            The port of the computer that the board is connected to (COM? for Windows, /dev/ttyACM? for Linux)
+        gps_port: str
+            The port of the computer that the gps board is connected to (COM? for Windows, /dev/ttyACM? for Linux)
+        pantilt_port: str
+            The port of the computer that the pantilt board is connected to (COM? for Windows, /dev/ttyACM? for Linux)
         baud_rate: int, optional
             The baud rate of the connection. Default is 115200 bps
         '''
-        self.port: str = port
+        self.gps_port: str = gps_port
+        self.pantilt_port: str = pantilt_port
         self.baud_rate: int = baud_rate
-        self.ser: serial.Serial = None
+        self.gps_ser: serial.Serial = None
+        self.pantilt_ser: serial.Serial = None
         self.is_connected: bool = False
         self.buffer : bytes = b""
         self.gps_sats: float = 0
@@ -56,13 +66,14 @@ class PanTiltGPS():
             If if fails to connect to the board.
         '''
         try:
-            self.ser = serial.Serial(self.port, self.baud_rate, timeout=1)
+            self.gps_ser = serial.Serial(self.gps_port, self.baud_rate, timeout=1)
+            self.pantilt_ser = serial.Serial(self.pantilt_port, self.baud_rate, timeout=1)
             self.is_connected = True
         except serial.SerialException as e:
             raise ConnectionError(f"Failed to connect to Pan Tilt Board. Error: {e}")
         
 
-    def _read_serial(self):
+    def _read_serial_gps(self):
         ''' Reads from serial if it is available
         
         Raises
@@ -73,7 +84,7 @@ class PanTiltGPS():
         if self.is_connected is False:
             raise ConnectionError("Cannot read from serial port, not connected to board.")
             
-        data = self.ser.read(self.ser.in_waiting or 1)
+        data = self.gps_ser.read(self.gps_ser.in_waiting or 1)
         if data:
             self.buffer += data
             while True:
@@ -99,7 +110,7 @@ class PanTiltGPS():
     def run(self):
         ''' Runs the object's main loop. Call this function in your main loop.
         '''
-        self._read_serial()
+        self._read_serial_gps()
 
     def is_gps_connected(self) -> bool:
         ''' Returns whether the GPS has at least one satellite connection
@@ -159,7 +170,7 @@ class PanTiltGPS():
         if self.is_connected is False:
             raise ConnectionError("Cannot write from serial port, not connected to board.")
         message = (f"{angle},0.0\n").encode()
-        self.ser.write(message)
+        self.pantilt_ser.write(message)
 
     def add_tilt_angle(self, angle: float):
         ''' Adds an increment of angle to the tilt servo.
@@ -177,14 +188,14 @@ class PanTiltGPS():
         if self.is_connected is False:
             raise ConnectionError("Cannot write from serial port, not connected to board.")
         message = (f"0.0,{angle}\n").encode()
-        self.ser.write(message)
+        self.pantilt_ser.write(message)
 
 
 
 if __name__ == "__main__":
     # Test script
     import time
-    board = PanTiltGPS("COM3")
+    board = PanTiltGPS("COM3", "COM4") #TODO: adjust ports 
     try:
         board.connect()
     except ConnectionError as e:
