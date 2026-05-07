@@ -4,7 +4,7 @@ from time import time as now
 from paho.mqtt.client import Client
 from gamepad import Gamepad
 
-BROKER = "192.168.1.88" # Change to your IP address
+BROKER = "192.168.1.175" # Change to your IP address
 PORT = 1883
 QOS = 1
 KEEPALIVE = 60
