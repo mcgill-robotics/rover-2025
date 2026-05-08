@@ -149,6 +149,13 @@ class Gamepad():
                     #self.data.a7 = self.controller.get_hat(0)
                     self.data.b7 = self.controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERLEFT) / 32767.0
                     self.data.b8 = self.controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.0
+                    dpadx = 1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else \
+                        -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_LEFT) else 0
+                    #dpadx = -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_LEFT) else 0
+                    dpady = 1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_UP) else \
+                        -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_DOWN) else 0
+                    #dpady = -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_DOWN) else 0
+                    self.data.a7 = [dpadx, dpady]
 
                     if self.arm_controller != None:
                         #Update arm_data for axes:
