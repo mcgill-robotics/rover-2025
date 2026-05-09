@@ -33,7 +33,7 @@ import json, time, socket
 from time import time as now
 from paho.mqtt.client import Client
 
-BROKER = "192.168.1.88" # Change to MQTT Broker IP address
+BROKER = "192.168.1.175" # Change to MQTT Broker IP address
 PORT = 1883
 TOPIC = "rover/gamepad/drive"
 QOS = 1
