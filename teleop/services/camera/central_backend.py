@@ -72,21 +72,27 @@ class CameraVideoTrack(VideoStreamTrack):
         self.fps = fps
         self._pts = 0
         self._time_base = Fraction(1, fps)
+        self.last_frame_count = -1
 
     async def recv(self):
         while True:
             with self.reader.frame_lock:
                 frame = self.reader.latest_frame
-            if frame is not None:
+                current_frame_count = self.reader.frame_count # Grab the frame ID
+                
+            # Only break if we have a frame AND it's a new one
+            if frame is not None and current_frame_count > self.last_frame_count:
+                self.last_frame_count = current_frame_count
                 break
-            await asyncio.sleep(0.005)
+                
+            await asyncio.sleep(1 / self.fps) # Sleep according to target FPS
 
         vf = VideoFrame.from_ndarray(frame, format="bgr24")
         vf.pts = self._pts
         vf.time_base = self._time_base
         self._pts += 1
         await asyncio.sleep(1 / self.fps)
-        logger.debug(f"[CameraVideoTrack] sending frame pts={self._pts} shape={frame.shape} camera={self.reader.camera_id}")
+        #logger.debug(f"[CameraVideoTrack] sending frame pts={self._pts} shape={frame.shape} camera={self.reader.camera_id}")
         return vf
 
 
@@ -724,28 +730,31 @@ class MultiCameraBackend:
                     try:
                         config = get_backend_config()
                         jpeg_quality = config["JPEG_CONFIG"]["QUALITY"]
-                        _, encoded = cv2.imencode(".jpg", processed_frame, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
-                        b64 = base64.b64encode(encoded).decode("utf-8")
+                        if camera_id in self.websocket_connections and self.websocket_connections[camera_id]:
+                            print("Using WebSocket!!!")
+                            _, encoded = cv2.imencode(".jpg", processed_frame, ...)
+                            b64 = base64.b64encode(encoded).decode("utf-8")
                         
-                        # Create message
-                        message = {
-                            "type": "frame",
-                            "camera_id": camera_id,
-                            "timestamp": int(time.time() * 1000),
-                            "received_time": time.time(),
-                            "frame_data": b64,
-                            "aruco_detected": aruco_detected
-                        }
-                        
-                        # Store in frame buffer
-                        if camera_id in self.frame_buffers:
-                            frame_obj = CameraFrame(camera_id, message["timestamp"], encoded.tobytes(), message["received_time"])
-                            self.frame_buffers[camera_id].add_frame(frame_obj)
-                        
-                        # Broadcast to WebSocket clients
-                        asyncio.run_coroutine_threadsafe(
-                            self.broadcast_frame_data(camera_id, message), self.loop
-                        )
+                            # Create message
+                            print("Creating message!!!")
+                            message = {
+                                "type": "frame",
+                                "camera_id": camera_id,
+                                "timestamp": int(time.time() * 1000),
+                                "received_time": time.time(),
+                                "frame_data": b64,
+                                "aruco_detected": aruco_detected
+                            }
+                            
+                            # Store in frame buffer
+                            if camera_id in self.frame_buffers:
+                                frame_obj = CameraFrame(camera_id, message["timestamp"], encoded.tobytes(), message["received_time"])
+                                self.frame_buffers[camera_id].add_frame(frame_obj)
+                            
+                            # Broadcast to WebSocket clients
+                            asyncio.run_coroutine_threadsafe(
+                                self.broadcast_frame_data(camera_id, message), self.loop
+                            )
                         
                     except Exception as e:
                         logger.error(f"Failed to encode frame for {camera_id}: {e}")
