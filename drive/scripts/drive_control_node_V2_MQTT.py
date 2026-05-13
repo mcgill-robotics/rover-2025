@@ -33,7 +33,7 @@ import json, time, socket
 from time import time as now
 from paho.mqtt.client import Client
 
-BROKER = "localhost" # Change to MQTT Broker IP address
+BROKER = "192.168.1.175" # Change to MQTT Broker IP address
 PORT = 1883
 TOPIC = "rover/gamepad/drive"
 QOS = 1
@@ -55,7 +55,7 @@ class drive_control_V2_MQTT:
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
 
-        station              = dCAN.CANStation(interface="slcan", channel="/dev/ttyACM0", bitrate=500000)
+        station              = dCAN.CANStation(interface="slcan", channel="/dev/ttyACM1", bitrate=500000)
         esc_interface        = dCAN.ESCInterface(station)
         self.drive_interface = dCAN.DriveInterface(esc_interface)
 
@@ -129,19 +129,23 @@ class drive_control_V2_MQTT:
                 print("TANK DRIVE MODE DEACTIVATED - left stick controls rover rotation")
 
         if self.tank_drive_mode:
-            if self.not_in_deadzone_check(data.get('l_stick_x', 0.0), data.get('l_stick_y', 0.0)):
-                left_speed_wheels = self.steering.update_left_wheel_speeds(data.get('l_stick_y', 0.0))
+            if self.not_in_deadzone_check(data.get('r_stick_x', 0.0), data.get('r_stick_y', 0.0)):
+                left_speed_wheels = self.steering.update_left_wheel_speeds(data.get('r_stick_y', 0.0))
             else:
                 left_speed_wheels = [0, 0]
 
-            if self.not_in_deadzone_check(data.get('r_stick_x', 0.0), data.get('r_stick_y', 0.0)):
-                right_speed_wheels = self.steering.update_right_wheel_speeds(data.get('r_stick_y', 0.0))
+            if self.not_in_deadzone_check(data.get('l_stick_x', 0.0), data.get('l_stick_y', 0.0)):
+                right_speed_wheels = self.steering.update_right_wheel_speeds(data.get('l_stick_y', 0.0))
             else:
                 right_speed_wheels = [0, 0]
 
+            print("Wheel Speeds being sent:")
+            print("LEFT: " + str(right_speed_wheels[0]) + ", " + str(right_speed_wheels[1]))
+            print("RIGHT: " + str(left_speed_wheels[0]) + ", " + str(left_speed_wheels[1]))
+
             speed = [
                 right_speed_wheels[0],
-                left_speed_wheels[0],
+                -1 * left_speed_wheels[0],
                 left_speed_wheels[1],
                 right_speed_wheels[1]
             ]
@@ -275,8 +279,8 @@ class drive_control_V2_MQTT:
 
         try:
             while True:
-                self.publish_motor_info()
-                self.publish_speed_info()
+                #self.publish_motor_info()
+                #self.publish_speed_info()
                 self.broadcast_speeds([0.0, 0.0, 0.0, 0.0])
                 time.sleep(0.2)
         except KeyboardInterrupt:

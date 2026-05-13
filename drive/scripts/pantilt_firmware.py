@@ -34,7 +34,7 @@ class PanTiltGPS():
     2 Serial ports are available, gps is read only while pantilt is write only
     '''
 
-    def __init__(self, gps_port: str, pantilt_port:str, baud_rate: int = 115200):
+    def __init__(self, gps_port: str, pantilt_port:str = "ttyACM2", baud_rate: int = 115200):
         ''' The initializer for the PanTiltGPS object.
         
         Parameters
@@ -67,7 +67,7 @@ class PanTiltGPS():
         '''
         try:
             self.gps_ser = serial.Serial(self.gps_port, self.baud_rate, timeout=1)
-            self.pantilt_ser = serial.Serial(self.pantilt_port, self.baud_rate, timeout=1)
+            #self.pantilt_ser = serial.Serial(self.pantilt_port, self.baud_rate, timeout=1)
             self.is_connected = True
         except serial.SerialException as e:
             raise ConnectionError(f"Failed to connect to Pan Tilt Board. Error: {e}")
@@ -88,11 +88,14 @@ class PanTiltGPS():
         if data:
             self.buffer += data
             while True:
+                print("Trying to read data")
                 if b'\n' in self.buffer:
                     line, self.buffer = self.buffer.split(b'\n', 1)
                     line = line.decode('utf-8').strip()
                     self._parse_data(line)
+                    print("Done parsing data")
                 else:
+                    print("Failed to read data")
                     break
                 
     def _parse_data(self, line: str):
@@ -141,6 +144,7 @@ class PanTiltGPS():
             The list of latitude and longitude coordinates
         '''
         new_list = [float(self.gps_sats), self.coords[0], self.coords[1]]
+        print("Your GPS data:" + str(new_list))
         return new_list
     
     def get_imu_data(self) -> list[float]:
