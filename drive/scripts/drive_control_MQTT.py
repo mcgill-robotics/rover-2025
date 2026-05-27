@@ -242,7 +242,7 @@ class drive_control_V2_MQTT:
         self.client.publish("rover/drive/speeds_info", json.dumps(payload), qos = QOS)
 
     def broadcast_speeds(self, speeds):
-        inp = [-speeds[0], speeds[1], -speeds[2], -speeds[3]]
+        inp = [speeds[0], speeds[1], -speeds[2], -speeds[3]]
         self.drive_interface.broadcast_multi_motor_speeds(inp)
 
 
