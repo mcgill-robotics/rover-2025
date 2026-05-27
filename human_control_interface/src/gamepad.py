@@ -115,8 +115,6 @@ class Gamepad():
                     self.data.b4 = self.controller.get_button(pygame.CONTROLLER_BUTTON_X)
                     self.data.b5 = self.controller.get_button(pygame.CONTROLLER_BUTTON_LEFTSHOULDER)
                     self.data.b6 = self.controller.get_button(pygame.CONTROLLER_BUTTON_RIGHTSHOULDER)
-                    # self.data.b7 = self.controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERLEFT) / 32767.0
-                    # self.data.b8 = self.controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.0
                     self.data.b9 = self.controller.get_button(pygame.CONTROLLER_BUTTON_BACK)
                     self.data.b10 = self.controller.get_button(pygame.CONTROLLER_BUTTON_START)
                     self.data.b11 = self.controller.get_button(pygame.CONTROLLER_BUTTON_GUIDE)
@@ -125,47 +123,44 @@ class Gamepad():
 
                     if self.arm_controller != None:
                         #Update arm_data for buttons:
-                        self.arm_data.b1 = self.arm_controller.get_button(0)
-                        self.arm_data.b2 = self.arm_controller.get_button(1)
-                        self.arm_data.b3 = self.arm_controller.get_button(2)
-                        self.arm_data.b4 = self.arm_controller.get_button(3)
-                        self.arm_data.b5 = self.arm_controller.get_button(4)
-                        self.arm_data.b6 = self.arm_controller.get_button(5)
-                        self.arm_data.b7 = self.arm_controller.get_button(6)
-                        self.arm_data.b8 = self.arm_controller.get_button(7)
-                        self.arm_data.b9 = self.arm_controller.get_button(8)
-                        self.arm_data.b10 = self.arm_controller.get_button(9)
-                        self.arm_data.b11 = self.arm_controller.get_button(10)
-                        self.arm_data.b12 = self.arm_controller.get_button(11)
-                        self.arm_data.b13 = self.arm_controller.get_button(12)
+                        self.arm_data.b1 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_A)
+                        self.arm_data.b2 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_B)
+                        self.arm_data.b3 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_Y)
+                        self.arm_data.b4 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_X)
+                        self.arm_data.b5 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_LEFTSHOULDER)
+                        self.arm_data.b6 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_RIGHTSHOULDER)
+                        self.arm_data.b9 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_BACK)
+                        self.arm_data.b10 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_START)
+                        self.arm_data.b11 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_GUIDE)
+                        self.arm_data.b12 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_LEFTSTICK)
+                        self.arm_data.b13 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_RIGHTSTICK)
 
                 elif an_event.type == pygame.JOYAXISMOTION:
                     self.data.a1 = self.controller.get_axis(pygame.CONTROLLER_AXIS_LEFTX) / 32767.0
                     self.data.a2 = -1 * self.controller.get_axis(pygame.CONTROLLER_AXIS_LEFTY) / 32767.0
-                    #self.data.a3 = self.controller.get_axis(2)
                     self.data.a4 = self.controller.get_axis(pygame.CONTROLLER_AXIS_RIGHTX) / 32767.0
                     self.data.a5 = -1 * self.controller.get_axis(pygame.CONTROLLER_AXIS_RIGHTY) / 32767.0
-                    #self.data.a6 = self.controller.get_axis(5)
-                    #self.data.a7 = self.controller.get_hat(0)
                     self.data.b7 = self.controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERLEFT) / 32767.0
                     self.data.b8 = self.controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.0
                     dpadx = 1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else \
                         -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_LEFT) else 0
-                    #dpadx = -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_LEFT) else 0
                     dpady = 1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_UP) else \
                         -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_DOWN) else 0
-                    #dpady = -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_DOWN) else 0
                     self.data.a7 = [dpadx, dpady]
 
                     if self.arm_controller != None:
                         #Update arm_data for axes:
-                        self.arm_data.a1 = self.arm_controller.get_axis(0)
-                        self.arm_data.a2 = -1 * self.arm_controller.get_axis(1)
-                        self.arm_data.a3 = self.arm_controller.get_axis(2)
-                        self.arm_data.a4 = self.arm_controller.get_axis(3)
-                        self.arm_data.a5 = -1 * self.arm_controller.get_axis(4)
-                        self.arm_data.a6 = self.arm_controller.get_axis(5)
-                        self.arm_data.a7 = self.arm_controller.get_hat(0)
+                        self.arm_data.a1 = self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_LEFTX) / 32767.0
+                        self.arm_data.a2 = -1 * self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_LEFTY) / 32767.0
+                        self.arm_data.a4 = self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_RIGHTX) / 32767.0
+                        self.arm_data.a5 = -1 * self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_RIGHTY) / 32767.0
+                        self.arm_data.b7 = self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERLEFT) / 32767.0
+                        self.arm_data.b8 = self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.0
+                        arm_dpadx = 1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else \
+                            -1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_LEFT) else 0
+                        arm_dpady = 1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_UP) else \
+                            -1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_DOWN) else 0
+                        self.arm_data.a7 = [arm_dpadx, arm_dpady]
 
             except pygame.error:
                 pass

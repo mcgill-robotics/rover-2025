@@ -81,7 +81,7 @@ BACKEND_CONFIG = {
     "INVERTED_CAMERAS": {
         "CC HD webcam            : CC HD": "jetson-01-cam00", 
         "HD Camera: HD Camera": "jetson-01-cam01",
-        "Centerm Camera: Centerm Camera": "jetson-01-cam02"
+        #"Centerm Camera: Centerm Camera": "jetson-01-cam02"
     }
 }
 
