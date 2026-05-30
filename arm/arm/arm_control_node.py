@@ -17,6 +17,8 @@ from arm.firmware.arm_controller import ArmController, Joint
 IK_CONTROL = 0
 JOINT_CONTROL = 1
 
+JOINT_MAPPING = {Joint.WAIST, Joint.SHOULDER, Joint.ELBOW, None, None, None}
+
 ARM_PRESET_1 = {"waist": 45.0, "shoulder": 5.0, "elbow": 5.0} #we can use this for stowed position
 ARM_PRESET_2 = {"waist": 45.0, "shoulder": 30, "elbow": 45.0} #this can be more of a centered position
 
@@ -127,9 +129,10 @@ class arm_control_node(Node):
                 self.controller.print_joint_menu()
                 #Check if there is joystick value for specific angle adjustment and if individual joint moment allowed
                 if self.not_in_deadzone_check(gamepad_input.r_stick_y, 0):
-                    new_angles = self.controller.move_joint(gamepad_input.r_stick_y, self.cur_angles)
-                    self.firmware.move_joints(waist=new_angles[0], shoulder=new_angles[1], elbow=new_angles[2])
-            
+                    new_speed = self.controller.get_joint_speed(gamepad_input.r_stick_y)
+                    joint = JOINT_MAPPING[self.controller.current_cycle_mode]
+                    if joint:
+                        self.firmware.jog_joint(joint, new_speed)
         
             #Check if there is input for enabling/disabling joint control
             if gamepad_input.start_button:

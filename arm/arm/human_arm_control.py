@@ -64,6 +64,9 @@ class HumanArmControl:
         cur_angles[self.current_cycle_mode] = max(joint_lower_limits[self.current_cycle_mode], min(cur_angles[self.current_cycle_mode], joint_upper_limits[self.current_cycle_mode]))
         return cur_angles
 
+    def get_joint_speed(self, joystick_input: float) -> float:
+        return self.speed * joystick_input * joint_max_speed[self.current_cycle_mode]
+
     def speed_up(self):
         """
         Increases the speed of movement by speed_increment.
