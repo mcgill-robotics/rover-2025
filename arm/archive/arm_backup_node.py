@@ -2,7 +2,7 @@
 import time, os, sys, json
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
-from armCANCommunicationV2 import (
+from arm.archive.armCANCommunicationV2 import (
     ArmNodeID, CANStation, ArmESCInterface, MotorType,
     ActionType, ReadSpec
 )
