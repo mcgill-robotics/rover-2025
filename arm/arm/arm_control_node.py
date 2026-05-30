@@ -11,6 +11,7 @@ import numpy as np
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Bool
 from std_srvs.srv import Trigger
+from arm.firmware.arm_controller import ArmController, Joint
 
 # Enum for control schema
 IK_CONTROL = 0
@@ -28,20 +29,15 @@ class arm_control_node(Node):
         self.gamepad_input = GamePadInput()
 
         self.controller = HumanArmControl() 
+        self.firmware = ArmController()
 
         # TODO: Tune values
         self.deadzone = 0.1 
 
-        self.cur_angles = [0.0,0.0,0.0,0.0,0.0] #Dummy  value, update with API call
+        self.cur_angles = [0.0,0.0,0.0,0.0,0.0] #Dummy  value, update with API call. Waist, Shoulder, Elbow, Wrist, Hand
         self.current_schema = JOINT_CONTROL  # Start with Inverse Kinematics control
        
         self.gamepadSubscriber = self.create_subscription(GamePadInput, "gamepad_input_arm", self.run, 10)
-        self.feedbackSubscriber = self.create_subscription(Float32MultiArray, "arm_position_feedback", self.updateArmPosition, 10)
-
-        self.position_publisher = self.create_publisher(Float32MultiArray, 'arm_position_cmd', 10)
-        self.fault_publisher = self.create_publisher(Bool, "acknowledge_arm_faults", 10)
-
-        self.calibration_client = self.create_client(Trigger, "calibration_service")
 
         # self.init_calibration()
         self.going_to_preset = False
@@ -54,16 +50,14 @@ class arm_control_node(Node):
         return not ((-self.deadzone <= x_axis <= self.deadzone) and (-self.deadzone <= y_axis <= self.deadzone))
     
     def init_calibration(self):
-        while not self.calibration_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info("Waiting for calibration service")
-        req = Trigger.Request()
-        response = self.calibration_client.call_async(req)
-        rclpy.spin_until_future_complete(self, response)
-        if response.result():
-            if response.result().success:
-                self.get_logger().info(f'Calibration Result: {response.result().success}')
-            else:
-                self.get_logger().error(f'Calibration Result: {response.result().success}')
+        self.firmware.calibrate(Joint.WAIST)
+        self.firmware.calibrate(Joint.SHOULDER)
+        self.firmware.calibrate(Joint.ELBOW)
+
+    def acknowledge_all_faults(self):
+        self.firmware.acknowledge_faults(Joint.WAIST)
+        self.firmware.acknowledge_faults(Joint.SHOULDER)
+        self.firmware.acknowledge_faults(Joint.ELBOW)
             
     def run(self, gamepad_input: GamePadInput):
         """
@@ -71,18 +65,12 @@ class arm_control_node(Node):
         """
         #self.controller.print_joint_menu()
         self.going_to_preset = False
+        self.update_arm_position()
 
         if gamepad_input.home_button:
-            msg = Bool()
-            msg.data = True
-            self.fault_publisher.publish(msg)
-
-            #Calibration
-            self.init_calibration()
-        else:
-            msg = Bool()
-            msg.data = False
-            self.fault_publisher.publish(msg)
+            self.acknowledge_all_faults()
+            # #Calibration
+            # self.init_calibration()
 
         new_angles = self.cur_angles # Create a copy of the current angles to modify
         #Check if there is input value for changing the speed
@@ -103,10 +91,12 @@ class arm_control_node(Node):
         if gamepad_input.l1_button: #Preset1
             new_angles = [ARM_PRESET_1["waist"], ARM_PRESET_1["shoulder"], ARM_PRESET_1["elbow"], self.cur_angles[3], self.cur_angles[4]] #Include James vars
             self.going_to_preset = True
+            self.firmware.move_joints(waist=new_angles[0], shoulder=new_angles[1], elbow=new_angles[2])
 
         if gamepad_input.r1_button: #Preset2
             new_angles = [ARM_PRESET_2["waist"], ARM_PRESET_2["shoulder"], ARM_PRESET_2["elbow"], self.cur_angles[3], self.cur_angles[4]] #Include James vars
             self.going_to_preset = True
+            self.firmware.move_joints(waist=new_angles[0], shoulder=new_angles[1], elbow=new_angles[2])
         
         if not self.going_to_preset:
             if self.current_schema == IK_CONTROL:
@@ -128,6 +118,8 @@ class arm_control_node(Node):
 
                 elif gamepad_input.l2_button:
                     new_angles = self.controller.upDownTilt(-1, self.cur_angles)
+                
+                self.firmware.move_joints(waist=new_angles[0], shoulder=new_angles[1], elbow=new_angles[2])
             
             elif self.current_schema == JOINT_CONTROL:
                 os.system("clear")
@@ -136,6 +128,7 @@ class arm_control_node(Node):
                 #Check if there is joystick value for specific angle adjustment and if individual joint moment allowed
                 if self.not_in_deadzone_check(gamepad_input.r_stick_y, 0):
                     new_angles = self.controller.move_joint(gamepad_input.r_stick_y, self.cur_angles)
+                    self.firmware.move_joints(waist=new_angles[0], shoulder=new_angles[1], elbow=new_angles[2])
             
         
             #Check if there is input for enabling/disabling joint control
@@ -153,11 +146,13 @@ class arm_control_node(Node):
         msg.data = new_angles
         self.position_publisher.publish(msg)
 
-    def updateArmPosition(self, position: Float32MultiArray) -> None:
+    def update_arm_position(self) -> None:
         """
         Callback to update the current arm angles based on feedback from the arm firmware
         """
-        self.cur_angles = position.data.tolist()
+        self.cur_angles[0] = self.firmware.read_position(Joint.WAIST)
+        self.cur_angles[1] = self.firmware.read_position(Joint.SHOULDER)
+        self.cur_angles[2] = self.firmware.read_position(Joint.ELBOW)
 
 def main(args=None):
     rclpy.init(args=args)
