@@ -7,9 +7,9 @@ sys.path.append(currentdir)
 parent = currentdir.rfind("/", 0, currentdir.rfind("/")) # also add the top level folder as a path
 sys.path.append(currentdir[:parent])
 
-import armCANCommunicationV2 as aCAN
+import arm.archive.armCANCommunicationV2 as aCAN
 import rclpy
-from allArmJointsv2 import calibrate_blocking
+from arm.archive.allArmJointsv2 import calibrate_blocking
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
 from std_srvs.srv import Trigger
