@@ -26,12 +26,12 @@ class Steering:
 
 
     def update_left_wheel_speeds(self, l_stick_y: float) -> list[float]:
-        print(l_stick_y)
+        #print(l_stick_y)
         left_speed = l_stick_y * self.speed_controller.max_speed
         return [left_speed, left_speed] # because same speed for both left wheels
 
     def update_right_wheel_speeds(self, r_stick_y: float) -> list[float]:
-        print(r_stick_y)
+        #print(r_stick_y)
         right_speed = r_stick_y * self.speed_controller.max_speed
         return [right_speed, right_speed]
 

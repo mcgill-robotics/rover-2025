@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import pygame
+from pygame._sdl2 import controller
 """Gets gamepad data and publishes the data to the gamepad_data topic
 
     Data:
@@ -49,41 +50,42 @@ class Gamepad():
 
         # Initialize Gamepad
         pygame.init()
-        pygame.joystick.init()
+        controller.init()
+        # controller.init()
 
-        if pygame.joystick.get_count() == 1:
+        if controller.get_count() == 1:
             # Take the only Gamepad available
             print("only one joystick")
-            self.controller = pygame.joystick.Joystick(0)
+            self.controller = controller.Controller(0)
             self.controller.init()
             self.arm_controller = None
-            print(pygame.joystick.get_count(), self.controller.get_id(),
-                  " ", self.controller.get_name())
+            print(controller.get_count(), self.controller.id,
+                  " ", self.controller.name)
 
-        elif pygame.joystick.get_count() == 2:
+        elif controller.get_count() == 2:
             #Try to initialize both controllers
             try:
-                controller1 = pygame.joystick.Joystick(0)
+                controller1 = controller.Controller(0)
                 controller1.init()
-                print("SINGLE CONTROLL DETECTED", controller1.get_id(),
-                      " ", controller1.get_name())
+                print("SINGLE CONTROLL DETECTED", controller1.id,
+                      " ", controller1.name)
             except:
                 print("controller not intialised")
             try:
-                controller2 = pygame.joystick.Joystick(1)
+                controller2 = controller.Controller(1)
                 controller2.init()
-                print("DOUBLE CONTROLL DETECTED", controller2.get_id(),
-                      " ", controller2.get_name())
+                print("DOUBLE CONTROLL DETECTED", controller2.id,
+                      " ", controller2.name)
             except:
-                print(controller2.get_name(), "failed")
+                print(controller2.name, "failed")
 
-            if controller1.get_id() == 0 and controller2.get_id() == 1:
+            if controller1.id == 0 and controller2.id == 1:
                 #If both controllers are correctly detected, initialize both fields
                 print("2 controllers connected")
                 self.controller = controller1
                 self.arm_controller = controller2
             
-            elif controller1.get_id() == 0:
+            elif controller1.id == 0:
                 #If only one controller is correctly detected
                 self.controller = controller1
             else:
@@ -92,7 +94,7 @@ class Gamepad():
 
         else:
             # Either no Gamepad found
-            print(pygame.joystick.get_count())
+            print(controller.get_count())
 
             self.controller = None
 
@@ -107,54 +109,58 @@ class Gamepad():
             try:
                 # Get event information
                 if an_event.type == pygame.JOYBUTTONDOWN or an_event.type == pygame.JOYBUTTONUP:
-                    self.data.b1 = self.controller.get_button(0)
-                    self.data.b2 = self.controller.get_button(1)
-                    self.data.b3 = self.controller.get_button(2)
-                    self.data.b4 = self.controller.get_button(3)
-                    self.data.b5 = self.controller.get_button(4)
-                    self.data.b6 = self.controller.get_button(5)
-                    self.data.b7 = self.controller.get_button(6)
-                    self.data.b8 = self.controller.get_button(7)
-                    self.data.b9 = self.controller.get_button(8)
-                    self.data.b10 = self.controller.get_button(9)
-                    self.data.b11 = self.controller.get_button(10)
-                    self.data.b12 = self.controller.get_button(11)
-                    self.data.b13 = self.controller.get_button(12)
+                    self.data.b1 = self.controller.get_button(pygame.CONTROLLER_BUTTON_A)
+                    self.data.b2 = self.controller.get_button(pygame.CONTROLLER_BUTTON_B)
+                    self.data.b3 = self.controller.get_button(pygame.CONTROLLER_BUTTON_Y)
+                    self.data.b4 = self.controller.get_button(pygame.CONTROLLER_BUTTON_X)
+                    self.data.b5 = self.controller.get_button(pygame.CONTROLLER_BUTTON_LEFTSHOULDER)
+                    self.data.b6 = self.controller.get_button(pygame.CONTROLLER_BUTTON_RIGHTSHOULDER)
+                    self.data.b9 = self.controller.get_button(pygame.CONTROLLER_BUTTON_BACK)
+                    self.data.b10 = self.controller.get_button(pygame.CONTROLLER_BUTTON_START)
+                    self.data.b11 = self.controller.get_button(pygame.CONTROLLER_BUTTON_GUIDE)
+                    self.data.b12 = self.controller.get_button(pygame.CONTROLLER_BUTTON_LEFTSTICK)
+                    self.data.b13 = self.controller.get_button(pygame.CONTROLLER_BUTTON_RIGHTSTICK)
 
                     if self.arm_controller != None:
                         #Update arm_data for buttons:
-                        self.arm_data.b1 = self.arm_controller.get_button(0)
-                        self.arm_data.b2 = self.arm_controller.get_button(1)
-                        self.arm_data.b3 = self.arm_controller.get_button(2)
-                        self.arm_data.b4 = self.arm_controller.get_button(3)
-                        self.arm_data.b5 = self.arm_controller.get_button(4)
-                        self.arm_data.b6 = self.arm_controller.get_button(5)
-                        self.arm_data.b7 = self.arm_controller.get_button(6)
-                        self.arm_data.b8 = self.arm_controller.get_button(7)
-                        self.arm_data.b9 = self.arm_controller.get_button(8)
-                        self.arm_data.b10 = self.arm_controller.get_button(9)
-                        self.arm_data.b11 = self.arm_controller.get_button(10)
-                        self.arm_data.b12 = self.arm_controller.get_button(11)
-                        self.arm_data.b13 = self.arm_controller.get_button(12)
+                        self.arm_data.b1 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_A)
+                        self.arm_data.b2 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_B)
+                        self.arm_data.b3 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_Y)
+                        self.arm_data.b4 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_X)
+                        self.arm_data.b5 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_LEFTSHOULDER)
+                        self.arm_data.b6 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_RIGHTSHOULDER)
+                        self.arm_data.b9 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_BACK)
+                        self.arm_data.b10 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_START)
+                        self.arm_data.b11 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_GUIDE)
+                        self.arm_data.b12 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_LEFTSTICK)
+                        self.arm_data.b13 = self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_RIGHTSTICK)
 
                 elif an_event.type == pygame.JOYAXISMOTION:
-                    self.data.a1 = self.controller.get_axis(0)
-                    self.data.a2 = -1 * self.controller.get_axis(1)
-                    self.data.a3 = self.controller.get_axis(2)
-                    self.data.a4 = self.controller.get_axis(3)
-                    self.data.a5 = -1 * self.controller.get_axis(4)
-                    self.data.a6 = self.controller.get_axis(5)
-                    self.data.a7 = self.controller.get_hat(0)
+                    self.data.a1 = self.controller.get_axis(pygame.CONTROLLER_AXIS_LEFTX) / 32767.0
+                    self.data.a2 = -1 * self.controller.get_axis(pygame.CONTROLLER_AXIS_LEFTY) / 32767.0
+                    self.data.a4 = self.controller.get_axis(pygame.CONTROLLER_AXIS_RIGHTX) / 32767.0
+                    self.data.a5 = -1 * self.controller.get_axis(pygame.CONTROLLER_AXIS_RIGHTY) / 32767.0
+                    self.data.b7 = self.controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERLEFT) / 32767.0
+                    self.data.b8 = self.controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.0
+                    dpadx = 1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else \
+                        -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_LEFT) else 0
+                    dpady = 1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_UP) else \
+                        -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_DOWN) else 0
+                    self.data.a7 = [dpadx, dpady]
 
                     if self.arm_controller != None:
                         #Update arm_data for axes:
-                        self.arm_data.a1 = self.arm_controller.get_axis(0)
-                        self.arm_data.a2 = -1 * self.arm_controller.get_axis(1)
-                        self.arm_data.a3 = self.arm_controller.get_axis(2)
-                        self.arm_data.a4 = self.arm_controller.get_axis(3)
-                        self.arm_data.a5 = -1 * self.arm_controller.get_axis(4)
-                        self.arm_data.a6 = self.arm_controller.get_axis(5)
-                        self.arm_data.a7 = self.arm_controller.get_hat(0)
+                        self.arm_data.a1 = self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_LEFTX) / 32767.0
+                        self.arm_data.a2 = -1 * self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_LEFTY) / 32767.0
+                        self.arm_data.a4 = self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_RIGHTX) / 32767.0
+                        self.arm_data.a5 = -1 * self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_RIGHTY) / 32767.0
+                        self.arm_data.b7 = self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERLEFT) / 32767.0
+                        self.arm_data.b8 = self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.0
+                        arm_dpadx = 1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else \
+                            -1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_LEFT) else 0
+                        arm_dpady = 1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_UP) else \
+                            -1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_DOWN) else 0
+                        self.arm_data.a7 = [arm_dpadx, arm_dpady]
 
             except pygame.error:
                 pass
