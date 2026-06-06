@@ -60,6 +60,11 @@ class arm_control_node(Node):
         self.firmware.acknowledge_faults(Joint.WAIST)
         self.firmware.acknowledge_faults(Joint.SHOULDER)
         self.firmware.acknowledge_faults(Joint.ELBOW)
+
+    def move_joints(self, position):
+        # position given in degrees
+        rads = [d * math.pi / 180 for d in position]
+        self.firmware.move_joints(waist=rads[0], shoulder=rads[1], elbow=rads[2])
             
     def run(self, gamepad_input: GamePadInput):
         """
@@ -93,12 +98,12 @@ class arm_control_node(Node):
         if gamepad_input.l1_button: #Preset1
             new_angles = [ARM_PRESET_1["waist"], ARM_PRESET_1["shoulder"], ARM_PRESET_1["elbow"], self.cur_angles[3], self.cur_angles[4]] #Include James vars
             self.going_to_preset = True
-            self.firmware.move_joints(waist=new_angles[0], shoulder=new_angles[1], elbow=new_angles[2])
+            self.move_joints(new_angles)
 
         if gamepad_input.r1_button: #Preset2
             new_angles = [ARM_PRESET_2["waist"], ARM_PRESET_2["shoulder"], ARM_PRESET_2["elbow"], self.cur_angles[3], self.cur_angles[4]] #Include James vars
             self.going_to_preset = True
-            self.firmware.move_joints(waist=new_angles[0], shoulder=new_angles[1], elbow=new_angles[2])
+            self.move_joints(new_angles)
         
         if not self.going_to_preset:
             if self.current_schema == IK_CONTROL:
@@ -121,7 +126,7 @@ class arm_control_node(Node):
                 elif gamepad_input.l2_button:
                     new_angles = self.controller.upDownTilt(-1, self.cur_angles)
                 
-                self.firmware.move_joints(waist=new_angles[0], shoulder=new_angles[1], elbow=new_angles[2])
+                self.move_joints(new_angles)
             
             elif self.current_schema == JOINT_CONTROL:
                 os.system("clear")
