@@ -66,10 +66,11 @@ class DummyVideoTrack(VideoStreamTrack):
         return vf
 
 class CameraVideoTrack(VideoStreamTrack):
-    def __init__(self, reader=None, fps: int = 20):
+    def __init__(self, reader=None, fps: int = 20, aruco_detector=None):
         super().__init__()
         self.reader = reader
         self.fps = fps
+        self.aruco_detector = aruco_detector
         self._pts = 0
         self._time_base = Fraction(1, fps)
         self.last_frame_count = -1
@@ -87,6 +88,8 @@ class CameraVideoTrack(VideoStreamTrack):
                 
             await asyncio.sleep(1 / self.fps) # Sleep according to target FPS
 
+        if self.aruco_detector is not None:
+            frame, _ = self.aruco_detector.process_frame(frame)
         vf = VideoFrame.from_ndarray(frame, format="bgr24")
         vf.pts = self._pts
         vf.time_base = self._time_base
@@ -172,7 +175,7 @@ class MultiCameraBackend:
         from fastapi.middleware.cors import CORSMiddleware
         self.app.add_middleware(
             CORSMiddleware,
-            allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+            allow_origins=["*"],
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
@@ -450,7 +453,7 @@ class MultiCameraBackend:
             if reader is None:
                 return JSONResponse({"error": f"Camera {id} not ready yet"}, status_code=503)
 
-            pc.addTrack(CameraVideoTrack(reader, fps=20))
+            pc.addTrack(CameraVideoTrack(reader, fps=20, aruco_detector=self.aruco_detector))
 
             remote_offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
             await pc.setRemoteDescription(remote_offer)
