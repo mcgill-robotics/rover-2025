@@ -1,24 +1,39 @@
 import subprocess
+from enum import Enum
 
-def get_ACM_port(devices: list[str], default_port: str = "0") -> str:
+Subsystem = Enum("Subsystem",[("DRIVE", "28003E001950453055373020"),("ARM", "TODO: obtain this"),("GPS", "2087338C3630")])
+
+def get_ACM_port(subsystem: Subsystem) -> str:
     """
-    Parameters:
-        devices: The list of devices we want to connect. ["drive", "arm", "gps/pane-tilt"]
-
     Returns the ACM port number required for running the arm and drive firmware nodes. 
     Uses bash commands through subprocess to obtain the (first) ACM port occurence.
     If not found, defaults to a default port number, which can be given as an argument.
     """
+            
     try:
         result = subprocess.run(["sudo", "dmesg"], capture_output=True, text=True)
-        result = subprocess.run(["grep", "TCP"], input=result.stdout, capture_output=True, text=True)
+        result = subprocess.run(["grep", "ttyACM"], input=result.stdout, capture_output=True, text=True)
         result = subprocess.run(["tr", "-s", " "], input=result.stdout, capture_output=True, text=True)
-        result = subprocess.run(["cut", "-d", " ", "-f6"], input=result.stdout, capture_output=True, text=True)
+        result = subprocess.run(["cut", "-d", " ", "-f5"], input=result.stdout, capture_output=True, text=True)
         result = subprocess.run(["grep", "-o", "-E", "[0-9]+"], input=result.stdout, capture_output=True, text=True)
-        port = result.stdout.split("\n")[0]
-
-        if not port:
-            port = default_port
+        ports = result.stdout.split("\n")
+        
+        if not ports[0]:
+            print("no devices detected in ACM ports")
+            return -1
+        
+        for port in ports:
+            name = "/dev/ttyACM" + port
+            result = subprocess.run(["udevadm", "info", "-q", "all", "-a", "-n", name], capture_output=True, text=True)
+            result = subprocess.run(["grep", "ATTRS{{serial}}"], input=result.stdout, capture_output=True, text=True)
+            result = subprocess.run(["cut", "-d", '"', "-f2"], input=result.stdout, capture_output=True, text=True)
+            ids = result.stdout.split("\n")
+            for id in ids:
+                if(id == subsystem.value):
+                    print("{subsystem.name} connected at ttyACM{port}")
+                    return port
     except:
-        port = default_port
-    return port
+        print("there was an error detecting ACM ports")
+        return -1
+    print("{subsystem.name} not detected on any active ports")
+    return -1
