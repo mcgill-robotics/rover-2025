@@ -1,7 +1,10 @@
 import subprocess
 
-def get_ACM_port(default_port: str = "0") -> str:
+def get_ACM_port(devices: list[str], default_port: str = "0") -> str:
     """
+    Parameters:
+        devices: The list of devices we want to connect. ["drive", "arm", "gps/pane-tilt"]
+
     Returns the ACM port number required for running the arm and drive firmware nodes. 
     Uses bash commands through subprocess to obtain the (first) ACM port occurence.
     If not found, defaults to a default port number, which can be given as an argument.
