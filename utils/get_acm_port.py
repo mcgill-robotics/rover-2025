@@ -1,13 +1,16 @@
 import subprocess
 from enum import Enum
 
-Subsystem = Enum("Subsystem",[("DRIVE", "28003E001950453055373020"),("ARM", "TODO: obtain this"),("GPS", "2087338C3630")])
+class Subsystem(Enum):
+    DRIVE = "28003E001950453055373020"
+    ARM = "TODO: obtain this"
+    GPS = "2087338C3630"
 
-def get_ACM_port(subsystem: Subsystem) -> str:
+def get_ACM_port(subsystem: Subsystem = Subsystem.DRIVE) -> str:
     """
-    Returns the ACM port number required for running the arm and drive firmware nodes. 
-    Uses bash commands through subprocess to obtain the (first) ACM port occurence.
-    If not found, defaults to a default port number, which can be given as an argument.
+    Returns the ACM port number required for running the associated robot subsystem. 
+    Uses bash commands through subprocess to obtain the active ACM port with a matching serial number
+    If not found successfully, it returns '-1'
     """
             
     try:
@@ -19,7 +22,7 @@ def get_ACM_port(subsystem: Subsystem) -> str:
         ports = result.stdout.split("\n")
         
         if not ports[0]:
-            print("no devices detected in ACM ports")
+            print("no active ACM ports found")
             return -1
         
         for port in ports:
