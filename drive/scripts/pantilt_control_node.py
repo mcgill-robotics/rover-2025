@@ -1,7 +1,11 @@
 import os
 import sys
+
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
+parent = currentdir.rfind("/", 0, currentdir.rfind("/")) # also add the top level folder as a path
+sys.path.append(currentdir[:parent])
+
 import pantilt_firmware as pf
 import rclpy
 from rclpy.node import Node
