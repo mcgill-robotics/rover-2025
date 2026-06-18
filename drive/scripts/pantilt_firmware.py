@@ -1,4 +1,5 @@
 import serial
+import math
 
 class PanTiltGPS():
 
@@ -144,8 +145,35 @@ class PanTiltGPS():
             The list of latitude and longitude coordinates
         '''
         new_list = [float(self.gps_sats), self.coords[0], self.coords[1]]
-        print("Your GPS data:" + str(new_list))
+        
+        self.print_gps_data(self)
+        
         return new_list
+    
+    def print_gps_data(self) -> None:
+        new_list = [float(self.gps_sats), self.coords[0], self.coords[1]]
+
+        if self.coords[0]>0:
+            lat_dir = "N"
+        else:
+            lat_dir = "S"
+
+        
+        if self.coords[1]>0:
+            long_dir = "E"
+        else:
+            long_dir = "W"
+            
+        lat_deg = math.floor(abs(self.coords[0]))
+        lat_min = math.floor((abs(self.coords[0])-lat_deg)*60)
+        lat_sec = (((abs(self.coords[0])-lat_deg)*60)-lat_min)*60
+        long_deg = math.floor(abs(self.coords[1]))
+        long_min = math.floor((abs(self.coords[1])-long_deg)*60)
+        long_sec = (((abs(self.coords[1])-long_deg)*60)-long_min)*60
+        converted = f"{lat_deg}°{lat_min}\'{lat_sec}\"{lat_dir} {long_deg}°{long_min}\'{long_sec}\"{long_dir}"
+
+        print("Your GPS data:" + str(new_list) + " = " + converted)
+        return
     
     def get_imu_data(self) -> list[float]:
         ''' Gets the last available imu data.
