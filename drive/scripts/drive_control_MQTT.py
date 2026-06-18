@@ -32,6 +32,7 @@ import driveCANCommunication as dCAN
 import json, time, socket
 from time import time as now
 from paho.mqtt.client import Client
+from utils.get_acm_port import get_ACM_port, Subsystem
 
 BROKER = "192.168.1.175" # Change to MQTT Broker IP address
 PORT = 1883
@@ -55,7 +56,7 @@ class drive_control_V2_MQTT:
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
 
-        station              = dCAN.CANStation(interface="slcan", channel="/dev/ttyACM1", bitrate=500000)
+        station              = dCAN.CANStation(interface="slcan", channel=f"/dev/ttyACM{get_ACM_port(subsystem = Subsystem.DRIVE)}", bitrate=500000)
         esc_interface        = dCAN.ESCInterface(station)
         self.drive_interface = dCAN.DriveInterface(esc_interface)
 

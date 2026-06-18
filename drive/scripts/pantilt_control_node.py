@@ -7,13 +7,14 @@ import rclpy
 from rclpy.node import Node
 from msg_srv_interface.msg import GamePadInput
 from std_msgs.msg import Float32MultiArray
+from utils.get_acm_port import get_ACM_port, Subsystem
 
 class pantilt(Node):
 
     def __init__(self):
         super().__init__("pantilt_node")
         self.gampepad_subscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.update_pantilt, 10)
-        self.pantilt_firmware = pf.PanTiltGPS("/dev/ttyACM0")
+        self.pantilt_firmware = pf.PanTiltGPS(f"/dev/ttyACM{get_ACM_port(subsystem = Subsystem.GPS)}")
         try:
             self.pantilt_firmware.connect()
         except:
