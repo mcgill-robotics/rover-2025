@@ -40,7 +40,7 @@ TOPIC = "rover/gamepad/drive"
 QOS = 1
 KEEPALIVE = 60
 
-class drive_control_V2_MQTT:
+class drive_control_MQTT:
 
     def __init__(self):
 
@@ -281,8 +281,8 @@ class drive_control_V2_MQTT:
             self.client.disconnect()
 
 def main():
-    drive_controller_V2_node = drive_control_V2_MQTT()
-    drive_controller_V2_node.loop()
+    drive_controller_node = drive_control_MQTT()
+    drive_controller_node.loop()
 
 if __name__ == "__main__":
     main()
