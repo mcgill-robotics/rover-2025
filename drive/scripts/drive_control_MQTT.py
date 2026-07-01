@@ -50,9 +50,7 @@ class drive_control_V2_MQTT:
         # TODO: Tune values
         self.deadzone = 0.1 
         self.turning_speed = 3200.0
-        
-        self.tank_drive_mode = False
-        
+                
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
 
@@ -122,14 +120,6 @@ class drive_control_V2_MQTT:
             rotation_sp = self.steering.rover_rotation(self.wheel_angles, rot_inp)
             speed = [direction*self.turning_speed for direction in rotation_sp]
 
-        if data.get('triangle_button', 0.0):
-            self.tank_drive_mode = not self.tank_drive_mode
-            if self.tank_drive_mode:
-                print("TANK DRIVE MODE ACTIVATED - left stick controls left wheel & right stick controls right wheel")
-            else:
-                print("TANK DRIVE MODE DEACTIVATED - left stick controls rover rotation")
-
-        if self.tank_drive_mode:
             if self.not_in_deadzone_check(data.get('r_stick_x', 0.0), data.get('r_stick_y', 0.0)):
                 left_speed_wheels = self.steering.update_left_wheel_speeds(data.get('r_stick_y', 0.0))
             else:
