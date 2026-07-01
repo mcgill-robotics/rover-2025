@@ -24,6 +24,7 @@ class pantilt(Node):
 
         self.gps_publisher = self.create_publisher(Float32MultiArray, "roverGPSData", 10)
         self.imu_publisher = self.create_publisher(Float32MultiArray, "roverIMUData", 10)
+        # Consider changing IMU message type!
 
         self.timer = self.create_timer(timer_period, self.run)
 
