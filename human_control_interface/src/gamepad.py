@@ -142,11 +142,6 @@ class Gamepad():
                     self.data.a5 = -1 * self.controller.get_axis(pygame.CONTROLLER_AXIS_RIGHTY) / 32767.0
                     self.data.b7 = self.controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERLEFT) / 32767.0
                     self.data.b8 = self.controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.0
-                    dpadx = 1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else \
-                        -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_LEFT) else 0
-                    dpady = 1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_UP) else \
-                        -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_DOWN) else 0
-                    self.data.a7 = [dpadx, dpady]
 
                     if self.arm_controller != None:
                         #Update arm_data for axes:
@@ -156,6 +151,15 @@ class Gamepad():
                         self.arm_data.a5 = -1 * self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_RIGHTY) / 32767.0
                         self.arm_data.b7 = self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERLEFT) / 32767.0
                         self.arm_data.b8 = self.arm_controller.get_axis(pygame.CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.0
+
+                elif an_event.type == pygame.JOYHATMOTION:
+                    dpadx = 1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else \
+                        -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_LEFT) else 0
+                    dpady = 1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_UP) else \
+                        -1.0 if self.controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_DOWN) else 0
+                    self.data.a7 = [dpadx, dpady]
+
+                    if self.arm_controller != None:
                         arm_dpadx = 1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else \
                             -1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_LEFT) else 0
                         arm_dpady = 1.0 if self.arm_controller.get_button(pygame.CONTROLLER_BUTTON_DPAD_UP) else \
