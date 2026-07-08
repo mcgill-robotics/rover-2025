@@ -64,16 +64,8 @@ class pantilt(Node):
             self.update_pantilt(data)
 
     def run(self):
-        # This method calls the run() method of the firmware, and sends the IMU and GPS data to topics.
+        # This method calls the run() method of the firmware, and sends the GPS data its respective topic.
         self.pantilt_firmware.run()
-        # Get IMU data and publish it
-        # imu_data = self.pantilt_firmware.get_imu_data()
-        # imu_msg = Float32MultiArray()
-        # for i in range(len(imu_data)):
-        #     imu_data[i] = float(imu_data[i])
-        # imu_msg.data = tuple(imu_data)
-        # self.imu_publisher.publish(imu_msg)
-        # Get GPS data and publish it
         gps_data = self.pantilt_firmware.get_gps()
         gps_msg = Float32MultiArray()
         gps_msg.data = tuple(gps_data)
