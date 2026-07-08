@@ -54,5 +54,5 @@ if __name__ == '__main__':
     fig.patch.set_facecolor('none')
     plt.imshow(np.asarray(a))
     plt.axis('off')
-    #plt.savefig('map.png', transparent=True, bbox_inches='tight', dpi=300)
+    plt.savefig('map.png', transparent=True, bbox_inches='tight', dpi=300)
     plt.show()
