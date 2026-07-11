@@ -50,7 +50,7 @@ class SpeedController():
         # Window of past wheels speeds of size self.history_size
         self.wheel_speeds_history : list[float] = np.zeros(self.history_size).tolist()
 
-        self.current_gear_index : int = 0
+        self.current_gear_index : int = len(self.gears) - 1 # Start at highest gear, since it is used most frequently
         self.current_speed : float = 0.0
         self.max_speed : float = self.gears[self.current_gear_index]["speed"]
 
