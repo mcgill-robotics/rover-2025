@@ -266,7 +266,7 @@ class drive_control_V2_MQTT:
         self.client.publish("rover/drive/drive_motors_status", json.dumps(payload), qos=QOS)
 
     def loop(self):
-        self.client = Client(client_id=f"gamepad_sub_{socket.gethostname()}")
+        self.client = Client(client_id=f"drive_gamepad_sub_{socket.gethostname()}")
         self.client.will_set(
             "rover/drive/status",
             payload=json.dumps({"status": "offline"}),
