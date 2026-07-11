@@ -52,8 +52,8 @@ class gamepad_input_publisher(Node):
             msg.square_button   = self.gamepad.data.b4
             msg.l1_button       = self.gamepad.data.b5
             msg.r1_button       = self.gamepad.data.b6
-            msg.l2_button       = self.gamepad.data.b7
-            msg.r2_button       = self.gamepad.data.b8
+            msg.l2_button       = int(self.gamepad.data.b7)
+            msg.r2_button       = int(self.gamepad.data.b8)
             msg.select_button   = self.gamepad.data.b9
             msg.start_button    = self.gamepad.data.b10
             msg.home_button     = self.gamepad.data.b11
