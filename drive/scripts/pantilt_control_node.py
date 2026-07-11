@@ -51,8 +51,8 @@ class pantilt(Node):
 
     def update_pantilt(self, gamepad_input : GamePadInput) :
         # Update the angles based on the gamepad input
-        tilt_change = -gamepad_input.d_pad_x * self.step_size # NOTE: Negated the input to ensure tilt up and down moved the camera accordingly
-        pan_change = gamepad_input.d_pad_y * self.step_size
+        tilt_change = gamepad_input.d_pad_y * self.step_size # NOTE: Negated the input to ensure tilt up and down moved the camera accordingly
+        pan_change = gamepad_input.d_pad_x * self.step_size
         # Control the servos
         try:
             self.pantilt_firmware.add_pan_angle(pan_change)
