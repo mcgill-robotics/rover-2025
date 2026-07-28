@@ -56,7 +56,7 @@ class drive_control_V2_MQTT:
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
 
-        station              = dCAN.CANStation(interface="slcan", channel=f"/dev/ttyACM{get_ACM_port(subsystem = Subsystem.DRIVE)}", bitrate=500000)
+        station              = dCAN.CANStation(interface="slcan", channel=f"{get_ACM_port(subsystem = Subsystem.DRIVE)}", bitrate=500000)
         esc_interface        = dCAN.ESCInterface(station)
         self.drive_interface = dCAN.DriveInterface(esc_interface)
 
@@ -146,7 +146,7 @@ class drive_control_V2_MQTT:
 
             speed = [
                 right_speed_wheels[0],
-                -1 * left_speed_wheels[0],
+                left_speed_wheels[0],
                 left_speed_wheels[1],
                 right_speed_wheels[1]
             ]
@@ -266,7 +266,7 @@ class drive_control_V2_MQTT:
         self.client.publish("rover/drive/drive_motors_status", json.dumps(payload), qos=QOS)
 
     def loop(self):
-        self.client = Client(client_id=f"gamepad_sub_{socket.gethostname()}")
+        self.client = Client(client_id=f"drive_gamepad_sub_{socket.gethostname()}")
         self.client.will_set(
             "rover/drive/status",
             payload=json.dumps({"status": "offline"}),

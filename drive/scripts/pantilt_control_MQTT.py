@@ -10,7 +10,6 @@ import pantilt_firmware as pf
 import rclpy
 import json, time, socket
 from rclpy.node import Node
-from msg_srv_interface.msg import GamePadInput
 from std_msgs.msg import Float32MultiArray
 from utils.get_acm_port import get_ACM_port, Subsystem
 from paho.mqtt.client import Client
@@ -27,7 +26,7 @@ class pantilt(Node):
         super().__init__("pantilt_node")
 
         # MQTT structure
-        self.client = Client(client_id=f"gamepad_sub_{socket.gethostname()}")
+        self.client = Client(client_id=f"pantilt_gamepad_sub_{socket.gethostname()}")
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.connect(BROKER, PORT, keepalive=60)
@@ -35,7 +34,7 @@ class pantilt(Node):
 
         # ROS structure
         # self.gampepad_subscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.update_pantilt, 10)
-        self.pantilt_firmware = pf.PanTiltGPS(f"/dev/ttyACM{get_ACM_port(subsystem = Subsystem.GPS)}")
+        self.pantilt_firmware = pf.PanTiltGPS(f"{get_ACM_port(subsystem = Subsystem.GPS)}")
         try:
             self.pantilt_firmware.connect()
         except:
