@@ -56,7 +56,7 @@ class drive_control_V2_MQTT:
         #Call electrical API to get current state of wheels
         self.wheel_angles = [math.pi/2]*4 #Dummy  value, update with API call
 
-        station              = dCAN.CANStation(interface="slcan", channel=f"/dev/ttyACM{get_ACM_port(subsystem = Subsystem.DRIVE)}", bitrate=500000)
+        station              = dCAN.CANStation(interface="slcan", channel=f"{get_ACM_port(subsystem = Subsystem.DRIVE)}", bitrate=500000)
         esc_interface        = dCAN.ESCInterface(station)
         self.drive_interface = dCAN.DriveInterface(esc_interface)
 
@@ -146,7 +146,7 @@ class drive_control_V2_MQTT:
 
             speed = [
                 right_speed_wheels[0],
-                -1 * left_speed_wheels[0],
+                left_speed_wheels[0],
                 left_speed_wheels[1],
                 right_speed_wheels[1]
             ]

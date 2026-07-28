@@ -34,7 +34,7 @@ class pantilt(Node):
 
         # ROS structure
         # self.gampepad_subscriber = self.create_subscription(GamePadInput, "gamepad_input_drive", self.update_pantilt, 10)
-        self.pantilt_firmware = pf.PanTiltGPS(f"/dev/ttyACM{get_ACM_port(subsystem = Subsystem.GPS)}")
+        self.pantilt_firmware = pf.PanTiltGPS(f"{get_ACM_port(subsystem = Subsystem.GPS)}")
         try:
             self.pantilt_firmware.connect()
         except:
