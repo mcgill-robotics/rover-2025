@@ -1,5 +1,6 @@
 import os
 import sys
+from stitching import Stitcher
 
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
@@ -31,6 +32,9 @@ class pantilt(Node):
         # self.imu_publisher = self.create_publisher(Float32MultiArray, "roverIMUData", 10)
 
         self.timer = self.create_timer(timer_period, self.run)
+        
+        self.remaining_panoramic_steps = 0
+        self.stitch = False
 
     def run(self):
         # This method calls the run() method of the firmware, and sends the IMU and GPS data to topics.
@@ -50,9 +54,18 @@ class pantilt(Node):
 
 
     def update_pantilt(self, gamepad_input : GamePadInput) :
-        # Update the angles based on the gamepad input
-        tilt_change = -gamepad_input.d_pad_x * self.step_size # NOTE: Negated the input to ensure tilt up and down moved the camera accordingly
-        pan_change = gamepad_input.d_pad_y * self.step_size
+        if gamepad_input.l2_button:
+            self.remaining_panoramic_steps = 9 # PLAY AROUND WITH THIS
+        if self.remaining_panoramic_steps > 0: # placeholder, starts panoramic picture
+            tilt_change = 0
+            pan_change = 20 # TODO: TEST THIS
+            self.remaining_panoramic_steps -= 1
+            if self.remaining_panoramic_steps == 0:
+                self.stitch = True
+        else:
+            # Update the angles based on the gamepad input
+            tilt_change = -gamepad_input.d_pad_x * self.step_size # NOTE: Negated the input to ensure tilt up and down moved the camera accordingly
+            pan_change = gamepad_input.d_pad_y * self.step_size
         # Control the servos
         try:
             self.pantilt_firmware.add_pan_angle(pan_change)
@@ -60,6 +73,9 @@ class pantilt(Node):
         except ConnectionError as e:
             self.get_logger().error(f"Failed to update pan/tilt angles: {e}")
             return
+        if self.stitch:
+            stitcher = Stitcher()
+            # stitch wherever we save images
         
 
 def main(args=None):
