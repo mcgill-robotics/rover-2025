@@ -19,6 +19,7 @@ import numpy as np
 from msg_srv_interface.srv import PanTiltSavePhoto
 from rclpy.node import Node
 import rclpy
+import os
 
 
 from fastapi import Request
@@ -41,6 +42,7 @@ from fastapi.middleware.cors import CORSMiddleware
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 PANTILT_IMAGE_FOLDER = "INSERT FOLDER HERE" # TODO
+PANTILT_SIGNAL_FILE = "INSERT ABSOLUTE PATH HERE" # TODO
 
 class DummyVideoTrack(VideoStreamTrack):
     def __init__(self, fps: int = 20, width: int = 640, height: int = 480):
@@ -139,12 +141,12 @@ class FrameBuffer:
         with self.lock:
             self.frames.clear()
 
-class MultiCameraBackend(Node):
+class MultiCameraBackend():
     def __init__(self, http_port: int = 8001, enable_aruco: bool = True, loop: Optional[asyncio.AbstractEventLoop] = None):
-        super.__init__("jetson-ui-backend")
-        self.photo_service = self.create_service(PanTiltSavePhoto, 'pan-tilt-take-photo', self.photo_callback)
+        # super.__init__("jetson-ui-backend")
+        # self.photo_service = self.create_service(PanTiltSavePhoto, 'pan-tilt-take-photo', self.photo_callback)
 
-        self.pan_tilt_reader = None
+        self.pan_tilt_id = None
 
         self.http_port = http_port
         self.enable_aruco = enable_aruco
@@ -193,18 +195,18 @@ class MultiCameraBackend(Node):
         self.setup_routes()
         self.setup_cors()
 
-    def photo_callback(self, request, response):
-        if not self.pan_tilt_reader: # no pan tilt registered
-            response.success = False
-        else:
-            frame = self.pan_tilt_reader.read_frame()
-            saved = cv2.imwrite(f"{PANTILT_IMAGE_FOLDER}/{time.now()}.jpg", frame)
-            if not saved:
-                print("FAILED TO SAVE IMAGE")
-                response.success = False
-            else:
-                response.success = True
-        return response
+    # def photo_callback(self, request, response):
+    #     if not self.pan_tilt_reader: # no pan tilt registered
+    #         response.success = False
+    #     else:
+    #         frame = self.pan_tilt_reader.read_frame()
+    #         saved = cv2.imwrite(f"{PANTILT_IMAGE_FOLDER}/{time.now()}.jpg", frame)
+    #         if not saved:
+    #             print("FAILED TO SAVE IMAGE")
+    #             response.success = False
+    #         else:
+    #             response.success = True
+    #     return response
 
     async def _wait_for_ice_complete(self, pc: RTCPeerConnection, timeout: float = 2.0):
         start = time.time()
@@ -609,7 +611,7 @@ class MultiCameraBackend(Node):
                             self.frame_buffers[camera_id] = FrameBuffer()
 
                             if self.cameras[camera_id].name == "PLACEHOLDER":
-                                self.pan_tilt_reader = reader
+                                self.pan_tilt_id = camera_id
                             
                             # Start polling thread for this camera
                             thread = threading.Thread(
@@ -643,7 +645,7 @@ class MultiCameraBackend(Node):
                                 camera.last_frame_time = time.time()
 
                                 if self.cameras[camera_id].name == "PLACEHOLDER":
-                                    self.pan_tilt_reader = reader
+                                    self.pan_tilt_id = camera_id
                                 
                                 # Start new polling thread
                                 thread = threading.Thread(
@@ -741,6 +743,11 @@ class MultiCameraBackend(Node):
         while self.running:
             try:
                 frame = reader.read_frame()
+                if camera_id == self.pantilt_cam_id and os.path.exists(PANTILT_SIGNAL_FILE):
+                    saved = cv2.imwrite(f"{PANTILT_IMAGE_FOLDER}/{time.now()}.jpg", frame)
+                    if not saved:
+                        print("FAILED TO SAVE IMAGE")
+                    os.remove(PANTILT_SIGNAL_FILE)
                 if frame is not None:
                     # Update camera info
                     if camera_id in self.cameras:
@@ -805,7 +812,7 @@ class MultiCameraBackend(Node):
         logger.info(self.camera_readers.get_all_readers())
         for camera_id, reader in self.camera_readers.get_all_readers().items():
             if self.cameras[camera_id].name == "PLACEHOLDER":
-                self.pan_tilt_reader = reader
+                self.pan_tilt_id = camera_id
             thread = threading.Thread(
                 target=self.camera_polling_loop, 
                 args=(camera_id, reader), 

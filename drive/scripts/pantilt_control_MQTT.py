@@ -16,6 +16,7 @@ from paho.mqtt.client import Client
 from stitching import Stitcher
 from msg_srv_interface.srv import PanTiltSavePhoto
 import cv2
+from pathlib import Path
 import shutil
 
 BROKER = "localhost" # Change to MQTT Broker IP address
@@ -25,6 +26,7 @@ QOS = 1
 KEEPALIVE = 60
 PANTILT_IMAGE_FOLDER = "INSERT FOLDER HERE" # TODO
 PANORAMA_FOLDER = "INSERT FOLDER HERE" # TODO
+PANTILT_SIGNAL_FILE = "INSERT ABSOLUTE PATH HERE" # TODO
 
 class pantilt(Node):
 
@@ -48,7 +50,7 @@ class pantilt(Node):
             return
         self.step_size = 5 #in degrees
         timer_period = 1e-2
-        self.photo_client = self.create_client(PanTiltSavePhoto, 'pan-tilt-take-photo')
+        # self.photo_client = self.create_client(PanTiltSavePhoto, 'pan-tilt-take-photo')
 
         self.gps_publisher = self.create_publisher(Float32MultiArray, "roverGPSData", 10)
         # self.imu_publisher = self.create_publisher(Float32MultiArray, "roverIMUData", 10)
@@ -102,9 +104,13 @@ class pantilt(Node):
             if self.remaining_panoramic_steps == 0:
                 self.stitch = True
 
-            self.photo_client.wait_for_service()
-            self.future = self.photo_client.call_async(PanTiltSavePhoto.Request())
-            rclpy.spin_until_future_complete(self, self.future)
+            Path(PANTILT_SIGNAL_FILE).touch() # Signal backend to save a frame
+            while os.path.exists(PANTILT_SIGNAL_FILE):
+                pass
+
+            # self.photo_client.wait_for_service()
+            # self.future = self.photo_client.call_async(PanTiltSavePhoto.Request())
+            # rclpy.spin_until_future_complete(self, self.future)
             
         else:
             # Update the angles based on the gamepad input
