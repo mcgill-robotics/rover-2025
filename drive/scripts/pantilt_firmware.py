@@ -2,9 +2,11 @@ import serial
 import sys
 import time
 import math
+import datetime
 
 DELIMITER = 0x00
 PANTILT_SEND_INTERVAL_S = 0.02 # 20 ms, 50 Hz rate
+GPS_FILE = "PLACEHOLDER" # Todo
 
 
 def cobs_encode(data: bytes) -> bytes:
@@ -121,6 +123,7 @@ class PanTiltGPS:
             Default True (one combined frame). False sends pan/tilt as
             separate frames, for throughput testing.
         """
+        self.last_saved_gps = None
 
         self.port: str = port
         self.baud_rate: int = baud_rate
@@ -366,6 +369,12 @@ class PanTiltGPS:
         long_min = math.floor((abs(self.coords[1])-long_deg)*60)
         long_sec = (((abs(self.coords[1])-long_deg)*60)-long_min)*60
         converted = f"{lat_deg}°{lat_min}\'{lat_sec}\"{lat_dir} {long_deg}°{long_min}\'{long_sec}\"{long_dir}"
+
+        cur_time = datetime.datetime.now()
+        if not self.last_saved_gps or cur_time - self.last_saved_gps >= datetime.timedelta(seconds=5):
+            with open(GPS_FILE, "+a") as f:
+                f.write(converted)
+            self.last_saved_gps = cur_time
 
         print("Your GPS data:" + str(new_list) + " = " + converted)
 
