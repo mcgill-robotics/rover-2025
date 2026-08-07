@@ -373,7 +373,7 @@ class PanTiltGPS:
         cur_time = datetime.datetime.now()
         if not self.last_saved_gps or cur_time - self.last_saved_gps >= datetime.timedelta(seconds=5):
             with open(GPS_FILE, "+a") as f:
-                f.write(converted)
+                f.write(f"{time.now()}: {converted}")
             self.last_saved_gps = cur_time
 
         print("Your GPS data:" + str(new_list) + " = " + converted)
