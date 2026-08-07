@@ -16,6 +16,9 @@ from dataclasses import dataclass
 import base64
 import cv2
 import numpy as np
+from msg_srv_interface.action import PanTiltSavePhoto
+from rclpy.node import Node
+from rclpy.action import ActionServer
 
 
 from fastapi import Request
@@ -135,8 +138,11 @@ class FrameBuffer:
         with self.lock:
             self.frames.clear()
 
-class MultiCameraBackend:
+class MultiCameraBackend(Node):
     def __init__(self, http_port: int = 8001, enable_aruco: bool = True, loop: Optional[asyncio.AbstractEventLoop] = None):
+        super.__init__("jetson-ui-backend")
+        self._action_server = ActionServer(self, PanTiltSavePhoto, 'pan-tilt-take-photo', self.photo_callback)
+
         self.http_port = http_port
         self.enable_aruco = enable_aruco
         self.loop = loop or asyncio.get_event_loop()
@@ -183,6 +189,13 @@ class MultiCameraBackend:
 
         self.setup_routes()
         self.setup_cors()
+
+    def photo_callback(self, goal_handle):
+        # get the pic???
+        goal_handle.succeed()
+        result = PanTiltSavePhoto.Result()
+        result.success = True
+        return result
 
     async def _wait_for_ice_complete(self, pc: RTCPeerConnection, timeout: float = 2.0):
         start = time.time()
