@@ -16,6 +16,9 @@ from dataclasses import dataclass
 import base64
 import cv2
 import numpy as np
+from msg_srv_interface.action import PanTiltSavePhoto
+from rclpy.node import Node
+from rclpy.action import ActionServer
 
 
 from fastapi import Request
@@ -37,6 +40,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+PANTILT_IMAGE_FOLDER = "INSERT FOLDER HERE" # TODO
 
 class DummyVideoTrack(VideoStreamTrack):
     def __init__(self, fps: int = 20, width: int = 640, height: int = 480):
@@ -135,8 +139,13 @@ class FrameBuffer:
         with self.lock:
             self.frames.clear()
 
-class MultiCameraBackend:
+class MultiCameraBackend(Node):
     def __init__(self, http_port: int = 8001, enable_aruco: bool = True, loop: Optional[asyncio.AbstractEventLoop] = None):
+        super.__init__("jetson-ui-backend")
+        self._action_server = ActionServer(self, PanTiltSavePhoto, 'pan-tilt-take-photo', self.photo_callback)
+
+        self.pan_tilt_reader = None
+
         self.http_port = http_port
         self.enable_aruco = enable_aruco
         self.loop = loop or asyncio.get_event_loop()
@@ -183,6 +192,23 @@ class MultiCameraBackend:
 
         self.setup_routes()
         self.setup_cors()
+
+    def photo_callback(self, goal_handle):
+        if not self.pan_tilt_reader: # no pan tilt registered
+            goal_handle.abort()
+            return
+
+        frame = self.pan_tilt_reader.read_frame()
+        saved = cv2.imwrite(f"{PANTILT_IMAGE_FOLDER}/{time.now()}.jpg", frame)
+        if not saved:
+            print("FAILED TO SAVE IMAGE")
+            goal_handle.abort()
+            return
+
+        goal_handle.succeed()
+        result = PanTiltSavePhoto.Result()
+        result.success = True
+        return result
 
     async def _wait_for_ice_complete(self, pc: RTCPeerConnection, timeout: float = 2.0):
         start = time.time()
@@ -585,6 +611,9 @@ class MultiCameraBackend:
                             )
                             
                             self.frame_buffers[camera_id] = FrameBuffer()
+
+                            if self.cameras[camera_id].name == "PLACEHOLDER":
+                                self.pan_tilt_reader = reader
                             
                             # Start polling thread for this camera
                             thread = threading.Thread(
@@ -616,6 +645,9 @@ class MultiCameraBackend:
                                 camera.port = rtp_port
                                 camera.is_active = True
                                 camera.last_frame_time = time.time()
+
+                                if self.cameras[camera_id].name == "PLACEHOLDER":
+                                    self.pan_tilt_reader = reader
                                 
                                 # Start new polling thread
                                 thread = threading.Thread(
@@ -776,6 +808,8 @@ class MultiCameraBackend:
         """Start polling threads for all cameras."""
         logger.info(self.camera_readers.get_all_readers())
         for camera_id, reader in self.camera_readers.get_all_readers().items():
+            if self.cameras[camera_id].name == "PLACEHOLDER":
+                self.pan_tilt_reader = reader
             thread = threading.Thread(
                 target=self.camera_polling_loop, 
                 args=(camera_id, reader), 
