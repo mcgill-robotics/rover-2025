@@ -21,7 +21,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/GamePadInput.msg"
   "msg/DriveMotorDiagnostic.msg"
   "srv/DriveMotorStatus.srv"
-  "action/PanTiltSavePhoto.action"
+  "srv/PanTiltSavePhoto.srv"
   DEPENDENCIES geometry_msgs
 )
 
