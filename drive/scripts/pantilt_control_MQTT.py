@@ -13,6 +13,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
 from utils.get_acm_port import get_ACM_port, Subsystem
 from paho.mqtt.client import Client
+from stitching import Stitcher
 
 BROKER = "localhost" # Change to MQTT Broker IP address
 PORT = 1883
@@ -48,6 +49,9 @@ class pantilt(Node):
 
         self.timer = self.create_timer(timer_period, self.run)
 
+        self.remaining_panoramic_steps = 0
+        self.stitch = False
+        
     def on_connect(self, client, userdata, flags, rc):
         print("Connected to MQTT broker, rc=", rc)
         client.subscribe((TOPIC, QOS))
@@ -72,14 +76,29 @@ class pantilt(Node):
 
 
     def update_pantilt(self, data) :
-        # Update the angles based on the gamepad input
-        inp_x = data.get("d_pad_x", 0.0)
-        inp_y = data.get("d_pad_y", 0.0)
-        # Debugging:
-        print("INP_X: " + str(inp_x))
-        print("INP_Y: " + str(inp_y))
-        tilt_change = -inp_x * self.step_size # NOTE: Negated the input to ensure tilt up and down moved the camera accordingly
-        pan_change = inp_y * self.step_size
+        pan_button = data.get("select_button", False)
+        if(pan_button):
+            self.remaining_panoramic_steps = 9 # PLAY AROUND WITH THIS
+            self.pan_step_size = 180/self.remaining_panoramic_steps
+            # if (self.pantilt_firmware.get_pantilt()[0]>180): #TODO: is 360 the limit?
+                # pan_change = 180-self.pantilt_firmware.get_pantilt[0] #move pantilt to a viable position
+            # delete previous images
+        elif self.remaining_panoramic_steps > 0: # placeholder, starts panoramic picture
+            tilt_change = 0
+            pan_change = self.pan_step_size # TODO: TEST THIS
+            self.remaining_panoramic_steps -= 1
+            if self.remaining_panoramic_steps == 0:
+                self.stitch = True
+            # save image at index
+        else:
+            # Update the angles based on the gamepad input
+            inp_x = data.get("d_pad_x", 0.0)
+            inp_y = data.get("d_pad_y", 0.0)
+            # Debugging:
+            print("INP_X: " + str(inp_x))
+            print("INP_Y: " + str(inp_y))
+            tilt_change = -inp_x * self.step_size # NOTE: Negated the input to ensure tilt up and down moved the camera accordingly
+            pan_change = inp_y * self.step_size
         # Control the servos
         try:
             self.pantilt_firmware.add_pan_angle(pan_change)
@@ -87,6 +106,11 @@ class pantilt(Node):
         except ConnectionError as e:
             self.get_logger().error(f"Failed to update pan/tilt angles: {e}")
             return
+        if self.stitch:
+            stitcher = Stitcher() #TODO: check if default settings are okay
+            self.stitch = False
+            # ex. panorama = stitcher.stitch(["img?.jpg"])
+            # stitch wherever we save images
         
 
 def main(args=None):

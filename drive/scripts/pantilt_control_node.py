@@ -1,6 +1,5 @@
 import os
 import sys
-from stitching import Stitcher
 
 currentdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(currentdir)
@@ -56,12 +55,16 @@ class pantilt(Node):
     def update_pantilt(self, gamepad_input : GamePadInput) :
         if gamepad_input.l2_button:
             self.remaining_panoramic_steps = 9 # PLAY AROUND WITH THIS
-        if self.remaining_panoramic_steps > 0: # placeholder, starts panoramic picture
+            self.pan_step_size = 180/self.remaining_panoramic_steps
+
+            # delete previous images
+        elif self.remaining_panoramic_steps > 0: # placeholder, starts panoramic picture
             tilt_change = 0
-            pan_change = 20 # TODO: TEST THIS
+            pan_change = self.pan_step_size # TODO: TEST THIS
             self.remaining_panoramic_steps -= 1
             if self.remaining_panoramic_steps == 0:
                 self.stitch = True
+            # save image at index
         else:
             # Update the angles based on the gamepad input
             tilt_change = -gamepad_input.d_pad_x * self.step_size # NOTE: Negated the input to ensure tilt up and down moved the camera accordingly
@@ -74,7 +77,9 @@ class pantilt(Node):
             self.get_logger().error(f"Failed to update pan/tilt angles: {e}")
             return
         if self.stitch:
-            stitcher = Stitcher()
+            stitcher = Stitcher() #TODO: check if default settings are okay
+            self.stitch = False
+            # ex. panorama = stitcher.stitch(["img?.jpg"])
             # stitch wherever we save images
         
 
