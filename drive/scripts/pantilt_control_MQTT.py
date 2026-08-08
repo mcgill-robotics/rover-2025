@@ -50,7 +50,7 @@ class pantilt(Node):
             return
         self.step_size = 5 #in degrees
         timer_period = 1e-2
-        # self.photo_client = self.create_client(PanTiltSavePhoto, 'pan-tilt-take-photo')
+        self.photo_client = self.create_client(PanTiltSavePhoto, 'save-photo')
 
         self.gps_publisher = self.create_publisher(Float32MultiArray, "roverGPSData", 10)
         # self.imu_publisher = self.create_publisher(Float32MultiArray, "roverIMUData", 10)
@@ -58,7 +58,6 @@ class pantilt(Node):
         self.timer = self.create_timer(timer_period, self.run)
 
         self.remaining_panoramic_steps = 0
-        self.stitch = False
         
     def on_connect(self, client, userdata, flags, rc):
         print("Connected to MQTT broker, rc=", rc)
@@ -91,26 +90,22 @@ class pantilt(Node):
             # if (self.pantilt_firmware.get_pantilt()[0]>180): #TODO: is 360 the limit?
                 # pan_change = 180-self.pantilt_firmware.get_pantilt[0] #move pantilt to a viable position
             # delete previous images
-            try:
-                shutil.rmtree(PANTILT_IMAGE_FOLDER)
-            except:
-                pass
-            os.mkdir(PANTILT_IMAGE_FOLDER)
             
         elif self.remaining_panoramic_steps > 0: # placeholder, starts panoramic picture
             tilt_change = 0
             pan_change = self.pan_step_size # TODO: TEST THIS
             self.remaining_panoramic_steps -= 1
+
+            request = PanTiltSavePhoto.Request()
+
             if self.remaining_panoramic_steps == 0:
-                self.stitch = True
+                request.make_pano = True
+            else:
+                request.make_pano = False
 
-            Path(PANTILT_SIGNAL_FILE).touch() # Signal backend to save a frame
-            while os.path.exists(PANTILT_SIGNAL_FILE):
-                pass
-
-            # self.photo_client.wait_for_service()
-            # self.future = self.photo_client.call_async(PanTiltSavePhoto.Request())
-            # rclpy.spin_until_future_complete(self, self.future)
+            self.photo_client.wait_for_service()
+            self.future = self.photo_client.call_async(request)
+            rclpy.spin_until_future_complete(self, self.future)
             
         else:
             # Update the angles based on the gamepad input
@@ -128,15 +123,6 @@ class pantilt(Node):
         except ConnectionError as e:
             self.get_logger().error(f"Failed to update pan/tilt angles: {e}")
             return
-        if self.stitch:
-            stitcher = Stitcher() #TODO: check if default settings are okay
-            panorama = stitcher.stitch([f"{PANTILT_IMAGE_FOLDER}/*.jpg"])
-            if not os.path.isdir(PANORAMA_FOLDER):
-                os.mkdir(PANORAMA_FOLDER)
-            cv2.imwrite(f"{PANORAMA_FOLDER}/{time.now()}.jpg", panorama)
-            self.stitch = False
-            # ex. panorama = stitcher.stitch(["img?.jpg"])
-            # stitch wherever we save images
 
 def main(args=None):
     rclpy.init(args=args)
