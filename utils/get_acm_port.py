@@ -63,11 +63,24 @@ class Subsystem(Enum):
 		serial="00000000000000000000",
 		display_name = "Arm"
 	)
+	# TODO: change to actual info
+	ARM_BRUSHED = DeviceInfo(
+		vid="cafe",
+		pid="7001",
+		serial="20003E001950453055373020",
+		display_name = "Arm Brushed"
+	)
 	GPS = DeviceInfo(
 		vid="cafe",
 		pid="6001",
 		serial="28003E001950453055373020",
 		display_name = "GPS"
+	)
+	SCIENCE = DeviceInfo(
+		vid="cafe",
+		pid = "5005",
+		serial="20003E001950453055373020",
+		display_name="Science"
 	)
 	
 
