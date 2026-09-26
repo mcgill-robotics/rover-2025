@@ -4,7 +4,7 @@ from time import time as now
 from paho.mqtt.client import Client
 from gamepad import Gamepad
 
-BROKER = "192.168.1.88" # Change to your IP address
+BROKER = "192.168.1.55" # Change to your IP address
 PORT = 1883
 QOS = 1
 KEEPALIVE = 60
@@ -57,12 +57,12 @@ def main():
     try:
         while True:
             gp.update()
-            drive_msg = gp_to_dict(gp.data)
-            print(drive_msg)
-            mqttc.publish(TOPIC_DRIVE, json.dumps(drive_msg), qos=QOS)
-            if getattr(gp, "arm_controller", None):
-                arm_msg = gp_to_dict(gp.arm_data)
-                mqttc.publish(TOPIC_ARM, json.dumps(arm_msg), qos=QOS)
+            arm_msg = gp_to_dict(gp.data)
+            print(arm_msg)
+            mqttc.publish(TOPIC_ARM, json.dumps(arm_msg), qos=QOS)
+            # if getattr(gp, "arm_controller", None):
+            #     arm_msg = gp_to_dict(gp.arm_data)
+            #     mqttc.publish(TOPIC_ARM, json.dumps(arm_msg), qos=QOS)
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("Exiting publisher")
