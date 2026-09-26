@@ -62,6 +62,11 @@ class arm_control_node(Node):
         self.firmware.acknowledge_faults(Joint.ELBOW)
 
     def move_joints(self, position):
+        # adjust for real life to motor mapping
+        # shoulder
+        position[1] = -1.08 * position[1] + 121
+        # elbow
+        position[2] = 1.06 * position[2] - 7.87
         # position given in degrees
         rads = [d * math.pi / 180 for d in position]
         self.firmware.move_joints(waist=rads[0], shoulder=rads[1], elbow=rads[2])
