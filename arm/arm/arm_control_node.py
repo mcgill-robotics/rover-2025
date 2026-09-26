@@ -68,8 +68,8 @@ class arm_control_node(Node):
         # elbow
         position[2] = 1.06 * position[2] - 7.87
         # position given in degrees
-        rads = [d * math.pi / 180 for d in position]
-        self.firmware.move_joints(waist=rads[0], shoulder=rads[1], elbow=rads[2])
+        # rads = [d * math.pi / 180 for d in position]
+        self.firmware.move_joints(waist=position[0], shoulder=position[1], elbow=position[2])
             
     def run(self, gamepad_input: GamePadInput):
         """
