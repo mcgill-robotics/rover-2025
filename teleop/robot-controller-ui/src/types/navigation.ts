@@ -22,7 +22,7 @@ export interface MapConfig {
   tileServerUrl: string;
 }
 
-export type MapStyle = 'satellite' | 'street' | 'terrain';
+export type MapStyle = 'satellite' | 'street' | 'terrain' | 'traversal';
 
 export interface MapStyleConfig {
   version: number;

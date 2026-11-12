@@ -7,6 +7,7 @@ import { Waypoint, MapStyle } from '@/types/navigation';
 import { OfflineMap } from './OfflineMap';
 import GPSDisplay from './GPSDisplay';
 import { WaypointManager } from './WaypointManager';
+import { TraversalMap } from './TraversalMap';
 
 const NavigationSection: React.FC = () => {
   // State
@@ -127,20 +128,31 @@ const NavigationSection: React.FC = () => {
       <div className="flex-1 flex">
         {/* Map Container */}
         <div className="flex-1 relative">
-          <OfflineMap
-            gpsData={gpsData}
-            waypoints={waypoints}
-            selectedWaypoint={selectedWaypoint}
-            onWaypointSelect={setSelectedWaypoint}
-            onAddWaypoint={handleAddWaypoint}
-            mapStyle={mapStyle}
-            onMapLoad={setIsMapLoaded}
-          />
+          {mapStyle === 'traversal' ? (
+            <TraversalMap
+              gpsData={gpsData}
+              waypoints={waypoints}
+              selectedWaypoint={selectedWaypoint}
+              onWaypointSelect={setSelectedWaypoint}
+              onAddWaypoint={handleAddWaypoint}
+              onMapLoad={setIsMapLoaded}
+            />
+          ) : (
+            <OfflineMap
+              gpsData={gpsData}
+              waypoints={waypoints}
+              selectedWaypoint={selectedWaypoint}
+              onWaypointSelect={setSelectedWaypoint}
+              onAddWaypoint={handleAddWaypoint}
+              mapStyle={mapStyle}
+              onMapLoad={setIsMapLoaded}
+            />
+          )}
           
           {/* Map Controls Overlay */}
           <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-2">
             <div className="flex flex-col space-y-2">
-              {(['street', 'satellite', 'terrain'] as const).map((style) => (
+              {(['street', 'satellite', 'terrain', 'traversal'] as const).map((style) => (
                 <button
                   key={style}
                   onClick={() => setMapStyle(style)}
