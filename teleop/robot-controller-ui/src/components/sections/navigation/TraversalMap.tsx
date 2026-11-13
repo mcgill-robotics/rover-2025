@@ -125,7 +125,7 @@ export const TraversalMap: React.FC<TraversalMapProps> = ({
     if (containerRef.current) ro.observe(containerRef.current);
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
-  }, []);
+  }, [imgNatural]);
 
   useEffect(() => {
     const c = canvasRef.current;

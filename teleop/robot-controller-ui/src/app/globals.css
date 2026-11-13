@@ -23,6 +23,11 @@
   }
 }
 
+html {
+  height: 100%;
+  
+}
+
 /* Base Styling */
 body {
   width: 100%;
