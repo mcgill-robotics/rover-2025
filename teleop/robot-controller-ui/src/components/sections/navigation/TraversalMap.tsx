@@ -197,7 +197,7 @@ export const TraversalMap: React.FC<TraversalMapProps> = ({
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !imgNatural) return;
     const rect = container.getBoundingClientRect();
     const relX = e.clientX - rect.left;
     const relY = e.clientY - rect.top;
@@ -208,6 +208,12 @@ export const TraversalMap: React.FC<TraversalMapProps> = ({
         onWaypointSelect(wp);
         return;
       }
+    }
+
+    const { w: imgW, h: imgH } = imgNatural;
+    const { dx, dy, dw, dh } = fitImageIntoCanvas(imgW, imgH, dims.w, dims.h);
+    if (relX < dx || relX > dx + dw || relY < dy || relY > dy + dh) {
+      return;
     }
 
     const result = unproject(relX, relY);
