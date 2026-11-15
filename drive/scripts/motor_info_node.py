@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+import os
+import sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(currentdir)
+parent = currentdir.rfind("/", 0, currentdir.rfind("/")) # also add the top level folder as a path
+sys.path.append(currentdir[:parent])
+import rclpy
+from rclpy.node import Node
+import math 
+import numpy as np
+from std_msgs.msg import Float32MultiArray
+from utils.get_acm_port import get_ACM_port
+
+#imports from firmwear node
+import driveCANCommunication as dCAN
+from msg_srv_interface.msg import DriveMotorDiagnostic
+from msg_srv_interface.srv import DriveMotorStatus
+
+
+class motor_info_node(Node):
+    def __init__(self):    
+        super().__init__("motor_info_node")
+
+        #publisher and service from firmware node
+        self.drive_motors_info_publisher   = self.create_publisher(DriveMotorDiagnostic, "drive_motors_info", 10)
+        self.drive_motors_speeds_publisher = self.create_publisher(Float32MultiArray,    "drive_speeds_info", 10)
+        self.drive_ping_service            = self.create_service(DriveMotorStatus,       "drive_motors_status", self.drive_ping_callback)
+
+        station              = dCAN.CANStation(interface="slcan", channel=f"/dev/ttyACM{get_ACM_port()}", bitrate=500000)
+        esc_interface        = dCAN.ESCInterface(station)
+        self.drive_interface = dCAN.DriveInterface(esc_interface)
+        self.nodes           = [dCAN.NodeID.RF_DRIVE, dCAN.NodeID.RB_DRIVE, dCAN.NodeID.LB_DRIVE, dCAN.NodeID.LF_DRIVE] #Steering motors should be appended
+
+        self.motor_info = {node: {"Voltage": -1.0, "Current": -1.0, "State": -1.0, "Temperature": -1.0} for node in ["RF", "RB", "LB", "LF"]}
+
+        self.motors = list(self.motor_info.keys())
+        self.drive_speed_info = [0.0, 0.0, 0.0, 0.0] #List entries corresponding to [RF, RB, LB, LF]
+        self.pub_count = 0
+
+        for motor in self.nodes:
+            self.drive_interface.acknowledge_motor_fault(motor)
+
+        timer_period = 0.2
+        self.timer = self.create_timer(timer_period, self.run)
+
+
+    def publish_motor_info(self):
+        self.update_motor_info()
+        msg = DriveMotorDiagnostic()
+
+        #Fill msg values with diagnostic info from the dictionary
+        #RF
+        msg.rf_voltage = self.motor_info["RF"]["Voltage"]
+        msg.rf_current = self.motor_info["RF"]["Current"]
+        msg.rf_state = self.motor_info["RF"]["State"]
+        msg.rf_temperature = self.motor_info["RF"]["Temperature"]
+
+        #RB
+        msg.rb_voltage = self.motor_info["RB"]["Voltage"]
+        msg.rb_current = self.motor_info["RB"]["Current"]
+        msg.rb_state = self.motor_info["RB"]["State"]
+        msg.rb_temperature = self.motor_info["RB"]["Temperature"]
+
+        #LB
+        msg.lb_voltage = self.motor_info["LB"]["Voltage"]
+        msg.lb_current = self.motor_info["LB"]["Current"]
+        msg.lb_state = self.motor_info["LB"]["State"]
+        msg.lb_temperature = self.motor_info["LB"]["Temperature"]
+
+        #LF
+        msg.lf_voltage = self.motor_info["LF"]["Voltage"]
+        msg.lf_current = self.motor_info["LF"]["Current"]
+        msg.lf_state = self.motor_info["LF"]["State"]
+        msg.lf_temperature = self.motor_info["LF"]["Temperature"]
+
+        self.drive_motors_info_publisher.publish(msg)
+    
+
+    def update_speed_info(self):
+        states = self.drive_interface.getAllMotorStatus()
+        for ind in range(len(self.nodes)):
+            if states[ind]:
+                try:
+                    self.drive_interface.read_speed(self.nodes[ind])
+                    self.drive_speed_info[ind] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
+                
+                except:
+                    print("Unable to get Speed on " + self.motors[ind])
+                    self.drive_speed_info[ind] = -1.0
+            else:
+                self.drive_speed_info[ind] = -1.0
+
+
+    # TODO: Test publish motor_info with UI
+    def update_motor_info(self):
+        states = self.drive_interface.getAllMotorStatus()
+
+        for ind in range(len(self.nodes)):
+            if states[ind]:
+                try:
+                    info = "Voltage" 
+                    self.drive_interface.read_voltage(self.nodes[ind])
+                    self.motor_info[self.motors[ind]]["Voltage"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
+
+                    info = "Current"
+                    self.drive_interface.read_current(self.nodes[ind])
+                    self.motor_info[self.motors[ind]]["Current"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
+
+                    info = "State"
+                    self.drive_interface.read_state(self.nodes[ind])
+                    self.motor_info[self.motors[ind]]["State"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
+
+                    #Uncomment when able to get temperature readings (July. 28 2025)
+                    #info = "Temperature"
+                    #self.drive_interface.read_temperature(self.nodes[ind])
+                    #self.motor_info[self.motors[ind]]["Temperature"] = self.drive_interface.esc.station.recv_msg(timeout=0.25)[2]
+
+                except:
+                    print("Unable to get " + info + " on " + self.motors[ind])
+                    self.motor_info[self.motors[ind]]["Voltage"] = -1.0
+                    self.motor_info[self.motors[ind]]["Current"] = -1.0
+                    self.motor_info[self.motors[ind]]["State"] = -1.0
+                    self.motor_info[self.motors[ind]]["Temperature"] = -1.0
+            else:
+                self.motor_info[self.motors[ind]]["Voltage"] = -1.0
+                self.motor_info[self.motors[ind]]["Current"] = -1.0
+                self.motor_info[self.motors[ind]]["State"] = -1.0
+                self.motor_info[self.motors[ind]]["Temperature"] = -1.0
+
+    '''request: contains the request data
+       response: empty response object that is filled with the response data'''
+    def drive_ping_callback(self, request, response):
+        status_motors = self.drive_interface.getAllMotorStatus()
+        response.rf_ok = status_motors[0]
+        response.rb_ok = status_motors[1]
+        response.lb_ok = status_motors[2]
+        response.lf_ok = status_motors[3]
+        return response
+
+
+    def run(self):
+        self.update_speed_info()
+        speeds_msg = Float32MultiArray()
+        speeds_msg.data = self.drive_speed_info
+        self.drive_motors_speeds_publisher.publish(speeds_msg)
+
+        if (self.pub_count % 5) == 0:
+            self.publish_motor_info()
+            self.pub_count = 0
+
+        self.pub_count += 1
+
+         
+def main(args=None):
+    rclpy.init(args=args)
+    motor_info = motor_info_node()
+    rclpy.spin(motor_info)
+
+if __name__ == "__main__":
+    main()
