@@ -42,10 +42,10 @@ for arg in "$@"; do
             launch_arm
             ;;
         --ui)
-            "launch_ui
+            launch_ui
             ;;
-       *)
-            echo "oops"
+            *)
+            echo "Invalid flag"
             exit 1
             ;;
     esac
