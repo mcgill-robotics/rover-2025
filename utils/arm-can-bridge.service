@@ -1,5 +1,5 @@
 # Tony's Arm Systemd File 
-# Hello, this file will run the MQTT broker (bridged to the jetson) on the raspberry pi on boot-up
+# Hello, this file will run the CAN <-> MQTT bridge on the raspberry pi on boot-up
 #
 # TO INSTALL ON THE PI: (untested as of November 25 2026)
 # sudo cp arm-can-bridge.service /etc/systemd/system
@@ -12,21 +12,25 @@
 # TO SEE IF IT'S RUNNING:
 #   systemctl status arm-can-bridge
 #
-# PREREQUISITE: Install Mosquitto on the Pi and run uv sync in the embedded repo bridge
-# package such that the arm-can-bridge process becomes available
+# PREREQUISITE: Install Mosquitto on the Pi, run uv sync in the embedded repo bridge
+# package such that the arm-can-bridge process becomes available.
+# Also! The user must be added to the dialout group i.e. the user group that can use serial ports.
 
 [Unit]
 Description=Arm CAN <-> MQTT bridge
-After=mosquitto.service # Make sure the Mosquitto broker starts first
+# Make sure the Mosquitto broker starts first
+After=mosquitto.service
 Wants=mosquitto.service
-BindsTo=sys-subsystem-net-devices-can0.device # Make sure that the CANable 
-After=sys-subsystem-net-devices-can0.device
+# New name needed! Not sure if this one is permanent!
+BindsTo=dev-ttyACM0.device
+# Bottlenecked by this device if it doesn't show up :/
+After=dev-ttyACM0.device
 
 [Service]
-User=pi # Not 100% sure if this is correct
-ExecStartPre=-+/sbin/ip link set can0 down # Stop existing can0 activity 
-ExecStartPre=+/sbin/ip link set can0 up type can bitrate 500000 dbitrate 2000000 fd on # Set bitrate to 500 kbps
-ExecStart=/home/pi/rover-embedded-2027/bridge/.venv/bin/arm-can-bridge # This depends on the script being there yknow
+# Not 100% sure if this is correct, check with `whoami` on the Pi.
+User=pi
+# This below line depends on the script being there yknow (uv sync in bridge/)
+ExecStart=/home/pi/rover-embedded-2027/bridge/.venv/bin/arm-can-bridge
 Restart=on-failure
 RestartSec=2
 
